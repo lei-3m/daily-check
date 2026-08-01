@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ScheduleItem } from '../lib/types';
 import { todayKey, shortLabel } from '../lib/date';
 
@@ -38,6 +38,7 @@ export function ScheduleBlock({
   const [showPast, setShowPast] = useState(false);
   const [inputDate, setInputDate] = useState(activeKey || todayKey());
   const [inputText, setInputText] = useState('');
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (activeKey) {
@@ -68,8 +69,21 @@ export function ScheduleBlock({
     setInputText('');
   };
 
+  const handleDateTriggerClick = () => {
+    if (dateInputRef.current) {
+      if (
+        'showPicker' in dateInputRef.current &&
+        typeof dateInputRef.current.showPicker === 'function'
+      ) {
+        dateInputRef.current.showPicker();
+      } else {
+        dateInputRef.current.click();
+      }
+    }
+  };
+
   return (
-    <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3">
+    <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3 max-w-full overflow-hidden">
       {/* Block Header */}
       <div
         onClick={() => setIsCollapsed(!isCollapsed)}
@@ -96,26 +110,43 @@ export function ScheduleBlock({
       </div>
 
       {!isCollapsed && (
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-full">
           {/* Add Schedule Form */}
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <input
-              type="date"
-              value={inputDate}
-              onChange={(e) => setInputDate(e.target.value)}
-              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 font-mono"
-            />
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full max-w-full"
+          >
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={handleDateTriggerClick}
+                className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 font-mono flex items-center gap-1 font-semibold"
+              >
+                <span>📅</span>
+                <span>{inputDate ? shortLabel(inputDate) : '날짜'}</span>
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={inputDate}
+                onChange={(e) => setInputDate(e.target.value)}
+                className="sr-only absolute inset-0 opacity-0 pointer-events-none"
+                tabIndex={-1}
+              />
+            </div>
+
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="일정 입력"
-              className="flex-1 text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="flex-1 min-w-[120px] text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
+
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="text-xs px-2.5 py-1.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+              className="text-xs px-3 py-1.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
             >
               추가
             </button>
@@ -145,13 +176,13 @@ export function ScheduleBlock({
                       {pastSchedules.map((item) => (
                         <li
                           key={item.id}
-                          className="flex items-center justify-between group py-0.5 hover:bg-slate-100/60 rounded px-1 transition-colors"
+                          className="flex items-center justify-between group py-0.5 hover:bg-slate-100/60 rounded px-1 transition-colors min-w-0"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             <span className="font-mono text-slate-400 font-semibold w-10 shrink-0 text-right">
                               {formatDisplayDate(item.date)}
                             </span>
-                            <span className="truncate line-through text-slate-400">
+                            <span className="truncate line-through text-slate-400 min-w-0 flex-1">
                               {item.text}
                             </span>
                           </div>
@@ -159,7 +190,7 @@ export function ScheduleBlock({
                             type="button"
                             onClick={() => onDeleteSchedule(item.id)}
                             aria-label="일정 삭제"
-                            className="text-slate-300 hover:text-red-500 opacity-40 group-hover:opacity-100 transition-opacity p-0.5"
+                            className="text-slate-300 hover:text-red-500 opacity-40 group-hover:opacity-100 transition-opacity p-0.5 shrink-0"
                           >
                             ✕
                           </button>
@@ -175,13 +206,13 @@ export function ScheduleBlock({
                 {upcomingSchedules.map((item) => (
                   <li
                     key={item.id}
-                    className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors"
+                    className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="font-mono text-xs font-semibold text-slate-500 w-10 shrink-0 text-right">
                         {formatDisplayDate(item.date)}
                       </span>
-                      <span className="font-medium text-slate-800 truncate">
+                      <span className="font-medium text-slate-800 truncate min-w-0 flex-1">
                         {item.text}
                       </span>
                     </div>
@@ -189,7 +220,7 @@ export function ScheduleBlock({
                       type="button"
                       onClick={() => onDeleteSchedule(item.id)}
                       aria-label="일정 삭제"
-                      className="text-slate-300 hover:text-red-500 opacity-30 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded"
+                      className="text-slate-300 hover:text-red-500 opacity-30 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded shrink-0"
                     >
                       ✕
                     </button>
