@@ -54,6 +54,7 @@ export function TodoList({
       onAddMany([cleaned]);
       setInputValue('');
     }
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -61,6 +62,11 @@ export function TodoList({
       e.preventDefault();
       handleAddSingle();
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleAddSingle();
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
@@ -75,6 +81,7 @@ export function TodoList({
       if (cleanedLines.length > 0) {
         onAddMany(cleanedLines);
         setInputValue('');
+        inputRef.current?.focus();
       }
     }
   };
@@ -98,7 +105,7 @@ export function TodoList({
 
       {/* Add Todo Input Field (Hidden in select mode) */}
       {!isSelectMode && (
-        <div className="pt-2">
+        <form onSubmit={handleSubmit} className="pt-2">
           <div className="flex items-center gap-2 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
             <span className="text-base font-medium text-slate-400 select-none">＋</span>
             <input
@@ -108,11 +115,12 @@ export function TodoList({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
+              enterKeyHint="done"
               placeholder="할 일 추가 (여러 줄 붙여넣기 가능)"
               className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
             />
           </div>
-        </div>
+        </form>
       )}
     </div>
   );
