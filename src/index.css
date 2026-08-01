@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+.app-container {
+  padding-top: max(1.5rem, env(safe-area-inset-top));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+
 @keyframes slideInLeft {
   from {
     transform: translateX(30px);

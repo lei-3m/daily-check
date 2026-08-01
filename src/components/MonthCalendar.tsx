@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Day, ScheduleItem } from '../lib/types';
-import { todayKey, monthGrid, parseKey } from '../lib/date';
+import { todayKey, monthGrid, parseKey, startOfWeek, addDays } from '../lib/date';
 
 interface MonthCalendarProps {
   anchor: string;
@@ -401,6 +401,30 @@ export function MonthCalendar({
     )
     .sort((a, b) => a.norm.key.localeCompare(b.norm.key));
 
+  // Sectioning monthSchedules based on today
+  const thisWeekStartKey = startOfWeek(today);
+  const thisWeekEndKey = addDays(thisWeekStartKey, 6);
+  const nextWeekStartKey = addDays(thisWeekStartKey, 7);
+  const nextWeekEndKey = addDays(nextWeekStartKey, 6);
+
+  const pastSchedules: typeof monthSchedules = [];
+  const thisWeekSchedules: typeof monthSchedules = [];
+  const nextWeekSchedules: typeof monthSchedules = [];
+  const afterNextWeekSchedules: typeof monthSchedules = [];
+
+  for (const item of monthSchedules) {
+    const k = item.norm.key;
+    if (k < today) {
+      pastSchedules.push(item);
+    } else if (k >= today && k <= thisWeekEndKey) {
+      thisWeekSchedules.push(item);
+    } else if (k >= nextWeekStartKey && k <= nextWeekEndKey) {
+      nextWeekSchedules.push(item);
+    } else {
+      afterNextWeekSchedules.push(item);
+    }
+  }
+
   return (
     <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 space-y-3 select-none">
       {/* Top Header */}
@@ -458,27 +482,114 @@ export function MonthCalendar({
 
       {/* Month Schedule List */}
       {monthSchedules.length > 0 && (
-        <div className="pt-3 border-t border-slate-200/80 space-y-2 select-auto">
+        <div className="pt-3 border-t border-slate-200/80 space-y-3 select-auto">
           <div className="text-xs font-semibold text-slate-500 px-1">
             📌 이 달의 일정
           </div>
-          <ul className="space-y-1 text-xs">
-            {monthSchedules.map((item) => (
-              <li
-                key={item.id}
-                onClick={() => onSelectDate(item.norm.key)}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
-              >
-                <span className="text-amber-500 text-[10px]">●</span>
-                <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
-                  {item.norm.label}
-                </span>
-                <span className="font-medium text-slate-800 truncate">
-                  {item.text}
-                </span>
-              </li>
-            ))}
-          </ul>
+
+          {/* 이번 주 */}
+          {thisWeekSchedules.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-slate-500 px-1">
+                이번 주
+              </div>
+              <ul className="space-y-1 text-xs">
+                {thisWeekSchedules.map((item) => (
+                  <li
+                    key={item.id}
+                    onClick={() => onSelectDate(item.norm.key)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
+                  >
+                    <span className="text-amber-500 text-[10px]">●</span>
+                    <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
+                      {item.norm.label}
+                    </span>
+                    <span className="font-medium text-slate-800 truncate">
+                      {item.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 다음 주 */}
+          {nextWeekSchedules.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-slate-500 px-1">
+                다음 주
+              </div>
+              <ul className="space-y-1 text-xs">
+                {nextWeekSchedules.map((item) => (
+                  <li
+                    key={item.id}
+                    onClick={() => onSelectDate(item.norm.key)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
+                  >
+                    <span className="text-amber-500 text-[10px]">●</span>
+                    <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
+                      {item.norm.label}
+                    </span>
+                    <span className="font-medium text-slate-800 truncate">
+                      {item.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 그 이후 */}
+          {afterNextWeekSchedules.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-slate-500 px-1">
+                그 이후
+              </div>
+              <ul className="space-y-1 text-xs">
+                {afterNextWeekSchedules.map((item) => (
+                  <li
+                    key={item.id}
+                    onClick={() => onSelectDate(item.norm.key)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
+                  >
+                    <span className="text-amber-500 text-[10px]">●</span>
+                    <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
+                      {item.norm.label}
+                    </span>
+                    <span className="font-medium text-slate-800 truncate">
+                      {item.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 지난 일정 */}
+          {pastSchedules.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[11px] font-semibold text-slate-400 px-1">
+                지난 일정
+              </div>
+              <ul className="space-y-1 text-xs">
+                {pastSchedules.map((item) => (
+                  <li
+                    key={item.id}
+                    onClick={() => onSelectDate(item.norm.key)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-500 bg-white/70 border border-slate-100"
+                  >
+                    <span className="text-slate-300 text-[10px]">●</span>
+                    <span className="font-mono font-semibold text-slate-400 w-10 shrink-0">
+                      {item.norm.label}
+                    </span>
+                    <span className="font-medium text-slate-600 truncate">
+                      {item.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
