@@ -1,8 +1,14 @@
-export function ActionBar() {
+interface ActionBarProps {
+  onCopy?: () => void;
+  onStartMoveMode?: () => void;
+}
+
+export function ActionBar({ onCopy, onStartMoveMode }: ActionBarProps) {
   return (
     <div className="flex items-center gap-2 sm:gap-2.5 pt-2">
       <button
         type="button"
+        onClick={onCopy}
         className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
       >
         <span>📋</span>
@@ -11,6 +17,7 @@ export function ActionBar() {
 
       <button
         type="button"
+        onClick={onStartMoveMode}
         className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 font-semibold text-sm hover:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
       >
         <span>📅</span>
