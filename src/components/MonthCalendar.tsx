@@ -38,12 +38,25 @@ function normalizeDate(dateStr: string): { key: string; year: number; month: num
   return { key: dateStr, year: new Date().getFullYear(), month: 0, date: 1, label: dateStr };
 }
 
-function getMonthOffsetKey(anchorKey: string, monthOffset: number): string {
-  const d = parseKey(anchorKey);
-  const targetDate = new Date(d.getFullYear(), d.getMonth() + monthOffset, 1);
+function getMonthOffsetKeyFromBase(baseKey: string, offset: number): string {
+  const d = parseKey(baseKey);
+  const targetDate = new Date(d.getFullYear(), d.getMonth() + offset, 1);
   const y = targetDate.getFullYear();
   const m = String(targetDate.getMonth() + 1).padStart(2, '0');
   return `${y}-${m}-01`;
+}
+
+function getMonthKeyString(anchorKey: string): string {
+  const d = parseKey(anchorKey);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+function getMonthDifference(anchor1: string, anchor2: string): number {
+  const d1 = parseKey(anchor1);
+  const d2 = parseKey(anchor2);
+  return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
 }
 
 interface DayCellProps {
@@ -75,7 +88,7 @@ const DayCell = React.memo(function DayCell({
     <button
       type="button"
       onClick={() => onClick(dateKey)}
-      className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 relative select-auto ${
+      className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 relative select-auto ${
         isSelected
           ? 'bg-slate-900 text-white font-bold shadow-xs'
           : isSameMonth
@@ -140,9 +153,15 @@ export function MonthCalendar({
   onNextMonth,
 }: MonthCalendarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
-  const isAnimatingRef = useRef(false);
+
+  // Fixed base month anchor initialized on mount
+  const [baseMonthKey] = useState<string>(() => anchor);
+  // Month offset index relative to baseMonthKey
+  const [monthOffsetIndex, setMonthOffsetIndex] = useState<number>(0);
+
+  const [dragDx, setDragDx] = useState<number>(0);
+  const [isSwiping, setIsSwiping] = useState<boolean>(false);
 
   const pointerStateRef = useRef<{
     startX: number;
@@ -154,17 +173,19 @@ export function MonthCalendar({
   } | null>(null);
 
   const today = todayKey();
-  const anchorDate = parseKey(anchor);
-  const currentMonth = anchorDate.getMonth();
-  const monthTitle = `${anchorDate.getFullYear()}년 ${currentMonth + 1}월`;
 
-  const prevAnchor = getMonthOffsetKey(anchor, -1);
-  const nextAnchor = getMonthOffsetKey(anchor, 1);
+  // Sync monthOffsetIndex if anchor changes externally
+  useEffect(() => {
+    const diff = getMonthDifference(baseMonthKey, anchor);
+    if (diff !== monthOffsetIndex) {
+      setMonthOffsetIndex(diff);
+    }
+  }, [anchor, baseMonthKey, monthOffsetIndex]);
 
-  // Stable grid keys for current, prev, next months
-  const prevGridKeys = useMemo(() => getMonthGridMemoized(prevAnchor), [prevAnchor]);
-  const currentGridKeys = useMemo(() => getMonthGridMemoized(anchor), [anchor]);
-  const nextGridKeys = useMemo(() => getMonthGridMemoized(nextAnchor), [nextAnchor]);
+  // Current displayed month title
+  const currentDisplayedAnchor = getMonthOffsetKeyFromBase(baseMonthKey, monthOffsetIndex);
+  const currentDisplayedDate = parseKey(currentDisplayedAnchor);
+  const monthTitle = `${currentDisplayedDate.getFullYear()}년 ${currentDisplayedDate.getMonth() + 1}월`;
 
   // Pre-calculate schedules and summaries lookup maps
   const scheduleKeysSet = useMemo(() => {
@@ -191,9 +212,12 @@ export function MonthCalendar({
     return map;
   }, [days]);
 
-  const handleSelectDateStable = useCallback((key: string) => {
-    onSelectDate(key);
-  }, [onSelectDate]);
+  const handleSelectDateStable = useCallback(
+    (key: string) => {
+      onSelectDate(key);
+    },
+    [onSelectDate]
+  );
 
   // Measure container width on resize
   useEffect(() => {
@@ -216,52 +240,17 @@ export function MonthCalendar({
     return () => observer.disconnect();
   }, []);
 
-  // Reset transform whenever anchor or containerWidth changes
-  useEffect(() => {
-    if (trackRef.current && containerRef.current) {
-      const w = containerWidth || containerRef.current.clientWidth || 300;
-      const step = w + PANEL_GAP;
-      trackRef.current.style.transition = 'none';
-      trackRef.current.style.transform = `translateX(-${step}px)`;
-    }
-    isAnimatingRef.current = false;
-  }, [anchor, containerWidth]);
+  const handleGoPrev = useCallback(() => {
+    setMonthOffsetIndex((prev) => prev - 1);
+    onPrevMonth();
+  }, [onPrevMonth]);
 
-  const animateAndNavigate = (dir: 'next' | 'prev') => {
-    if (isAnimatingRef.current || !trackRef.current || !containerRef.current) {
-      if (dir === 'next') onNextMonth();
-      else onPrevMonth();
-      return;
-    }
-
-    const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isReducedMotion) {
-      if (dir === 'next') onNextMonth();
-      else onPrevMonth();
-      return;
-    }
-
-    const w = containerWidth || containerRef.current.clientWidth || 300;
-    const step = w + PANEL_GAP;
-    isAnimatingRef.current = true;
-    trackRef.current.style.transition = 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-    trackRef.current.style.transform = `translateX(${dir === 'next' ? -2 * step : 0}px)`;
-
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        if (trackRef.current) {
-          trackRef.current.style.transition = 'none';
-          trackRef.current.style.transform = `translateX(-${step}px)`;
-        }
-        isAnimatingRef.current = false;
-        if (dir === 'next') onNextMonth();
-        else onPrevMonth();
-      });
-    }, 180);
-  };
+  const handleGoNext = useCallback(() => {
+    setMonthOffsetIndex((prev) => prev + 1);
+    onNextMonth();
+  }, [onNextMonth]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isAnimatingRef.current) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     pointerStateRef.current = {
@@ -289,21 +278,16 @@ export function MonthCalendar({
         state.isDecided = true;
         if (absDx > absDy * 1.5) {
           state.isSwiping = true;
-          if (trackRef.current) {
-            trackRef.current.style.transition = 'none';
-          }
+          setIsSwiping(true);
         } else {
-          // Vertical scroll - release pointer tracking
           pointerStateRef.current = null;
           return;
         }
       }
     }
 
-    if (state.isSwiping && trackRef.current && containerRef.current) {
-      const w = containerWidth || containerRef.current.clientWidth || 300;
-      const step = w + PANEL_GAP;
-      trackRef.current.style.transform = `translateX(${-step + dx}px)`;
+    if (state.isSwiping) {
+      setDragDx(dx);
     }
   };
 
@@ -312,100 +296,99 @@ export function MonthCalendar({
     if (!state || state.pointerId !== e.pointerId) return;
     pointerStateRef.current = null;
 
-    if (!state.isSwiping || !trackRef.current || !containerRef.current) return;
+    if (!state.isSwiping) return;
 
     const dx = e.clientX - state.startX;
     const dt = Date.now() - state.startTime;
-    const w = containerWidth || containerRef.current.clientWidth || 300;
-    const step = w + PANEL_GAP;
+    const w = containerWidth || (containerRef.current ? containerRef.current.clientWidth : 300);
     const speed = Math.abs(dx) / Math.max(dt, 1);
-
-    const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const isFlick = speed > 0.3 && Math.abs(dx) > 20;
     const isDistancePassed = Math.abs(dx) >= w * 0.25;
 
-    let direction: 'next' | 'prev' | 'reset' = 'reset';
+    setIsSwiping(false);
+    setDragDx(0);
+
     if (isDistancePassed || isFlick) {
       if (dx < 0) {
-        direction = 'next';
+        handleGoNext();
       } else {
-        direction = 'prev';
+        handleGoPrev();
       }
     }
-
-    if (isReducedMotion) {
-      trackRef.current.style.transition = 'none';
-      trackRef.current.style.transform = `translateX(-${step}px)`;
-      if (direction === 'next') onNextMonth();
-      else if (direction === 'prev') onPrevMonth();
-      return;
-    }
-
-    isAnimatingRef.current = true;
-    trackRef.current.style.transition = 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-
-    let targetX = -step;
-    if (direction === 'next') {
-      targetX = -2 * step;
-    } else if (direction === 'prev') {
-      targetX = 0;
-    }
-
-    trackRef.current.style.transform = `translateX(${targetX}px)`;
-
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        if (trackRef.current) {
-          trackRef.current.style.transition = 'none';
-          trackRef.current.style.transform = `translateX(-${step}px)`;
-        }
-        isAnimatingRef.current = false;
-        if (direction === 'next') {
-          onNextMonth();
-        } else if (direction === 'prev') {
-          onPrevMonth();
-        }
-      });
-    }, 180);
   };
 
-  const renderMonthGrid = (gridAnchorKey: string, gridKeys: string[]) => {
-    const gridAnchorDate = parseKey(gridAnchorKey);
+  // Render range: 5 months centered around monthOffsetIndex: [monthOffsetIndex - 2 ... monthOffsetIndex + 2]
+  const visibleOffsetIndices = useMemo(() => {
+    const indices: number[] = [];
+    for (let offset = monthOffsetIndex - 2; offset <= monthOffsetIndex + 2; offset++) {
+      indices.push(offset);
+    }
+    return indices;
+  }, [monthOffsetIndex]);
+
+  const step = (containerWidth || 300) + PANEL_GAP;
+
+  const renderMonthPanel = (offsetIndex: number) => {
+    const panelAnchorKey = getMonthOffsetKeyFromBase(baseMonthKey, offsetIndex);
+    const panelMonthKey = getMonthKeyString(panelAnchorKey);
+    const gridKeys = getMonthGridMemoized(panelAnchorKey);
+    const gridAnchorDate = parseKey(panelAnchorKey);
     const gridCurrentMonth = gridAnchorDate.getMonth();
 
     return (
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {gridKeys.map((key) => {
-          const d = parseKey(key);
-          const dayNum = d.getDate();
-          const isSameMonth = d.getMonth() === gridCurrentMonth;
-          const isSelected = key === activeKey;
-          const isToday = key === today;
-          const scheduleExists = scheduleKeysSet.has(key);
-          const summary = daySummariesMap.get(key);
+      <div
+        key={panelMonthKey}
+        className="absolute top-0 left-0 w-full"
+        style={{
+          transform: `translateX(${offsetIndex * step}px)`,
+        }}
+      >
+        <div className="grid grid-cols-7 gap-1 text-center font-semibold text-xs py-1 mb-1">
+          {WEEKDAY_NAMES.map((name, i) => (
+            <div
+              key={name}
+              className={
+                i === 0 ? 'text-red-500/80' : i === 6 ? 'text-blue-500/80' : 'text-slate-400'
+              }
+            >
+              {name}
+            </div>
+          ))}
+        </div>
 
-          return (
-            <DayCell
-              key={key}
-              dateKey={key}
-              dayNum={dayNum}
-              isSameMonth={isSameMonth}
-              isSelected={isSelected}
-              isToday={isToday}
-              scheduleExists={scheduleExists}
-              summaryType={summary?.type}
-              summaryDone={summary?.done}
-              summaryTotal={summary?.total}
-              onClick={handleSelectDateStable}
-            />
-          );
-        })}
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {gridKeys.map((key) => {
+            const d = parseKey(key);
+            const dayNum = d.getDate();
+            const isSameMonth = d.getMonth() === gridCurrentMonth;
+            const isSelected = key === activeKey;
+            const isToday = key === today;
+            const scheduleExists = scheduleKeysSet.has(key);
+            const summary = daySummariesMap.get(key);
+
+            return (
+              <DayCell
+                key={key}
+                dateKey={key}
+                dayNum={dayNum}
+                isSameMonth={isSameMonth}
+                isSelected={isSelected}
+                isToday={isToday}
+                scheduleExists={scheduleExists}
+                summaryType={summary?.type}
+                summaryDone={summary?.done}
+                summaryTotal={summary?.total}
+                onClick={handleSelectDateStable}
+              />
+            );
+          })}
+        </div>
       </div>
     );
   };
 
-  // Schedules for the current month
+  // Schedules for current displayed month
   const monthSchedules = schedule
     .map((item) => ({
       ...item,
@@ -413,12 +396,10 @@ export function MonthCalendar({
     }))
     .filter(
       (item) =>
-        item.norm.year === anchorDate.getFullYear() &&
-        item.norm.month === currentMonth
+        item.norm.year === currentDisplayedDate.getFullYear() &&
+        item.norm.month === currentDisplayedDate.getMonth()
     )
     .sort((a, b) => a.norm.key.localeCompare(b.norm.key));
-
-  const initStep = (containerWidth || 300) + PANEL_GAP;
 
   return (
     <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 space-y-3 select-none">
@@ -436,7 +417,7 @@ export function MonthCalendar({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => animateAndNavigate('prev')}
+            onClick={handleGoPrev}
             aria-label="이전 달"
             className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 select-auto"
           >
@@ -445,7 +426,7 @@ export function MonthCalendar({
           <span className="font-bold text-slate-900">{monthTitle}</span>
           <button
             type="button"
-            onClick={() => animateAndNavigate('next')}
+            onClick={handleGoNext}
             aria-label="다음 달"
             className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 select-auto"
           >
@@ -454,21 +435,7 @@ export function MonthCalendar({
         </div>
       </div>
 
-      {/* Weekday Names Header (Fixed) */}
-      <div className="grid grid-cols-7 gap-1 text-center font-semibold text-xs py-1">
-        {WEEKDAY_NAMES.map((name, i) => (
-          <div
-            key={name}
-            className={
-              i === 0 ? 'text-red-500/80' : i === 6 ? 'text-blue-500/80' : 'text-slate-400'
-            }
-          >
-            {name}
-          </div>
-        ))}
-      </div>
-
-      {/* Sliding Carousel Container */}
+      {/* Grid Container with swipe gesture */}
       <div
         ref={containerRef}
         className="overflow-hidden touch-pan-y relative"
@@ -478,36 +445,14 @@ export function MonthCalendar({
         onPointerCancel={handlePointerUp}
       >
         <div
-          ref={trackRef}
-          className="flex will-change-transform"
+          className="relative w-full h-[340px]"
           style={{
-            gap: `${PANEL_GAP}px`,
-            transform: `translateX(-${initStep}px)`,
+            transform: `translateX(${-monthOffsetIndex * step + dragDx}px)`,
+            transition: isSwiping ? 'none' : 'transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+            willChange: 'transform',
           }}
         >
-          {/* Slide 0: Previous Month */}
-          <div
-            className="shrink-0"
-            style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
-          >
-            {renderMonthGrid(prevAnchor, prevGridKeys)}
-          </div>
-
-          {/* Slide 1: Current Month */}
-          <div
-            className="shrink-0"
-            style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
-          >
-            {renderMonthGrid(anchor, currentGridKeys)}
-          </div>
-
-          {/* Slide 2: Next Month */}
-          <div
-            className="shrink-0"
-            style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
-          >
-            {renderMonthGrid(nextAnchor, nextGridKeys)}
-          </div>
+          {visibleOffsetIndices.map((idx) => renderMonthPanel(idx))}
         </div>
       </div>
 
@@ -539,5 +484,3 @@ export function MonthCalendar({
     </div>
   );
 }
-
-
