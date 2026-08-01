@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, monthGrid, parseKey } from '../lib/date';
 
@@ -38,11 +38,51 @@ export function MonthCalendar({
   onPrevMonth,
   onNextMonth,
 }: MonthCalendarProps) {
+  const [animClass, setAnimClass] = useState<string>('');
+  const pointerStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+
   const today = todayKey();
   const anchorDate = parseKey(anchor);
   const currentMonth = anchorDate.getMonth();
   const monthTitle = `${anchorDate.getFullYear()}년 ${currentMonth + 1}월`;
   const gridKeys = monthGrid(anchor);
+
+  const triggerPrevMonth = () => {
+    setAnimClass('animate-slide-right');
+    onPrevMonth();
+  };
+
+  const triggerNextMonth = () => {
+    setAnimClass('animate-slide-left');
+    onNextMonth();
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!pointerStartRef.current || pointerStartRef.current.pointerId !== e.pointerId) return;
+    const dx = e.clientX - pointerStartRef.current.x;
+    const dy = e.clientY - pointerStartRef.current.y;
+    pointerStartRef.current = null;
+
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    if (absDx > absDy * 1.5 && absDx > 50) {
+      if (dx < 0) {
+        triggerNextMonth();
+      } else {
+        triggerPrevMonth();
+      }
+    }
+  };
+
+  const handlePointerCancel = () => {
+    pointerStartRef.current = null;
+  };
 
   const hasSchedule = (key: string) => {
     return schedule.some((item) => normalizeDate(item.date).key === key);
@@ -77,13 +117,18 @@ export function MonthCalendar({
     .sort((a, b) => a.norm.key.localeCompare(b.norm.key));
 
   return (
-    <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 space-y-3">
+    <div
+      className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 space-y-3 touch-pan-y select-none overflow-hidden"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+    >
       {/* Top Header */}
       <div className="flex items-center justify-between text-sm font-semibold text-slate-800">
         <button
           type="button"
           onClick={onBackToWeek}
-          className="flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded px-1.5 py-0.5"
+          className="flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded px-1.5 py-0.5 select-auto"
         >
           <span>‹</span>
           <span className="text-xs">주간 뷰로 돌아가기</span>
@@ -92,107 +137,110 @@ export function MonthCalendar({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onPrevMonth}
+            onClick={triggerPrevMonth}
             aria-label="이전 달"
-            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 select-auto"
           >
             ‹
           </button>
           <span className="font-bold text-slate-900">{monthTitle}</span>
           <button
             type="button"
-            onClick={onNextMonth}
+            onClick={triggerNextMonth}
             aria-label="다음 달"
-            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 select-auto"
           >
             ›
           </button>
         </div>
       </div>
 
-      {/* Grid: 7 columns */}
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {WEEKDAY_NAMES.map((name, i) => (
-          <div
-            key={name}
-            className={`text-xs font-semibold py-1 ${
-              i === 0 ? 'text-red-500/80' : i === 6 ? 'text-blue-500/80' : 'text-slate-400'
-            }`}
-          >
-            {name}
-          </div>
-        ))}
-
-        {gridKeys.map((key) => {
-          const d = parseKey(key);
-          const dayNum = d.getDate();
-          const isSameMonth = d.getMonth() === currentMonth;
-          const isSelected = key === activeKey;
-          const isToday = key === today;
-          const scheduleExists = hasSchedule(key);
-          const summary = getDaySummary(key);
-
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onSelectDate(key)}
-              className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 relative ${
-                isSelected
-                  ? 'bg-slate-900 text-white font-bold shadow-xs'
-                  : isSameMonth
-                  ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
-                  : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300'
-              } ${
-                isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
+      {/* Grid wrapper with animation */}
+      <div key={anchor} className={animClass}>
+        {/* Grid: 7 columns */}
+        <div className="grid grid-cols-7 gap-1 text-center">
+          {WEEKDAY_NAMES.map((name, i) => (
+            <div
+              key={name}
+              className={`text-xs font-semibold py-1 ${
+                i === 0 ? 'text-red-500/80' : i === 6 ? 'text-blue-500/80' : 'text-slate-400'
               }`}
             >
-              {/* Day Number and Schedule Dot indicator */}
-              <div className="w-full flex items-center justify-between px-0.5">
-                <span className="text-xs font-mono">{dayNum}</span>
-                {scheduleExists && (
-                  <span
-                    title="일정 있음"
-                    className={`text-[8px] leading-none ${
-                      isSelected ? 'text-amber-300' : 'text-amber-500'
-                    }`}
-                  >
-                    ●
-                  </span>
-                )}
-              </div>
+              {name}
+            </div>
+          ))}
 
-              {/* Day content summary (Todos count or Memo dot) */}
-              <div className="h-4 flex items-center justify-center text-[10px] font-mono leading-none">
-                {summary?.type === 'todos' && (
-                  <span
-                    className={
-                      isSelected
-                        ? 'text-sky-300 font-semibold'
-                        : 'text-slate-500 font-medium'
-                    }
-                  >
-                    {summary.done}/{summary.total}
-                  </span>
-                )}
-                {summary?.type === 'memo' && (
-                  <span
-                    className={
-                      isSelected ? 'text-amber-300 font-bold' : 'text-slate-400'
-                    }
-                  >
-                    ·
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+          {gridKeys.map((key) => {
+            const d = parseKey(key);
+            const dayNum = d.getDate();
+            const isSameMonth = d.getMonth() === currentMonth;
+            const isSelected = key === activeKey;
+            const isToday = key === today;
+            const scheduleExists = hasSchedule(key);
+            const summary = getDaySummary(key);
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onSelectDate(key)}
+                className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 relative select-auto ${
+                  isSelected
+                    ? 'bg-slate-900 text-white font-bold shadow-xs'
+                    : isSameMonth
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
+                    : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300'
+                } ${
+                  isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
+                }`}
+              >
+                {/* Day Number and Schedule Dot indicator */}
+                <div className="w-full flex items-center justify-between px-0.5">
+                  <span className="text-xs font-mono">{dayNum}</span>
+                  {scheduleExists && (
+                    <span
+                      title="일정 있음"
+                      className={`text-[8px] leading-none ${
+                        isSelected ? 'text-amber-300' : 'text-amber-500'
+                      }`}
+                    >
+                      ●
+                    </span>
+                  )}
+                </div>
+
+                {/* Day content summary (Todos count or Memo dot) */}
+                <div className="h-4 flex items-center justify-center text-[10px] font-mono leading-none">
+                  {summary?.type === 'todos' && (
+                    <span
+                      className={
+                        isSelected
+                          ? 'text-sky-300 font-semibold'
+                          : 'text-slate-500 font-medium'
+                      }
+                    >
+                      {summary.done}/{summary.total}
+                    </span>
+                  )}
+                  {summary?.type === 'memo' && (
+                    <span
+                      className={
+                        isSelected ? 'text-amber-300 font-bold' : 'text-slate-400'
+                      }
+                    >
+                      ·
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Month Schedule List */}
       {monthSchedules.length > 0 && (
-        <div className="pt-3 border-t border-slate-200/80 space-y-2">
+        <div className="pt-3 border-t border-slate-200/80 space-y-2 select-auto">
           <div className="text-xs font-semibold text-slate-500 px-1">
             📌 이 달의 일정
           </div>
@@ -218,3 +266,4 @@ export function MonthCalendar({
     </div>
   );
 }
+

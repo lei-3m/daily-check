@@ -1,1 +1,38 @@
 @import "tailwindcss";
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(30px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(-30px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-left {
+  animation: slideInLeft 180ms ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slideInRight 180ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-left,
+  .animate-slide-right {
+    animation: none !important;
+  }
+}
