@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Todo } from '../lib/types';
 
 interface TodoRowProps {
@@ -26,6 +28,25 @@ export function TodoRow({
   const [editText, setEditText] = useState(text);
   const inputRef = useRef<HTMLInputElement>(null);
   const isCancelledRef = useRef(false);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id,
+    disabled: isSelectMode,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    position: 'relative',
+  };
 
   useEffect(() => {
     if (isEditing && !isSelectMode) {
@@ -69,9 +90,13 @@ export function TodoRow({
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       onClick={isSelectMode ? () => onToggleSelect?.(id) : undefined}
       className={`group flex items-center justify-between py-2 px-2.5 rounded-lg transition-colors border ${
-        isSelectMode
+        isDragging
+          ? 'shadow-lg bg-white opacity-90 scale-[1.01] border-slate-200 ring-1 ring-slate-200'
+          : isSelectMode
           ? isSelected
             ? 'bg-indigo-50/60 border-indigo-200 cursor-pointer'
             : 'hover:bg-slate-50 border-slate-100 cursor-pointer'
@@ -114,8 +139,12 @@ export function TodoRow({
         ) : (
           /* Drag handle */
           <span
-            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab text-base"
-            aria-hidden="true"
+            {...attributes}
+            {...listeners}
+            style={{ touchAction: 'none' }}
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab active:cursor-grabbing text-base touch-none focus:outline-none focus:ring-2 focus:ring-slate-300 rounded"
+            aria-label="순서 변경"
+            title="드래그하여 순서 변경"
           >
             ⠿
           </span>
