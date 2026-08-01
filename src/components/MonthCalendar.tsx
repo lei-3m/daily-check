@@ -14,6 +14,7 @@ interface MonthCalendarProps {
 }
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+const PANEL_GAP = 20; // 20px gap between month slide panels
 
 function normalizeDate(dateStr: string): { key: string; year: number; month: number; date: number; label: string } {
   if (dateStr.includes('-')) {
@@ -48,6 +49,7 @@ export function MonthCalendar({
 }: MonthCalendarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
   const isAnimatingRef = useRef(false);
 
   const pointerStateRef = useRef<{
@@ -67,14 +69,37 @@ export function MonthCalendar({
   const prevAnchor = getMonthOffsetKey(anchor, -1);
   const nextAnchor = getMonthOffsetKey(anchor, 1);
 
-  // Reset transform whenever anchor changes
+  // Measure container width on resize
   useEffect(() => {
-    if (trackRef.current) {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect && entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Reset transform whenever anchor or containerWidth changes
+  useEffect(() => {
+    if (trackRef.current && containerRef.current) {
+      const w = containerWidth || containerRef.current.clientWidth || 300;
+      const step = w + PANEL_GAP;
       trackRef.current.style.transition = 'none';
-      trackRef.current.style.transform = 'translateX(0)';
+      trackRef.current.style.transform = `translateX(-${step}px)`;
     }
     isAnimatingRef.current = false;
-  }, [anchor]);
+  }, [anchor, containerWidth]);
 
   const animateAndNavigate = (dir: 'next' | 'prev') => {
     if (isAnimatingRef.current || !trackRef.current || !containerRef.current) {
@@ -90,19 +115,22 @@ export function MonthCalendar({
       return;
     }
 
-    const width = containerRef.current.clientWidth || 300;
+    const w = containerWidth || containerRef.current.clientWidth || 300;
+    const step = w + PANEL_GAP;
     isAnimatingRef.current = true;
     trackRef.current.style.transition = 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)';
-    trackRef.current.style.transform = `translateX(${dir === 'next' ? -width : width}px)`;
+    trackRef.current.style.transform = `translateX(${dir === 'next' ? -2 * step : 0}px)`;
 
     setTimeout(() => {
-      if (trackRef.current) {
-        trackRef.current.style.transition = 'none';
-        trackRef.current.style.transform = 'translateX(0)';
-      }
-      isAnimatingRef.current = false;
-      if (dir === 'next') onNextMonth();
-      else onPrevMonth();
+      requestAnimationFrame(() => {
+        if (trackRef.current) {
+          trackRef.current.style.transition = 'none';
+          trackRef.current.style.transform = `translateX(-${step}px)`;
+        }
+        isAnimatingRef.current = false;
+        if (dir === 'next') onNextMonth();
+        else onPrevMonth();
+      });
     }, 180);
   };
 
@@ -146,8 +174,10 @@ export function MonthCalendar({
       }
     }
 
-    if (state.isSwiping && trackRef.current) {
-      trackRef.current.style.transform = `translateX(${dx}px)`;
+    if (state.isSwiping && trackRef.current && containerRef.current) {
+      const w = containerWidth || containerRef.current.clientWidth || 300;
+      const step = w + PANEL_GAP;
+      trackRef.current.style.transform = `translateX(${-step + dx}px)`;
     }
   };
 
@@ -160,13 +190,14 @@ export function MonthCalendar({
 
     const dx = e.clientX - state.startX;
     const dt = Date.now() - state.startTime;
-    const width = containerRef.current.clientWidth || 300;
+    const w = containerWidth || containerRef.current.clientWidth || 300;
+    const step = w + PANEL_GAP;
     const speed = Math.abs(dx) / Math.max(dt, 1);
 
     const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const isFlick = speed > 0.3 && Math.abs(dx) > 20;
-    const isDistancePassed = Math.abs(dx) >= width * 0.25;
+    const isDistancePassed = Math.abs(dx) >= w * 0.25;
 
     let direction: 'next' | 'prev' | 'reset' = 'reset';
     if (isDistancePassed || isFlick) {
@@ -179,7 +210,7 @@ export function MonthCalendar({
 
     if (isReducedMotion) {
       trackRef.current.style.transition = 'none';
-      trackRef.current.style.transform = 'translateX(0)';
+      trackRef.current.style.transform = `translateX(-${step}px)`;
       if (direction === 'next') onNextMonth();
       else if (direction === 'prev') onPrevMonth();
       return;
@@ -188,26 +219,28 @@ export function MonthCalendar({
     isAnimatingRef.current = true;
     trackRef.current.style.transition = 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)';
 
-    let targetX = 0;
+    let targetX = -step;
     if (direction === 'next') {
-      targetX = -width;
+      targetX = -2 * step;
     } else if (direction === 'prev') {
-      targetX = width;
+      targetX = 0;
     }
 
     trackRef.current.style.transform = `translateX(${targetX}px)`;
 
     setTimeout(() => {
-      if (trackRef.current) {
-        trackRef.current.style.transition = 'none';
-        trackRef.current.style.transform = 'translateX(0)';
-      }
-      isAnimatingRef.current = false;
-      if (direction === 'next') {
-        onNextMonth();
-      } else if (direction === 'prev') {
-        onPrevMonth();
-      }
+      requestAnimationFrame(() => {
+        if (trackRef.current) {
+          trackRef.current.style.transition = 'none';
+          trackRef.current.style.transform = `translateX(-${step}px)`;
+        }
+        isAnimatingRef.current = false;
+        if (direction === 'next') {
+          onNextMonth();
+        } else if (direction === 'prev') {
+          onPrevMonth();
+        }
+      });
     }, 180);
   };
 
@@ -254,7 +287,7 @@ export function MonthCalendar({
                   ? 'bg-slate-900 text-white font-bold shadow-xs'
                   : isSameMonth
                   ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
-                  : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300'
+                  : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300 opacity-60'
               } ${
                 isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
               }`}
@@ -317,6 +350,8 @@ export function MonthCalendar({
     )
     .sort((a, b) => a.norm.key.localeCompare(b.norm.key));
 
+  const initStep = (containerWidth || 300) + PANEL_GAP;
+
   return (
     <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 space-y-3 select-none">
       {/* Top Header */}
@@ -376,20 +411,33 @@ export function MonthCalendar({
       >
         <div
           ref={trackRef}
-          className="flex w-[300%] -ml-[100%] will-change-transform"
+          className="flex will-change-transform"
+          style={{
+            gap: `${PANEL_GAP}px`,
+            transform: `translateX(-${initStep}px)`,
+          }}
         >
           {/* Slide 0: Previous Month */}
-          <div className="w-1/3 shrink-0 px-0.5">
+          <div
+            className="shrink-0"
+            style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
+          >
             {renderMonthGrid(prevAnchor)}
           </div>
 
           {/* Slide 1: Current Month */}
-          <div className="w-1/3 shrink-0 px-0.5">
+          <div
+            className="shrink-0"
+            style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
+          >
             {renderMonthGrid(anchor)}
           </div>
 
           {/* Slide 2: Next Month */}
-          <div className="w-1/3 shrink-0 px-0.5">
+          <div
+            className="shrink-0"
+            style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
+          >
             {renderMonthGrid(nextAnchor)}
           </div>
         </div>

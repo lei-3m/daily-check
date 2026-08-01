@@ -90,12 +90,9 @@ export function monthGrid(key: string): string[] {
   const firstDayOfMonth = new Date(year, month, 1);
   const gridStartKey = startOfWeek(toKey(firstDayOfMonth));
 
-  const lastDayOfMonth = new Date(year, month + 1, 0);
-  const gridEndKey = addDays(startOfWeek(toKey(lastDayOfMonth)), 6);
-
   const grid: string[] = [];
   let current = gridStartKey;
-  while (current <= gridEndKey) {
+  for (let i = 0; i < 42; i++) {
     grid.push(current);
     current = addDays(current, 1);
   }
