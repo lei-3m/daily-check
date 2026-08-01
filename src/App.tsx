@@ -329,6 +329,24 @@ export default function App() {
     });
   };
 
+  const handleEditSchedule = (id: string, newDate: string, newText: string) => {
+    if (!newText.trim()) {
+      handleDeleteSchedule(id);
+      return;
+    }
+    setAppState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        schedule: prev.schedule.map((item) =>
+          item.id === id
+            ? { ...item, date: newDate, text: newText.trim() }
+            : item
+        ),
+      };
+    });
+  };
+
   const handleDeleteSchedule = (id: string) => {
     setAppState((prev) => {
       if (!prev) return prev;
@@ -411,6 +429,7 @@ export default function App() {
             schedule={appState.schedule}
             activeKey={activeKey}
             onAddSchedule={handleAddSchedule}
+            onEditSchedule={handleEditSchedule}
             onDeleteSchedule={handleDeleteSchedule}
             onOpenMonthView={() =>
               setView({ kind: 'month', anchor: activeKey || todayKey() })
