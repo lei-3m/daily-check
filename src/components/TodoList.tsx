@@ -1,4 +1,19 @@
 import React, { useState, useRef, KeyboardEvent, ClipboardEvent } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Todo } from '../lib/types';
 import { TodoRow } from './TodoRow';
 
@@ -11,6 +26,7 @@ interface TodoListProps {
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
   onAddMany: (texts: string[]) => void;
+  onReorderTodos?: (newTodos: Todo[]) => void;
 }
 
 export function cleanTodoPrefix(line: string): string {
@@ -44,11 +60,35 @@ export function TodoList({
   onEdit,
   onDelete,
   onAddMany,
+  onReorderTodos,
 }: TodoListProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const inputValueRef = useRef('');
   inputValueRef.current = inputValue;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = todos.findIndex((item) => item.id === active.id);
+      const newIndex = todos.findIndex((item) => item.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1 && onReorderTodos) {
+        const newTodos = arrayMove(todos, oldIndex, newIndex);
+        onReorderTodos(newTodos);
+      }
+    }
+  };
 
   const handleAddSingle = () => {
     const currentVal = inputValueRef.current || inputValue;
@@ -93,26 +133,37 @@ export function TodoList({
 
   return (
     <div className="space-y-1">
-      <div className="divide-y divide-slate-100/60">
-        {todos.length === 0 ? (
-          <div className="text-xs text-slate-400 py-3 text-center">
-            등록된 할 일이 없어요. 아래에서 새로운 할 일을 추가해 보세요!
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={todos.map((todo) => todo.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="divide-y divide-slate-100/60">
+            {todos.length === 0 ? (
+              <div className="text-xs text-slate-400 py-3 text-center">
+                등록된 할 일이 없어요. 아래에서 새로운 할 일을 추가해 보세요!
+              </div>
+            ) : (
+              todos.map((todo) => (
+                <TodoRow
+                  key={todo.id}
+                  todo={todo}
+                  isSelectMode={isSelectMode}
+                  isSelected={selectedIds?.has(todo.id)}
+                  onToggleSelect={onToggleSelect}
+                  onToggle={onToggle}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))
+            )}
           </div>
-        ) : (
-          todos.map((todo) => (
-            <TodoRow
-              key={todo.id}
-              todo={todo}
-              isSelectMode={isSelectMode}
-              isSelected={selectedIds?.has(todo.id)}
-              onToggleSelect={onToggleSelect}
-              onToggle={onToggle}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))
-        )}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Add Todo Input Field (Hidden in select mode) */}
       {!isSelectMode && (

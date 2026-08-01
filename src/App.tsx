@@ -457,6 +457,7 @@ export default function App() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onAddMany={handleAddMany}
+          onReorderTodos={(newTodos) => updateCurrentDay(newTodos)}
         />
 
         {/* Memo Block */}
