@@ -12,6 +12,11 @@ export interface SyncStatus {
   message?: string;
 }
 
+interface LocalCacheEnvelope {
+  userId?: string;
+  data: AppState;
+}
+
 // In-memory state for conflict tracking
 let lastLoadedUpdatedAt: string | null = null;
 let currentSyncStatus: SyncStatus = { type: 'synced' };
@@ -46,22 +51,74 @@ function updateSyncStatus(status: SyncStatus) {
   statusListeners.forEach((listener) => listener(status));
 }
 
-export function getLocalCache(): AppState | null {
+export function clearUserCache(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SNAPSHOT_KEY);
+    lastLoadedUpdatedAt = null;
+  } catch (e) {
+    console.error('Failed to clear user cache:', e);
+  }
+}
+
+export function setLocalCache(state: AppState, userId?: string): void {
+  try {
+    const envelope: LocalCacheEnvelope = {
+      userId,
+      data: state,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+  } catch (error) {
+    console.error('Failed to save state to localStorage:', error);
+  }
+}
+
+export function getLocalCache(expectedUserId?: string): AppState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as AppState;
-    if (parsed && typeof parsed === 'object' && parsed.days) {
-      return parsed;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    let cachedUserId: string | undefined;
+    let appState: AppState | null = null;
+
+    if ('data' in parsed && parsed.data && typeof parsed.data === 'object' && parsed.data.days) {
+      cachedUserId = parsed.userId;
+      appState = parsed.data as AppState;
+    } else if (parsed.days) {
+      // Legacy cache without envelope
+      appState = parsed as AppState;
     }
-    return null;
+
+    if (!appState) return null;
+
+    // Validate user identity if expectedUserId is provided
+    if (expectedUserId) {
+      if (!cachedUserId || cachedUserId !== expectedUserId) {
+        return null;
+      }
+    }
+
+    return appState;
   } catch {
     return null;
   }
 }
 
-export async function loadState(): Promise<AppState | null> {
-  const localData = getLocalCache();
+export async function loadState(expectedUserId?: string): Promise<AppState | null> {
+  let userId = expectedUserId;
+
+  if (isSupabaseConfigured() && !userId) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      userId = sessionData.session?.user?.id;
+    } catch {
+      // ignore
+    }
+  }
+
+  const localData = getLocalCache(userId);
 
   if (!isSupabaseConfigured()) {
     updateSyncStatus({ type: 'local_only' });
@@ -94,12 +151,8 @@ export async function loadState(): Promise<AppState | null> {
       lastLoadedUpdatedAt = row.updated_at || null;
       const serverState = row.data as AppState;
 
-      // Update LocalStorage cache
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(serverState));
-      } catch (e) {
-        console.error('LocalStorage write failed:', e);
-      }
+      // Update LocalStorage cache with user id
+      setLocalCache(serverState, user.id);
 
       const formattedTime = row.updated_at
         ? new Date(row.updated_at).toLocaleTimeString('ko-KR', {
@@ -120,39 +173,38 @@ export async function loadState(): Promise<AppState | null> {
   } catch (err) {
     console.error('Unexpected error loading state:', err);
     updateSyncStatus({ type: 'offline', message: '오프라인' });
-    return localData;
+    return getLocalCache(userId);
   }
 }
 
 export async function saveState(state: AppState): Promise<void> {
-  // 1. Always save to LocalStorage immediately as offline cache
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    console.error('Failed to save state to localStorage:', error);
+  let userId: string | undefined;
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      userId = sessionData.session?.user?.id;
+    } catch {
+      // ignore
+    }
   }
 
-  if (!isSupabaseConfigured()) {
+  // Save to LocalStorage immediately as offline cache
+  setLocalCache(state, userId);
+
+  if (!isSupabaseConfigured() || !userId) {
     updateSyncStatus({ type: 'local_only' });
     return;
   }
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData.session?.user;
-
-    if (!user) {
-      updateSyncStatus({ type: 'local_only' });
-      return;
-    }
-
     updateSyncStatus({ type: 'saving' });
 
     // Check server's updated_at for conflicts
     const { data: serverRow, error: fetchErr } = await supabase
       .from('user_state')
       .select('data, updated_at')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     if (fetchErr) {
@@ -185,7 +237,7 @@ export async function saveState(state: AppState): Promise<void> {
     // Save to server (upsert)
     const newUpdatedAt = new Date().toISOString();
     const { error: upsertErr } = await supabase.from('user_state').upsert({
-      user_id: user.id,
+      user_id: userId,
       data: state,
       updated_at: newUpdatedAt,
     });
