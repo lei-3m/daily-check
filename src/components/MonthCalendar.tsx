@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, monthGrid, parseKey } from '../lib/date';
 
@@ -15,6 +15,15 @@ interface MonthCalendarProps {
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 const PANEL_GAP = 20; // 20px gap between month slide panels
+
+// Global memoization cache for month grids
+const monthGridCache = new Map<string, string[]>();
+function getMonthGridMemoized(anchorKey: string): string[] {
+  if (!monthGridCache.has(anchorKey)) {
+    monthGridCache.set(anchorKey, monthGrid(anchorKey));
+  }
+  return monthGridCache.get(anchorKey)!;
+}
 
 function normalizeDate(dateStr: string): { key: string; year: number; month: number; date: number; label: string } {
   if (dateStr.includes('-')) {
@@ -36,6 +45,89 @@ function getMonthOffsetKey(anchorKey: string, monthOffset: number): string {
   const m = String(targetDate.getMonth() + 1).padStart(2, '0');
   return `${y}-${m}-01`;
 }
+
+interface DayCellProps {
+  dateKey: string;
+  dayNum: number;
+  isSameMonth: boolean;
+  isSelected: boolean;
+  isToday: boolean;
+  scheduleExists: boolean;
+  summaryType?: 'todos' | 'memo' | null;
+  summaryDone?: number;
+  summaryTotal?: number;
+  onClick: (dateKey: string) => void;
+}
+
+const DayCell = React.memo(function DayCell({
+  dateKey,
+  dayNum,
+  isSameMonth,
+  isSelected,
+  isToday,
+  scheduleExists,
+  summaryType,
+  summaryDone,
+  summaryTotal,
+  onClick,
+}: DayCellProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(dateKey)}
+      className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 relative select-auto ${
+        isSelected
+          ? 'bg-slate-900 text-white font-bold shadow-xs'
+          : isSameMonth
+          ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
+          : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300 opacity-60 border border-transparent'
+      } ${
+        isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
+      }`}
+    >
+      {/* Day Number and Schedule Dot indicator */}
+      <div className="w-full flex items-center justify-between px-0.5">
+        <span className="text-xs font-mono">{dayNum}</span>
+        {scheduleExists ? (
+          <span
+            title="일정 있음"
+            className={`text-[8px] leading-none ${
+              isSelected ? 'text-amber-300' : 'text-amber-500'
+            }`}
+          >
+            ●
+          </span>
+        ) : (
+          <span className="w-2" />
+        )}
+      </div>
+
+      {/* Day content summary */}
+      <div className="h-4 flex items-center justify-center text-[10px] font-mono leading-none">
+        {summaryType === 'todos' && (
+          <span
+            className={
+              isSelected
+                ? 'text-sky-300 font-semibold'
+                : 'text-slate-500 font-medium'
+            }
+          >
+            {summaryDone}/{summaryTotal}
+          </span>
+        )}
+        {summaryType === 'memo' && (
+          <span
+            className={
+              isSelected ? 'text-amber-300 font-bold' : 'text-slate-400'
+            }
+          >
+            ·
+          </span>
+        )}
+      </div>
+    </button>
+  );
+});
 
 export function MonthCalendar({
   anchor,
@@ -68,6 +160,40 @@ export function MonthCalendar({
 
   const prevAnchor = getMonthOffsetKey(anchor, -1);
   const nextAnchor = getMonthOffsetKey(anchor, 1);
+
+  // Stable grid keys for current, prev, next months
+  const prevGridKeys = useMemo(() => getMonthGridMemoized(prevAnchor), [prevAnchor]);
+  const currentGridKeys = useMemo(() => getMonthGridMemoized(anchor), [anchor]);
+  const nextGridKeys = useMemo(() => getMonthGridMemoized(nextAnchor), [nextAnchor]);
+
+  // Pre-calculate schedules and summaries lookup maps
+  const scheduleKeysSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of schedule) {
+      set.add(normalizeDate(item.date).key);
+    }
+    return set;
+  }, [schedule]);
+
+  const daySummariesMap = useMemo(() => {
+    const map = new Map<string, { type: 'todos' | 'memo'; done?: number; total?: number }>();
+    for (const [key, day] of Object.entries(days)) {
+      if (!day) continue;
+      const todos = day.todos || [];
+      const memo = day.memo || '';
+      if (todos.length > 0) {
+        const doneCount = todos.filter((t) => t.done).length;
+        map.set(key, { type: 'todos', done: doneCount, total: todos.length });
+      } else if (memo.trim().length > 0) {
+        map.set(key, { type: 'memo' });
+      }
+    }
+    return map;
+  }, [days]);
+
+  const handleSelectDateStable = useCallback((key: string) => {
+    onSelectDate(key);
+  }, [onSelectDate]);
 
   // Measure container width on resize
   useEffect(() => {
@@ -244,25 +370,9 @@ export function MonthCalendar({
     }, 180);
   };
 
-  const getDaySummary = (key: string) => {
-    const day = days[key];
-    if (!day) return null;
-    const todos = day.todos || [];
-    const memo = day.memo || '';
-
-    if (todos.length > 0) {
-      const doneCount = todos.filter((t) => t.done).length;
-      return { type: 'todos', done: doneCount, total: todos.length };
-    } else if (memo.trim().length > 0) {
-      return { type: 'memo' };
-    }
-    return null;
-  };
-
-  const renderMonthGrid = (gridAnchorKey: string) => {
+  const renderMonthGrid = (gridAnchorKey: string, gridKeys: string[]) => {
     const gridAnchorDate = parseKey(gridAnchorKey);
     const gridCurrentMonth = gridAnchorDate.getMonth();
-    const gridKeys = monthGrid(gridAnchorKey);
 
     return (
       <div className="grid grid-cols-7 gap-1 text-center">
@@ -272,65 +382,23 @@ export function MonthCalendar({
           const isSameMonth = d.getMonth() === gridCurrentMonth;
           const isSelected = key === activeKey;
           const isToday = key === today;
-          const scheduleExists = schedule.some(
-            (item) => normalizeDate(item.date).key === key
-          );
-          const summary = getDaySummary(key);
+          const scheduleExists = scheduleKeysSet.has(key);
+          const summary = daySummariesMap.get(key);
 
           return (
-            <button
+            <DayCell
               key={key}
-              type="button"
-              onClick={() => onSelectDate(key)}
-              className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 relative select-auto ${
-                isSelected
-                  ? 'bg-slate-900 text-white font-bold shadow-xs'
-                  : isSameMonth
-                  ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
-                  : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300 opacity-60'
-              } ${
-                isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
-              }`}
-            >
-              {/* Day Number and Schedule Dot indicator */}
-              <div className="w-full flex items-center justify-between px-0.5">
-                <span className="text-xs font-mono">{dayNum}</span>
-                {scheduleExists && (
-                  <span
-                    title="일정 있음"
-                    className={`text-[8px] leading-none ${
-                      isSelected ? 'text-amber-300' : 'text-amber-500'
-                    }`}
-                  >
-                    ●
-                  </span>
-                )}
-              </div>
-
-              {/* Day content summary */}
-              <div className="h-4 flex items-center justify-center text-[10px] font-mono leading-none">
-                {summary?.type === 'todos' && (
-                  <span
-                    className={
-                      isSelected
-                        ? 'text-sky-300 font-semibold'
-                        : 'text-slate-500 font-medium'
-                    }
-                  >
-                    {summary.done}/{summary.total}
-                  </span>
-                )}
-                {summary?.type === 'memo' && (
-                  <span
-                    className={
-                      isSelected ? 'text-amber-300 font-bold' : 'text-slate-400'
-                    }
-                  >
-                    ·
-                  </span>
-                )}
-              </div>
-            </button>
+              dateKey={key}
+              dayNum={dayNum}
+              isSameMonth={isSameMonth}
+              isSelected={isSelected}
+              isToday={isToday}
+              scheduleExists={scheduleExists}
+              summaryType={summary?.type}
+              summaryDone={summary?.done}
+              summaryTotal={summary?.total}
+              onClick={handleSelectDateStable}
+            />
           );
         })}
       </div>
@@ -422,7 +490,7 @@ export function MonthCalendar({
             className="shrink-0"
             style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
           >
-            {renderMonthGrid(prevAnchor)}
+            {renderMonthGrid(prevAnchor, prevGridKeys)}
           </div>
 
           {/* Slide 1: Current Month */}
@@ -430,7 +498,7 @@ export function MonthCalendar({
             className="shrink-0"
             style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
           >
-            {renderMonthGrid(anchor)}
+            {renderMonthGrid(anchor, currentGridKeys)}
           </div>
 
           {/* Slide 2: Next Month */}
@@ -438,7 +506,7 @@ export function MonthCalendar({
             className="shrink-0"
             style={{ width: containerWidth ? `${containerWidth}px` : '100%' }}
           >
-            {renderMonthGrid(nextAnchor)}
+            {renderMonthGrid(nextAnchor, nextGridKeys)}
           </div>
         </div>
       </div>
