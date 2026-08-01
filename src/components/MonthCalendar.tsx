@@ -15,6 +15,19 @@ interface MonthCalendarProps {
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
+function normalizeDate(dateStr: string): { key: string; year: number; month: number; date: number; label: string } {
+  if (dateStr.includes('-')) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return { key: dateStr, year: y, month: m - 1, date: d, label: `${m}/${d}` };
+  } else if (dateStr.includes('/')) {
+    const [m, d] = dateStr.split('/').map(Number);
+    const y = new Date().getFullYear();
+    const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    return { key, year: y, month: m - 1, date: d, label: `${m}/${d}` };
+  }
+  return { key: dateStr, year: new Date().getFullYear(), month: 0, date: 1, label: dateStr };
+}
+
 export function MonthCalendar({
   anchor,
   activeKey,
@@ -32,9 +45,7 @@ export function MonthCalendar({
   const gridKeys = monthGrid(anchor);
 
   const hasSchedule = (key: string) => {
-    const d = parseKey(key);
-    const short = `${d.getMonth() + 1}/${d.getDate()}`;
-    return schedule.some((item) => item.date === key || item.date === short);
+    return schedule.some((item) => normalizeDate(item.date).key === key);
   };
 
   const getDaySummary = (key: string) => {
@@ -51,6 +62,19 @@ export function MonthCalendar({
     }
     return null;
   };
+
+  // Schedules for the current month
+  const monthSchedules = schedule
+    .map((item) => ({
+      ...item,
+      norm: normalizeDate(item.date),
+    }))
+    .filter(
+      (item) =>
+        item.norm.year === anchorDate.getFullYear() &&
+        item.norm.month === currentMonth
+    )
+    .sort((a, b) => a.norm.key.localeCompare(b.norm.key));
 
   return (
     <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 space-y-3">
@@ -123,17 +147,17 @@ export function MonthCalendar({
                 isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
               }`}
             >
-              {/* Day Number and Schedule indicator */}
+              {/* Day Number and Schedule Dot indicator */}
               <div className="w-full flex items-center justify-between px-0.5">
                 <span className="text-xs font-mono">{dayNum}</span>
                 {scheduleExists && (
                   <span
                     title="일정 있음"
-                    className={`text-[9px] ${
-                      isSelected ? 'text-amber-300' : 'text-slate-500'
+                    className={`text-[8px] leading-none ${
+                      isSelected ? 'text-amber-300' : 'text-amber-500'
                     }`}
                   >
-                    📌
+                    ●
                   </span>
                 )}
               </div>
@@ -165,6 +189,32 @@ export function MonthCalendar({
           );
         })}
       </div>
+
+      {/* Month Schedule List */}
+      {monthSchedules.length > 0 && (
+        <div className="pt-3 border-t border-slate-200/80 space-y-2">
+          <div className="text-xs font-semibold text-slate-500 px-1">
+            📌 이 달의 일정
+          </div>
+          <ul className="space-y-1 text-xs">
+            {monthSchedules.map((item) => (
+              <li
+                key={item.id}
+                onClick={() => onSelectDate(item.norm.key)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
+              >
+                <span className="text-amber-500 text-[10px]">●</span>
+                <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
+                  {item.norm.label}
+                </span>
+                <span className="font-medium text-slate-800 truncate">
+                  {item.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
