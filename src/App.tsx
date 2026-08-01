@@ -1,7 +1,18 @@
 import { useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { AppState, Todo } from './lib/types';
-import { todayKey, fullLabel, shortLabel } from './lib/date';
-import { loadState, saveState } from './lib/storage';
+import { todayKey, fullLabel } from './lib/date';
+import {
+  loadState,
+  saveState,
+  SyncStatus,
+  subscribeSyncStatus,
+  subscribeConflict,
+  checkMigrationNeeded,
+  markMigrationPrompted,
+  uploadLocalToAccount,
+} from './lib/storage';
+import { supabase } from './lib/supabase';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
@@ -11,10 +22,21 @@ import { MemoBlock } from './components/MemoBlock';
 import { ActionBar } from './components/ActionBar';
 import { MoveBar } from './components/MoveBar';
 import { Toast, useToast } from './components/Toast';
+import { LoginScreen } from './components/LoginScreen';
+import { MigrationModal } from './components/MigrationModal';
+import { ConflictModal } from './components/ConflictModal';
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
   const [appState, setAppState] = useState<AppState | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ type: 'synced' });
+
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
   const [view, setView] = useState<View>(() => ({
     kind: 'week',
     anchor: todayKey(),
@@ -24,10 +46,52 @@ export default function App() {
 
   const { toastMessage, showToast, hideToast } = useToast();
 
+  // 1. Session Auth listener
   useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setAuthChecking(false);
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthChecking(false);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // 2. Sync status & Conflict listeners
+  useEffect(() => {
+    const unsubStatus = subscribeSyncStatus((status) => {
+      setSyncStatus(status);
+    });
+
+    const unsubConflict = subscribeConflict(() => {
+      setShowConflictModal(true);
+    });
+
+    return () => {
+      unsubStatus();
+      unsubConflict();
+    };
+  }, []);
+
+  // 3. Load AppState when authenticated
+  useEffect(() => {
+    if (authChecking) return;
+    if (!session) return;
+
+    let isMounted = true;
     const today = todayKey();
 
+    setIsLoaded(false);
+
     loadState().then((saved) => {
+      if (!isMounted) return;
+
       if (!saved) {
         const initial: AppState = {
           days: {
@@ -59,18 +123,42 @@ export default function App() {
         });
       }
       setIsLoaded(true);
-    });
-  }, []);
 
+      // Check migration needed
+      checkMigrationNeeded(session.user.id).then((needed) => {
+        if (needed && isMounted) {
+          setShowMigrationModal(true);
+        }
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session, authChecking]);
+
+  // 4. Auto save state with debounce
   useEffect(() => {
-    if (!isLoaded || !appState) return;
+    if (!isLoaded || !appState || !session) return;
 
     const timer = setTimeout(() => {
       saveState(appState);
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [appState, isLoaded]);
+  }, [appState, isLoaded, session]);
+
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-400 text-sm font-medium">세션 확인 중...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginScreen />;
+  }
 
   if (!isLoaded || !appState) {
     return (
@@ -150,20 +238,6 @@ export default function App() {
     setAppState((prev) => (prev ? { ...prev, active: key } : prev));
   };
 
-  const handleStartMoveMode = () => {
-    if (todos.length === 0) {
-      showToast('이동할 할 일이 없어요');
-      return;
-    }
-    setIsSelectMode(true);
-    setSelectedIds(new Set(todos.map((t) => t.id)));
-  };
-
-  const handleCancelMoveMode = () => {
-    setIsSelectMode(false);
-    setSelectedIds(new Set());
-  };
-
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -184,27 +258,34 @@ export default function App() {
     }
   };
 
-  const handleMoveToDate = (targetDateKey: string) => {
-    if (selectedIds.size === 0) {
-      showToast('이동할 항목을 선택해주세요');
-      return;
-    }
+  const handleStartMoveMode = () => {
+    setIsSelectMode(true);
+    setSelectedIds(new Set());
+  };
 
-    const itemsToMove = todos.filter((t) => selectedIds.has(t.id));
+  const handleCancelMoveMode = () => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleMoveToDate = (targetDateKey: string) => {
+    if (selectedIds.size === 0) return;
+
+    const movingTodos = todos.filter((t) => selectedIds.has(t.id));
     const remainingTodos = todos.filter((t) => !selectedIds.has(t.id));
 
     setAppState((prev) => {
       if (!prev) return prev;
       const newDays = { ...prev.days };
 
-      // Update current active day
-      const currentMemo = prev.days[activeKey]?.memo || '';
-      if (remainingTodos.length === 0 && (!currentMemo || currentMemo.trim() === '')) {
+      // Update source day
+      const sourceMemo = newDays[activeKey]?.memo || '';
+      if (remainingTodos.length === 0 && (!sourceMemo || sourceMemo.trim() === '')) {
         delete newDays[activeKey];
       } else {
         newDays[activeKey] = {
           todos: remainingTodos,
-          memo: currentMemo,
+          memo: sourceMemo,
         };
       }
 
@@ -212,7 +293,7 @@ export default function App() {
       const targetDay = newDays[targetDateKey] || { todos: [], memo: '' };
       newDays[targetDateKey] = {
         ...targetDay,
-        todos: [...targetDay.todos, ...itemsToMove],
+        todos: [...(targetDay.todos || []), ...movingTodos],
       };
 
       return {
@@ -222,28 +303,22 @@ export default function App() {
       };
     });
 
-    const targetShort = shortLabel(targetDateKey);
-    showToast(`${itemsToMove.length}개를 ${targetShort}로 옮겼어요`);
-
-    // Ensure week view navigates to the week of targetDateKey
-    setView({ kind: 'week', anchor: targetDateKey });
-
-    // Exit selection mode
     setIsSelectMode(false);
     setSelectedIds(new Set());
+    showToast(`${movingTodos.length}개 할 일이 이동함`);
   };
 
-  const handleAddSchedule = (dateKey: string, text: string) => {
+  const handleAddSchedule = (date: string, text: string) => {
+    const newItem = {
+      id:
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2, 9),
+      date,
+      text,
+    };
     setAppState((prev) => {
       if (!prev) return prev;
-      const newItem = {
-        id:
-          typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).substring(2, 9),
-        date: dateKey,
-        text,
-      };
       return {
         ...prev,
         schedule: [...prev.schedule, newItem],
@@ -278,6 +353,39 @@ export default function App() {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  };
+
+  const handleConfirmMigration = async () => {
+    setShowMigrationModal(false);
+    if (session && appState) {
+      await uploadLocalToAccount(session.user.id, appState);
+      showToast('기록이 계정으로 이관되었습니다');
+    }
+  };
+
+  const handleCancelMigration = () => {
+    setShowMigrationModal(false);
+    if (session) {
+      markMigrationPrompted(session.user.id);
+    }
+  };
+
+  const handleRefreshConflict = async () => {
+    setShowConflictModal(false);
+    const updated = await loadState();
+    if (updated) {
+      setAppState(updated);
+      showToast('최신 내용으로 새로고침되었습니다');
+    }
+  };
+
+  const handleDismissConflict = () => {
+    setShowConflictModal(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans py-6 px-3 sm:py-10 sm:px-4">
       <main className="max-w-[620px] mx-auto bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-5">
@@ -286,6 +394,9 @@ export default function App() {
           dateLabel={fullLabel(activeKey)}
           completedCount={completedCount}
           totalCount={totalCount}
+          userEmail={session?.user?.email}
+          syncStatus={syncStatus}
+          onSignOut={handleSignOut}
         />
 
         {/* Fixed Schedule Block - Hidden in Month View */}
@@ -349,11 +460,24 @@ export default function App() {
         )}
       </main>
 
+      {/* Migration Modal */}
+      {showMigrationModal && (
+        <MigrationModal
+          onConfirm={handleConfirmMigration}
+          onCancel={handleCancelMigration}
+        />
+      )}
+
+      {/* Conflict Modal */}
+      {showConflictModal && (
+        <ConflictModal
+          onRefresh={handleRefreshConflict}
+          onDismiss={handleDismissConflict}
+        />
+      )}
+
       {/* Reusable Toast Notification */}
       <Toast message={toastMessage} onClose={hideToast} />
     </div>
   );
 }
-
-
-
