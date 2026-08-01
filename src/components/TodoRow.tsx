@@ -87,39 +87,46 @@ export function TodoRow({
               e.stopPropagation();
               onToggleSelect?.(id);
             }}
-            className={`w-4 h-4 rounded border flex items-center justify-center mr-2.5 shrink-0 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
-              isSelected
-                ? 'bg-indigo-600 border-indigo-600 text-white'
-                : 'bg-white border-slate-300 text-transparent hover:border-slate-400'
-            }`}
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg"
             title={isSelected ? '선택 해제' : '선택'}
           >
-            <svg
-              className="w-3 h-3 fill-current stroke-current"
-              viewBox="0 0 12 12"
+            <span
+              className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all duration-150 motion-reduce:transition-none ${
+                isSelected
+                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  : 'bg-white border-slate-300 text-transparent'
+              }`}
             >
-              <path
-                d="M3.5 6L5 7.5L8.5 4"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <svg
+                className="w-3.5 h-3.5 stroke-current"
+                viewBox="0 0 14 14"
                 fill="none"
-              />
-            </svg>
+              >
+                <path
+                  d="M3 7L5.5 9.5L11 4"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
           </button>
         ) : (
           /* Drag handle */
           <span
-            className="text-slate-300 group-hover:text-slate-500 opacity-40 group-hover:opacity-100 cursor-grab select-none mr-2.5 text-base transition-opacity"
+            className="text-slate-300 group-hover:text-slate-500 opacity-40 group-hover:opacity-100 cursor-grab select-none mr-1.5 text-base transition-opacity"
             aria-hidden="true"
           >
             ⠿
           </span>
         )}
 
-        {/* Raw Markdown Checkbox (Task Done Status) */}
+        {/* Task Done Status Checkbox */}
         <button
           type="button"
+          role="checkbox"
+          aria-checked={done}
+          aria-label={done ? '미완료로 변경' : '완료로 변경'}
           onClick={(e) => {
             if (isSelectMode) {
               e.stopPropagation();
@@ -128,14 +135,37 @@ export function TodoRow({
               onToggle(id);
             }
           }}
-          className={`font-mono text-sm tracking-tight select-none font-semibold mr-2.5 shrink-0 focus:outline-none rounded px-0.5 ${
-            done ? 'text-slate-400' : 'text-slate-700'
-          } ${
-            isSelectMode ? 'cursor-pointer' : 'hover:opacity-80 focus:ring-1 focus:ring-slate-400'
-          }`}
+          onKeyDown={(e) => {
+            if (!isSelectMode && (e.key === ' ' || e.key === 'Enter')) {
+              e.preventDefault();
+              onToggle(id);
+            }
+          }}
+          className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 mr-1 focus:outline-none focus:ring-2 focus:ring-slate-400 rounded-lg group/cb cursor-pointer"
           title={isSelectMode ? '이동 대상 선택' : done ? '미완료로 변경' : '완료로 변경'}
         >
-          {done ? '- [x]' : '- [ ]'}
+          <span
+            className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all duration-150 motion-reduce:transition-none ${
+              done
+                ? 'bg-slate-800 border-slate-800 text-white'
+                : 'bg-white border-slate-300 group-hover/cb:border-slate-400 text-transparent'
+            }`}
+          >
+            <svg
+              className={`w-3.5 h-3.5 stroke-current transition-transform duration-150 motion-reduce:transition-none ${
+                done ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
+              }`}
+              viewBox="0 0 14 14"
+              fill="none"
+            >
+              <path
+                d="M3 7L5.5 9.5L11 4"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
         </button>
 
         {/* Task Text or Edit Input */}
