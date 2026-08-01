@@ -1,0 +1,6 @@
+{
+  "name": "Daily Check",
+  "description": "복사해서 ChatGPT에 바로 붙여넣는 하루 단위 체크리스트",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
