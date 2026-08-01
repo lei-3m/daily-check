@@ -78,7 +78,7 @@ export function TodoRow({
           : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
       }`}
     >
-      <div className="flex items-center min-w-0 flex-1 mr-2">
+      <div className="flex items-center min-w-0 flex-1 mr-1">
         {/* Selection Checkbox (in place of Drag handle when in Select Mode) */}
         {isSelectMode ? (
           <button
@@ -114,7 +114,7 @@ export function TodoRow({
         ) : (
           /* Drag handle */
           <span
-            className="text-slate-300 group-hover:text-slate-500 opacity-40 group-hover:opacity-100 cursor-grab select-none mr-1.5 text-base transition-opacity"
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab text-base"
             aria-hidden="true"
           >
             ⠿
@@ -198,7 +198,7 @@ export function TodoRow({
           type="button"
           onClick={() => onDelete(id)}
           aria-label="할 일 삭제"
-          className="text-slate-300 hover:text-red-500 opacity-30 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 rounded focus:outline-none focus:ring-2 focus:ring-slate-300"
+          className="w-10 h-10 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors"
         >
           ✕
         </button>

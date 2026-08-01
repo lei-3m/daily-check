@@ -35,7 +35,6 @@ export function ScheduleBlock({
   onDeleteSchedule,
 }: ScheduleBlockProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [showPast, setShowPast] = useState(false);
   const [inputDate, setInputDate] = useState(activeKey || todayKey());
   const [inputText, setInputText] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -48,19 +47,14 @@ export function ScheduleBlock({
 
   const today = todayKey();
 
-  // Sort schedule by date ascending
-  const sortedSchedule = [...schedule].sort((a, b) => {
-    const dateA = normalizeDateKey(a.date);
-    const dateB = normalizeDateKey(b.date);
-    return dateA.localeCompare(dateB);
-  });
-
-  const pastSchedules = sortedSchedule.filter(
-    (item) => normalizeDateKey(item.date) < today
-  );
-  const upcomingSchedules = sortedSchedule.filter(
-    (item) => normalizeDateKey(item.date) >= today
-  );
+  // Filter only today or upcoming schedules and sort by date ascending
+  const upcomingSchedules = [...schedule]
+    .filter((item) => normalizeDateKey(item.date) >= today)
+    .sort((a, b) => {
+      const dateA = normalizeDateKey(a.date);
+      const dateB = normalizeDateKey(b.date);
+      return dateA.localeCompare(dateB);
+    });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +86,6 @@ export function ScheduleBlock({
         <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
           <span>📌</span>
           <span>일정</span>
-          <span className="text-xs text-slate-400 font-normal ml-1">
-            ({schedule.length})
-          </span>
         </div>
         <button
           type="button"
@@ -153,81 +144,36 @@ export function ScheduleBlock({
           </form>
 
           {/* Schedule List or Empty State */}
-          {sortedSchedule.length === 0 ? (
+          {upcomingSchedules.length === 0 ? (
             <div className="text-xs text-slate-400 py-2 text-center">
               등록된 일정이 없어요.
             </div>
           ) : (
-            <div className="space-y-2">
-              {/* Past Schedules Collapsible */}
-              {pastSchedules.length > 0 && (
-                <div className="border-b border-slate-200/60 pb-2">
+            <ul className="space-y-1.5 text-xs text-slate-700">
+              {upcomingSchedules.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="font-mono text-xs font-semibold text-slate-500 w-10 shrink-0 text-right">
+                      {formatDisplayDate(item.date)}
+                    </span>
+                    <span className="font-medium text-slate-800 truncate min-w-0 flex-1">
+                      {item.text}
+                    </span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setShowPast(!showPast)}
-                    className="text-xs text-slate-500 font-medium hover:text-slate-800 flex items-center gap-1 transition-colors focus:outline-none"
+                    onClick={() => onDeleteSchedule(item.id)}
+                    aria-label="일정 삭제"
+                    className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors"
                   >
-                    <span>지난 일정 {pastSchedules.length}개</span>
-                    <span>{showPast ? '▾' : '▸'}</span>
+                    ✕
                   </button>
-
-                  {showPast && (
-                    <ul className="mt-2 space-y-1.5 pl-2 text-xs text-slate-500">
-                      {pastSchedules.map((item) => (
-                        <li
-                          key={item.id}
-                          className="flex items-center justify-between group py-0.5 hover:bg-slate-100/60 rounded px-1 transition-colors min-w-0"
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="font-mono text-slate-400 font-semibold w-10 shrink-0 text-right">
-                              {formatDisplayDate(item.date)}
-                            </span>
-                            <span className="truncate line-through text-slate-400 min-w-0 flex-1">
-                              {item.text}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => onDeleteSchedule(item.id)}
-                            aria-label="일정 삭제"
-                            className="text-slate-300 hover:text-red-500 opacity-40 group-hover:opacity-100 transition-opacity p-0.5 shrink-0"
-                          >
-                            ✕
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              {/* Upcoming / Today Schedules */}
-              <ul className="space-y-1.5 text-xs text-slate-700">
-                {upcomingSchedules.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="font-mono text-xs font-semibold text-slate-500 w-10 shrink-0 text-right">
-                        {formatDisplayDate(item.date)}
-                      </span>
-                      <span className="font-medium text-slate-800 truncate min-w-0 flex-1">
-                        {item.text}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteSchedule(item.id)}
-                      aria-label="일정 삭제"
-                      className="text-slate-300 hover:text-red-500 opacity-30 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 rounded shrink-0"
-                    >
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
