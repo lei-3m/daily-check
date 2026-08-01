@@ -37,6 +37,7 @@ export function ScheduleBlock({
   onOpenMonthView,
 }: ScheduleBlockProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [inputDate, setInputDate] = useState(activeKey || todayKey());
   const [inputText, setInputText] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -66,10 +67,8 @@ export function ScheduleBlock({
     (item) => normalizeDateKey(item.date) > limit7Date
   );
 
-  const MAX_DISPLAY = 4;
-  const visibleSchedules = within7Days.slice(0, MAX_DISPLAY);
-  const excessWithin7Days = Math.max(0, within7Days.length - MAX_DISPLAY);
-  const excessCount = excessWithin7Days + after7Days.length;
+  // Items to show depending on isExpanded state
+  const displayedSchedules = isExpanded ? upcomingSchedules : within7Days;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +99,7 @@ export function ScheduleBlock({
       >
         <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
           <span>📌</span>
-          <span>일정</span>
+          <span>다가오는 일정</span>
         </div>
         <button
           type="button"
@@ -164,10 +163,10 @@ export function ScheduleBlock({
               등록된 일정이 없어요.
             </div>
           ) : (
-            <div className="space-y-1">
-              {visibleSchedules.length > 0 && (
+            <div className="space-y-1 max-h-[35vh] overflow-y-auto pr-1">
+              {displayedSchedules.length > 0 && (
                 <ul className="space-y-1.5 text-xs text-slate-700">
-                  {visibleSchedules.map((item) => (
+                  {displayedSchedules.map((item) => (
                     <li
                       key={item.id}
                       className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
@@ -193,16 +192,28 @@ export function ScheduleBlock({
                 </ul>
               )}
 
-              {excessCount > 0 && (
+              {/* Toggle expand/collapse button for schedules after 7 days */}
+              {after7Days.length > 0 && !isExpanded && (
                 <button
                   type="button"
-                  onClick={onOpenMonthView}
+                  onClick={() => setIsExpanded(true)}
                   className="w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
                 >
                   <span className="font-mono font-semibold text-slate-600 group-hover:text-slate-900">
-                    +{excessCount}개
+                    +{after7Days.length}개
                   </span>
-                  <span className="text-slate-400 group-hover:text-slate-700 font-bold">›</span>
+                  <span className="text-slate-400 group-hover:text-slate-700 font-bold">▾</span>
+                </button>
+              )}
+
+              {isExpanded && after7Days.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  className="w-full flex items-center justify-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
+                >
+                  <span>접기</span>
+                  <span className="font-bold">▴</span>
                 </button>
               )}
             </div>
