@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScheduleItem } from '../lib/types';
-import { todayKey, shortLabel } from '../lib/date';
+import { todayKey, shortLabel, addDays } from '../lib/date';
 
 interface ScheduleBlockProps {
   schedule: ScheduleItem[];
   activeKey: string;
   onAddSchedule: (date: string, text: string) => void;
   onDeleteSchedule: (id: string) => void;
+  onOpenMonthView?: () => void;
 }
 
 function normalizeDateKey(dateStr: string): string {
@@ -33,6 +34,7 @@ export function ScheduleBlock({
   activeKey,
   onAddSchedule,
   onDeleteSchedule,
+  onOpenMonthView,
 }: ScheduleBlockProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [inputDate, setInputDate] = useState(activeKey || todayKey());
@@ -46,6 +48,7 @@ export function ScheduleBlock({
   }, [activeKey]);
 
   const today = todayKey();
+  const limit7Date = addDays(today, 6);
 
   // Filter only today or upcoming schedules and sort by date ascending
   const upcomingSchedules = [...schedule]
@@ -55,6 +58,18 @@ export function ScheduleBlock({
       const dateB = normalizeDateKey(b.date);
       return dateA.localeCompare(dateB);
     });
+
+  const within7Days = upcomingSchedules.filter(
+    (item) => normalizeDateKey(item.date) <= limit7Date
+  );
+  const after7Days = upcomingSchedules.filter(
+    (item) => normalizeDateKey(item.date) > limit7Date
+  );
+
+  const MAX_DISPLAY = 4;
+  const visibleSchedules = within7Days.slice(0, MAX_DISPLAY);
+  const excessWithin7Days = Math.max(0, within7Days.length - MAX_DISPLAY);
+  const excessCount = excessWithin7Days + after7Days.length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,31 +164,48 @@ export function ScheduleBlock({
               등록된 일정이 없어요.
             </div>
           ) : (
-            <ul className="space-y-1.5 text-xs text-slate-700">
-              {upcomingSchedules.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
+            <div className="space-y-1">
+              {visibleSchedules.length > 0 && (
+                <ul className="space-y-1.5 text-xs text-slate-700">
+                  {visibleSchedules.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="font-mono text-xs font-semibold text-slate-500 w-10 shrink-0 text-right">
+                          {formatDisplayDate(item.date)}
+                        </span>
+                        <span className="font-medium text-slate-800 truncate min-w-0 flex-1">
+                          {item.text}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSchedule(item.id)}
+                        aria-label="일정 삭제"
+                        className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {excessCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onOpenMonthView}
+                  className="w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="font-mono text-xs font-semibold text-slate-500 w-10 shrink-0 text-right">
-                      {formatDisplayDate(item.date)}
-                    </span>
-                    <span className="font-medium text-slate-800 truncate min-w-0 flex-1">
-                      {item.text}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteSchedule(item.id)}
-                    aria-label="일정 삭제"
-                    className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  <span className="font-mono font-semibold text-slate-600 group-hover:text-slate-900">
+                    +{excessCount}개
+                  </span>
+                  <span className="text-slate-400 group-hover:text-slate-700 font-bold">›</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

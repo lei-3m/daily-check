@@ -295,6 +295,9 @@ export default function App() {
             activeKey={activeKey}
             onAddSchedule={handleAddSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            onOpenMonthView={() =>
+              setView({ kind: 'month', anchor: activeKey || todayKey() })
+            }
           />
         )}
 
