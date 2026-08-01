@@ -6,6 +6,7 @@ interface ScheduleBlockProps {
   schedule: ScheduleItem[];
   activeKey: string;
   onAddSchedule: (date: string, text: string) => void;
+  onEditSchedule: (id: string, newDate: string, newText: string) => void;
   onDeleteSchedule: (id: string) => void;
   onOpenMonthView?: () => void;
 }
@@ -29,10 +30,143 @@ function formatDisplayDate(dateStr: string): string {
   return dateStr;
 }
 
+interface ScheduleItemRowProps {
+  key?: string;
+  item: ScheduleItem;
+  onEditSchedule: (id: string, newDate: string, newText: string) => void;
+  onDeleteSchedule: (id: string) => void;
+}
+
+function ScheduleItemRow({
+  item,
+  onEditSchedule,
+  onDeleteSchedule,
+}: ScheduleItemRowProps) {
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [editText, setEditText] = useState(item.text);
+  const textInputRef = useRef<HTMLInputElement>(null);
+  const datePickerRef = useRef<HTMLInputElement>(null);
+
+  const normalizedDate = normalizeDateKey(item.date);
+
+  useEffect(() => {
+    setEditText(item.text);
+  }, [item.text]);
+
+  useEffect(() => {
+    if (isEditingText && textInputRef.current) {
+      textInputRef.current.focus();
+      textInputRef.current.select();
+    }
+  }, [isEditingText]);
+
+  const handleSaveText = () => {
+    setIsEditingText(false);
+    const trimmed = editText.trim();
+    if (!trimmed) {
+      onDeleteSchedule(item.id);
+    } else if (trimmed !== item.text) {
+      onEditSchedule(item.id, item.date, trimmed);
+    }
+  };
+
+  const handleCancelText = () => {
+    setEditText(item.text);
+    setIsEditingText(false);
+  };
+
+  const handleTextKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveText();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelText();
+    }
+  };
+
+  const handleDateClick = () => {
+    if (datePickerRef.current) {
+      if (
+        'showPicker' in datePickerRef.current &&
+        typeof datePickerRef.current.showPicker === 'function'
+      ) {
+        datePickerRef.current.showPicker();
+      } else {
+        datePickerRef.current.click();
+      }
+    }
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    if (newDate && newDate !== normalizedDate) {
+      onEditSchedule(item.id, newDate, item.text);
+    }
+  };
+
+  return (
+    <li className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0 gap-2">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {/* Date Selector Button */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={handleDateClick}
+            title="날짜 수정"
+            className="font-mono text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-1.5 py-0.5 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-slate-300 cursor-pointer"
+          >
+            {formatDisplayDate(item.date)}
+          </button>
+          <input
+            ref={datePickerRef}
+            type="date"
+            value={normalizedDate}
+            onChange={handleDateChange}
+            className="sr-only absolute inset-0 opacity-0 pointer-events-none"
+            tabIndex={-1}
+          />
+        </div>
+
+        {/* Text Display or Text Input */}
+        {isEditingText ? (
+          <input
+            ref={textInputRef}
+            type="text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onBlur={handleSaveText}
+            onKeyDown={handleTextKeyDown}
+            className="flex-1 text-xs border border-slate-300 rounded px-1.5 py-0.5 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 font-medium min-w-0"
+          />
+        ) : (
+          <span
+            onClick={() => setIsEditingText(true)}
+            title="클릭하여 수정"
+            className="font-medium text-slate-800 truncate min-w-0 flex-1 cursor-pointer hover:bg-slate-200/60 rounded px-1 py-0.5 transition-colors"
+          >
+            {item.text}
+          </span>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onDeleteSchedule(item.id)}
+        aria-label="일정 삭제"
+        className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors cursor-pointer"
+      >
+        ✕
+      </button>
+    </li>
+  );
+}
+
 export function ScheduleBlock({
   schedule = [],
   activeKey,
   onAddSchedule,
+  onEditSchedule,
   onDeleteSchedule,
   onOpenMonthView,
 }: ScheduleBlockProps) {
@@ -165,29 +299,14 @@ export function ScheduleBlock({
           ) : (
             <div className="space-y-1 max-h-[35vh] overflow-y-auto pr-1">
               {displayedSchedules.length > 0 && (
-                <ul className="space-y-1.5 text-xs text-slate-700">
+                <ul className="space-y-1 text-xs text-slate-700">
                   {displayedSchedules.map((item) => (
-                    <li
+                    <ScheduleItemRow
                       key={item.id}
-                      className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0"
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="font-mono text-xs font-semibold text-slate-500 w-10 shrink-0 text-right">
-                          {formatDisplayDate(item.date)}
-                        </span>
-                        <span className="font-medium text-slate-800 truncate min-w-0 flex-1">
-                          {item.text}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSchedule(item.id)}
-                        aria-label="일정 삭제"
-                        className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </li>
+                      item={item}
+                      onEditSchedule={onEditSchedule}
+                      onDeleteSchedule={onDeleteSchedule}
+                    />
                   ))}
                 </ul>
               )}
