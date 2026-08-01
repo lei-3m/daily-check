@@ -45,6 +45,9 @@ export default function App() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  const [isScheduleCollapsed, setIsScheduleCollapsed] = useState(true);
+  const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
+
   const { toastMessage, showToast, hideToast } = useToast();
 
   // 1. Session Auth listener
@@ -431,6 +434,10 @@ export default function App() {
             onAddSchedule={handleAddSchedule}
             onEditSchedule={handleEditSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            isCollapsed={isScheduleCollapsed}
+            onToggleCollapsed={() => setIsScheduleCollapsed((prev) => !prev)}
+            isExpanded={isScheduleExpanded}
+            onToggleExpanded={() => setIsScheduleExpanded((prev) => !prev)}
             onOpenMonthView={() =>
               setView({ kind: 'month', anchor: activeKey || todayKey() })
             }

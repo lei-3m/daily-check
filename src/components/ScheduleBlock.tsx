@@ -9,6 +9,10 @@ interface ScheduleBlockProps {
   onEditSchedule: (id: string, newDate: string, newText: string) => void;
   onDeleteSchedule: (id: string) => void;
   onOpenMonthView?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapsed?: () => void;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 function normalizeDateKey(dateStr: string): string {
@@ -169,9 +173,33 @@ export function ScheduleBlock({
   onEditSchedule,
   onDeleteSchedule,
   onOpenMonthView,
+  isCollapsed: propIsCollapsed,
+  onToggleCollapsed,
+  isExpanded: propIsExpanded,
+  onToggleExpanded,
 }: ScheduleBlockProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const [localExpanded, setLocalExpanded] = useState(false);
+
+  const isCollapsed = propIsCollapsed ?? localCollapsed;
+  const isExpanded = propIsExpanded ?? localExpanded;
+
+  const toggleCollapsed = () => {
+    if (onToggleCollapsed) {
+      onToggleCollapsed();
+    } else {
+      setLocalCollapsed((prev) => !prev);
+    }
+  };
+
+  const toggleExpanded = () => {
+    if (onToggleExpanded) {
+      onToggleExpanded();
+    } else {
+      setLocalExpanded((prev) => !prev);
+    }
+  };
+
   const [inputDate, setInputDate] = useState(activeKey || todayKey());
   const [inputText, setInputText] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -228,7 +256,7 @@ export function ScheduleBlock({
     <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3 max-w-full overflow-hidden">
       {/* Block Header */}
       <div
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={toggleCollapsed}
         className="flex items-center justify-between cursor-pointer select-none"
       >
         <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
@@ -239,7 +267,7 @@ export function ScheduleBlock({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setIsCollapsed(!isCollapsed);
+            toggleCollapsed();
           }}
           aria-label={isCollapsed ? '일정 펼치기' : '일정 접기'}
           className="text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold leading-none"
@@ -315,7 +343,7 @@ export function ScheduleBlock({
               {after7Days.length > 0 && !isExpanded && (
                 <button
                   type="button"
-                  onClick={() => setIsExpanded(true)}
+                  onClick={toggleExpanded}
                   className="w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
                 >
                   <span className="font-mono font-semibold text-slate-600 group-hover:text-slate-900">
@@ -328,7 +356,7 @@ export function ScheduleBlock({
               {isExpanded && after7Days.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setIsExpanded(false)}
+                  onClick={toggleExpanded}
                   className="w-full flex items-center justify-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
                 >
                   <span>접기</span>
