@@ -47,12 +47,16 @@ export function TodoList({
 }: TodoListProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputValueRef = useRef('');
+  inputValueRef.current = inputValue;
 
   const handleAddSingle = () => {
-    const cleaned = cleanTodoPrefix(inputValue);
+    const currentVal = inputValueRef.current || inputValue;
+    const cleaned = cleanTodoPrefix(currentVal);
     if (cleaned) {
       onAddMany([cleaned]);
       setInputValue('');
+      inputValueRef.current = '';
     }
     inputRef.current?.focus();
   };
@@ -81,6 +85,7 @@ export function TodoList({
       if (cleanedLines.length > 0) {
         onAddMany(cleanedLines);
         setInputValue('');
+        inputValueRef.current = '';
         inputRef.current?.focus();
       }
     }
@@ -106,13 +111,32 @@ export function TodoList({
       {/* Add Todo Input Field (Hidden in select mode) */}
       {!isSelectMode && (
         <form onSubmit={handleSubmit} className="pt-2">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
-            <span className="text-base font-medium text-slate-400 select-none">＋</span>
+          <div className="flex items-center gap-2 px-2 py-1 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleAddSingle();
+              }}
+              aria-label="할 일 추가"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-300 select-none"
+            >
+              ＋
+            </button>
             <input
               ref={inputRef}
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                inputValueRef.current = e.target.value;
+              }}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               enterKeyHint="done"

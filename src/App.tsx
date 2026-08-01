@@ -5,6 +5,7 @@ import { todayKey, fullLabel } from './lib/date';
 import {
   loadState,
   saveState,
+  clearUserCache,
   SyncStatus,
   subscribeSyncStatus,
   subscribeConflict,
@@ -51,11 +52,21 @@ export default function App() {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setAuthChecking(false);
+      if (!newSession) {
+        clearUserCache();
+        setAppState(null);
+        setIsLoaded(false);
+      }
     });
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setAuthChecking(false);
+      if (!data.session) {
+        clearUserCache();
+        setAppState(null);
+        setIsLoaded(false);
+      }
     });
 
     return () => {
@@ -89,7 +100,7 @@ export default function App() {
 
     setIsLoaded(false);
 
-    loadState().then((saved) => {
+    loadState(session.user.id).then((saved) => {
       if (!isMounted) return;
 
       if (!saved) {
@@ -354,6 +365,9 @@ export default function App() {
   };
 
   const handleSignOut = async () => {
+    clearUserCache();
+    setAppState(null);
+    setIsLoaded(false);
     await supabase.auth.signOut();
     setSession(null);
   };
