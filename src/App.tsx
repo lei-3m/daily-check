@@ -107,19 +107,11 @@ export default function App() {
         const initial: AppState = {
           days: {
             [today]: {
-              todos: [
-                { id: '1', text: '발표자료 만들기', done: false },
-                { id: '2', text: 'PR 리뷰', done: true },
-                { id: '3', text: '운동', done: false },
-                { id: '4', text: '팀 회의 준비', done: true },
-              ],
-              memo: '오늘은 발표라 긴장됨.',
+              todos: [],
+              memo: '',
             },
           },
-          schedule: [
-            { id: '1', date: '8/2', text: '미용실' },
-            { id: '2', date: '8/5', text: '회식' },
-          ],
+          schedule: [],
           active: today,
         };
         setAppState(initial);

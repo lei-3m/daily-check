@@ -94,18 +94,24 @@ export function TodoList({
   return (
     <div className="space-y-1">
       <div className="divide-y divide-slate-100/60">
-        {todos.map((todo) => (
-          <TodoRow
-            key={todo.id}
-            todo={todo}
-            isSelectMode={isSelectMode}
-            isSelected={selectedIds?.has(todo.id)}
-            onToggleSelect={onToggleSelect}
-            onToggle={onToggle}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        ))}
+        {todos.length === 0 ? (
+          <div className="text-xs text-slate-400 py-3 text-center">
+            등록된 할 일이 없어요. 아래에서 새로운 할 일을 추가해 보세요!
+          </div>
+        ) : (
+          todos.map((todo) => (
+            <TodoRow
+              key={todo.id}
+              todo={todo}
+              isSelectMode={isSelectMode}
+              isSelected={selectedIds?.has(todo.id)}
+              onToggleSelect={onToggleSelect}
+              onToggle={onToggle}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))
+        )}
       </div>
 
       {/* Add Todo Input Field (Hidden in select mode) */}
