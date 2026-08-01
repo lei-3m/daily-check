@@ -62,10 +62,9 @@ export function DateNav({
       schedule={schedule}
       onSelectDate={(key) => {
         onSelectDate(key);
-        onChangeView({ kind: 'week', anchor: key });
       }}
       onBackToWeek={() =>
-        onChangeView({ kind: 'week', anchor: view.anchor })
+        onChangeView({ kind: 'week', anchor: activeKey })
       }
       onPrevMonth={() =>
         onChangeView({ kind: 'month', anchor: addMonths(view.anchor, -1) })

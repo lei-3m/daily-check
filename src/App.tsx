@@ -447,6 +447,19 @@ export default function App() {
           onSelectDate={handleSelectDate}
         />
 
+        {/* Selected Date Header in Month View */}
+        {view.kind === 'month' && (
+          <div className="pt-2 pb-1 border-b border-slate-100 flex items-center justify-between">
+            <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-800"></span>
+              <span>{fullLabel(activeKey)}</span>
+            </div>
+            <div className="text-xs text-slate-400 font-medium">
+              선택된 날짜 기록
+            </div>
+          </div>
+        )}
+
         {/* Todo List */}
         <TodoList
           todos={todos}
