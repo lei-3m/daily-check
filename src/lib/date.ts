@@ -40,3 +40,64 @@ export function addDays(key: string, n: number): string {
   d.setDate(d.getDate() + n);
   return toKey(d);
 }
+
+export function addMonths(key: string, n: number): string {
+  const d = parseKey(key);
+  d.setMonth(d.getMonth() + n);
+  return toKey(d);
+}
+
+export function startOfWeek(key: string): string {
+  const d = parseKey(key);
+  const dayOfWeek = d.getDay();
+  d.setDate(d.getDate() - dayOfWeek);
+  return toKey(d);
+}
+
+export function weekDays(key: string): string[] {
+  const start = startOfWeek(key);
+  const days: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    days.push(addDays(start, i));
+  }
+  return days;
+}
+
+export function weekMonthLabel(key: string): string {
+  const days = weekDays(key);
+  const first = parseKey(days[0]);
+  const last = parseKey(days[6]);
+
+  const firstYear = first.getFullYear();
+  const firstMonth = first.getMonth() + 1;
+  const lastYear = last.getFullYear();
+  const lastMonth = last.getMonth() + 1;
+
+  if (firstYear === lastYear && firstMonth === lastMonth) {
+    return `${firstYear}년 ${firstMonth}월`;
+  } else if (firstYear === lastYear) {
+    return `${firstMonth}월 – ${lastMonth}월`;
+  } else {
+    return `${firstYear}년 ${firstMonth}월 – ${lastYear}년 ${lastMonth}월`;
+  }
+}
+
+export function monthGrid(key: string): string[] {
+  const d = parseKey(key);
+  const year = d.getFullYear();
+  const month = d.getMonth();
+
+  const firstDayOfMonth = new Date(year, month, 1);
+  const gridStartKey = startOfWeek(toKey(firstDayOfMonth));
+
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  const gridEndKey = addDays(startOfWeek(toKey(lastDayOfMonth)), 6);
+
+  const grid: string[] = [];
+  let current = gridStartKey;
+  while (current <= gridEndKey) {
+    grid.push(current);
+    current = addDays(current, 1);
+  }
+  return grid;
+}

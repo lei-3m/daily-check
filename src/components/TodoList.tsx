@@ -4,6 +4,9 @@ import { TodoRow } from './TodoRow';
 
 interface TodoListProps {
   todos: Todo[];
+  isSelectMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
   onToggle: (id: string) => void;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
@@ -34,6 +37,9 @@ export function cleanTodoPrefix(line: string): string {
 
 export function TodoList({
   todos,
+  isSelectMode = false,
+  selectedIds,
+  onToggleSelect,
   onToggle,
   onEdit,
   onDelete,
@@ -80,6 +86,9 @@ export function TodoList({
           <TodoRow
             key={todo.id}
             todo={todo}
+            isSelectMode={isSelectMode}
+            isSelected={selectedIds?.has(todo.id)}
+            onToggleSelect={onToggleSelect}
             onToggle={onToggle}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -87,22 +96,24 @@ export function TodoList({
         ))}
       </div>
 
-      {/* Add Todo Input Field */}
-      <div className="pt-2">
-        <div className="flex items-center gap-2 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
-          <span className="text-base font-medium text-slate-400 select-none">＋</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            placeholder="할 일 추가 (여러 줄 붙여넣기 가능)"
-            className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
-          />
+      {/* Add Todo Input Field (Hidden in select mode) */}
+      {!isSelectMode && (
+        <div className="pt-2">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
+            <span className="text-base font-medium text-slate-400 select-none">＋</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              placeholder="할 일 추가 (여러 줄 붙여넣기 가능)"
+              className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
