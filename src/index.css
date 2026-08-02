@@ -337,9 +337,20 @@ html.dark .opacity-60 {
   animation: slideInRight 180ms ease-out forwards;
 }
 
+.priority-spinner {
+  animation: prioritySpin 900ms linear infinite;
+}
+
+@keyframes prioritySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-left,
-  .animate-slide-right {
+  .animate-slide-right,
+  .priority-spinner {
     animation: none !important;
   }
 }
