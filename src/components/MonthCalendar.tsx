@@ -90,7 +90,7 @@ const DayCell = React.memo(function DayCell({
       onClick={() => onClick(dateKey)}
       className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative select-auto ${
         isSelected
-          ? 'bg-slate-900 text-white font-bold shadow-xs'
+          ? 'accent-fill text-white font-bold shadow-xs'
           : isSameMonth
           ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
           : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300 opacity-60 border border-transparent'
@@ -105,7 +105,7 @@ const DayCell = React.memo(function DayCell({
           <span
             title="일정 있음"
             className={`text-[8px] leading-none ${
-              isSelected ? 'text-amber-300' : 'text-amber-500'
+              isSelected ? 'accent-text-soft' : 'accent-text'
             }`}
           >
             ●
@@ -121,7 +121,7 @@ const DayCell = React.memo(function DayCell({
           <span
             className={
               isSelected
-                ? 'text-sky-300 font-semibold'
+                ? 'accent-text-soft font-semibold'
                 : 'text-slate-500 font-medium'
             }
           >
@@ -131,7 +131,7 @@ const DayCell = React.memo(function DayCell({
         {summaryType === 'memo' && (
           <span
             className={
-              isSelected ? 'text-amber-300 font-bold' : 'text-slate-400'
+              isSelected ? 'accent-text-soft font-bold' : 'text-slate-400'
             }
           >
             ·
@@ -500,7 +500,7 @@ export function MonthCalendar({
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
                   >
-                    <span className="text-amber-500 text-[10px]">●</span>
+                    <span className="accent-text text-[10px]">●</span>
                     <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
                       {item.norm.label}
                     </span>
@@ -526,7 +526,7 @@ export function MonthCalendar({
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
                   >
-                    <span className="text-amber-500 text-[10px]">●</span>
+                    <span className="accent-text text-[10px]">●</span>
                     <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
                       {item.norm.label}
                     </span>
@@ -552,7 +552,7 @@ export function MonthCalendar({
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 bg-white border border-slate-100"
                   >
-                    <span className="text-amber-500 text-[10px]">●</span>
+                    <span className="accent-text text-[10px]">●</span>
                     <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
                       {item.norm.label}
                     </span>

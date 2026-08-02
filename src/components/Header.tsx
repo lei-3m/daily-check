@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SyncStatus } from '../lib/storage';
-import { ThemePreference } from '../lib/theme';
+import { ACCENT_OPTIONS, AccentPreference, ThemePreference } from '../lib/theme';
 
 interface HeaderProps {
   dateLabel: string;
@@ -11,6 +11,8 @@ interface HeaderProps {
   onSignOut: () => void;
   themePreference: ThemePreference;
   onThemePreferenceChange: (preference: ThemePreference) => void;
+  accentPreference: AccentPreference;
+  onAccentPreferenceChange: (preference: AccentPreference) => void;
   onExportData: () => void;
   onImportData: (file: File) => void;
   includeMemoInPriority: boolean;
@@ -26,6 +28,8 @@ export function Header({
   onSignOut,
   themePreference,
   onThemePreferenceChange,
+  accentPreference,
+  onAccentPreferenceChange,
   onExportData,
   onImportData,
   includeMemoInPriority,
@@ -149,12 +153,41 @@ export function Header({
                           aria-pressed={isSelected}
                           className={`w-full flex items-center justify-between text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 ${
                             isSelected
-                              ? 'bg-slate-900 text-white'
+                              ? 'accent-fill text-white'
                               : 'text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           <span>{option.label}</span>
                           <span className={isSelected ? 'text-white' : 'text-slate-400'}>
+                            {isSelected ? '✓' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    강조 색상
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {ACCENT_OPTIONS.map((option) => {
+                      const isSelected = option.value === accentPreference;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => onAccentPreferenceChange(option.value)}
+                          aria-label={`${option.label} 강조 색상`}
+                          aria-pressed={isSelected}
+                          className="w-8 h-8 rounded-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                          title={option.label}
+                        >
+                          <span
+                            className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center text-[11px] font-bold text-white shadow-xs"
+                            style={{ backgroundColor: option.swatch }}
+                          >
                             {isSelected ? '✓' : ''}
                           </span>
                         </button>
@@ -175,7 +208,7 @@ export function Header({
                       onChange={(event) =>
                         onIncludeMemoInPriorityChange(event.target.checked)
                       }
-                      className="w-4 h-4 accent-slate-900"
+                      className="w-4 h-4 accent-control"
                     />
                   </label>
                 </div>

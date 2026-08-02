@@ -68,7 +68,7 @@ export function PrioritySuggestionModal({
           <button
             type="button"
             onClick={onApply}
-            className="px-3 py-2.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            className="px-3 py-2.5 text-xs font-semibold accent-fill accent-fill-hover text-white rounded-lg transition-colors shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
           >
             적용
           </button>

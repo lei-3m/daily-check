@@ -15,21 +15,34 @@
       (function () {
         try {
           var stored = localStorage.getItem('daily-check:theme');
+          var storedAccent = localStorage.getItem('daily-check:accent');
           var preference =
             stored === 'light' || stored === 'dark' || stored === 'system'
               ? stored
               : 'system';
+          var accent =
+            storedAccent === 'indigo' ||
+            storedAccent === 'sky' ||
+            storedAccent === 'teal' ||
+            storedAccent === 'emerald' ||
+            storedAccent === 'rose' ||
+            storedAccent === 'violet' ||
+            storedAccent === 'amber'
+              ? storedAccent
+              : 'indigo';
           var isDark =
             preference === 'dark' ||
             (preference === 'system' &&
               window.matchMedia('(prefers-color-scheme: dark)').matches);
           document.documentElement.classList.toggle('dark', isDark);
           document.documentElement.dataset.theme = preference;
+          document.documentElement.dataset.accent = accent;
         } catch (_error) {
           if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.classList.add('dark');
           }
           document.documentElement.dataset.theme = 'system';
+          document.documentElement.dataset.accent = 'indigo';
         }
       })();
     </script>

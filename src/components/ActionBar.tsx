@@ -16,7 +16,7 @@ export function ActionBar({
       <button
         type="button"
         onClick={onCopy}
-        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl accent-fill accent-fill-hover text-white font-semibold text-sm transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
       >
         <span>📋</span>
         <span>복사</span>
