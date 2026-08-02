@@ -173,10 +173,22 @@ function DrawerDocumentRow({
       )}
       <button
         type="button"
-        onClick={() => setIsEditing(true)}
+        onPointerDown={(e) => {
+          e.preventDefault();
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+        }}
+        onClick={() => {
+          if (isEditing) {
+            save();
+          } else {
+            setIsEditing(true);
+          }
+        }}
         className="min-h-[36px] px-2 text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
-        수정
+        {isEditing ? '완료' : '수정'}
       </button>
       <button
         type="button"
