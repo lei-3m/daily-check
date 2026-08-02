@@ -29,6 +29,18 @@ const FLICK_SPEED = 0.3; // px/ms
 const FLICK_MIN_PX = 20;
 const PANEL_FALLBACK_HEIGHT = 44;
 
+function normalizeScheduleDateKey(dateStr: string): string {
+  if (dateStr.includes('-')) return dateStr;
+  const parts = dateStr.split('/');
+  if (parts.length === 2) {
+    const year = new Date().getFullYear();
+    const month = parts[0].padStart(2, '0');
+    const day = parts[1].padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+}
+
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -89,7 +101,7 @@ const WeekPanel = React.memo(function WeekPanel({
             onClick={() => onSelectDate(key)}
             className={`flex flex-col items-center justify-center py-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative ${
               isSelected
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
+                ? 'calendar-day-selected bg-slate-900 text-white font-bold shadow-xs'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
             }`}
           >
@@ -100,21 +112,19 @@ const WeekPanel = React.memo(function WeekPanel({
               {isToday && (
                 <span
                   title="오늘"
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    isSelected ? 'bg-white' : 'bg-slate-900'
-                  }`}
+                  className="w-1.5 h-1.5 rounded-full border calendar-today-dot"
                 />
               )}
               {dayHasSchedule && (
                 <span
                   title="일정 있음"
-                  className="w-1 h-1 rounded-full accent-dot"
+                  className="w-1.5 h-1.5 rounded-full accent-dot"
                 />
               )}
               {dayHasContent && (
                 <span
                   title="내용 있음"
-                  className="w-1 h-1 rounded-full accent-dot"
+                  className="w-1 h-1 rounded-full calendar-todo-dot"
                 />
               )}
             </div>
@@ -182,7 +192,7 @@ export function WeekStrip({
   const scheduleKeys = useMemo(() => {
     const set = new Set<string>();
     for (const item of schedule) {
-      set.add(item.date);
+      set.add(normalizeScheduleDateKey(item.date));
     }
     return set;
   }, [schedule]);
