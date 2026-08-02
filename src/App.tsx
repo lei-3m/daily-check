@@ -549,6 +549,8 @@ export default function App() {
   };
 
   const handlePrioritize = async () => {
+    if (isPrioritizing) return;
+
     const incompleteTodos = todos.filter((todo) => !todo.done);
     if (incompleteTodos.length < 2) {
       showToast('정렬할 할 일이 부족해요');
@@ -859,9 +861,10 @@ export default function App() {
         />
       )}
 
-      {prioritySuggestion && (
+      {(isPrioritizing || prioritySuggestion) && (
         <PrioritySuggestionModal
           suggestion={prioritySuggestion}
+          isLoading={isPrioritizing}
           onApply={handleApplyPrioritySuggestion}
           onCancel={() => setPrioritySuggestion(null)}
         />

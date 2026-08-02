@@ -1,19 +1,38 @@
 import type { PrioritySuggestion } from '../lib/priority';
 
 interface PrioritySuggestionModalProps {
-  suggestion: PrioritySuggestion;
+  suggestion: PrioritySuggestion | null;
+  isLoading?: boolean;
   onApply: () => void;
   onCancel: () => void;
 }
 
 export function PrioritySuggestionModal({
   suggestion,
+  isLoading = false,
   onApply,
   onCancel,
 }: PrioritySuggestionModalProps) {
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
       <div className="bg-white border border-slate-200 rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-4">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-7 text-center">
+            <div
+              className="priority-spinner w-9 h-9 rounded-full border-3 border-slate-200 border-t-slate-900"
+              aria-hidden="true"
+            />
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900">
+                우선순위를 정리하는 중…
+              </h3>
+              <p className="text-xs text-slate-500">
+                잠시만 기다려 주세요.
+              </p>
+            </div>
+          </div>
+        ) : suggestion ? (
+          <>
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 text-indigo-600 font-bold text-xs bg-indigo-50/60 px-2 py-0.5 rounded-md mb-1">
             <span>✨</span> 우선순위 제안
@@ -58,6 +77,8 @@ export function PrioritySuggestionModal({
             취소
           </button>
         </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
