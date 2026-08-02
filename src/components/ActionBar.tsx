@@ -1,9 +1,16 @@
 interface ActionBarProps {
   onCopy?: () => void;
   onStartMoveMode?: () => void;
+  onPrioritize?: () => void;
+  isPrioritizing?: boolean;
 }
 
-export function ActionBar({ onCopy, onStartMoveMode }: ActionBarProps) {
+export function ActionBar({
+  onCopy,
+  onStartMoveMode,
+  onPrioritize,
+  isPrioritizing = false,
+}: ActionBarProps) {
   return (
     <div className="flex items-center gap-2 sm:gap-2.5 pt-2">
       <button
@@ -26,11 +33,13 @@ export function ActionBar({ onCopy, onStartMoveMode }: ActionBarProps) {
 
       <button
         type="button"
-        disabled
-        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 text-slate-400 font-semibold text-sm cursor-not-allowed opacity-60 select-none"
+        onClick={onPrioritize}
+        disabled={isPrioritizing}
+        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 font-semibold text-sm hover:bg-slate-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:text-slate-400 disabled:cursor-wait disabled:opacity-70 select-none"
+        aria-busy={isPrioritizing}
       >
-        <span>✨</span>
-        <span>우선순위</span>
+        <span>{isPrioritizing ? '…' : '✨'}</span>
+        <span>{isPrioritizing ? '정렬 중' : '우선순위'}</span>
       </button>
     </div>
   );

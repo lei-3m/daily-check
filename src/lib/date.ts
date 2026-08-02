@@ -27,11 +27,15 @@ export function shortLabel(key: string): string {
 
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
+export function weekdayLabel(key: string): string {
+  return WEEKDAYS[parseKey(key).getDay()];
+}
+
 export function fullLabel(key: string): string {
   const d = parseKey(key);
   const month = d.getMonth() + 1;
   const date = d.getDate();
-  const dayName = WEEKDAYS[d.getDay()];
+  const dayName = weekdayLabel(key);
   return `${month}월 ${date}일 ${dayName}`;
 }
 

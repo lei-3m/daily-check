@@ -13,6 +13,8 @@ interface HeaderProps {
   onThemePreferenceChange: (preference: ThemePreference) => void;
   onExportData: () => void;
   onImportData: (file: File) => void;
+  includeMemoInPriority: boolean;
+  onIncludeMemoInPriorityChange: (includeMemo: boolean) => void;
 }
 
 export function Header({
@@ -26,6 +28,8 @@ export function Header({
   onThemePreferenceChange,
   onExportData,
   onImportData,
+  includeMemoInPriority,
+  onIncludeMemoInPriorityChange,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -157,6 +161,23 @@ export function Header({
                       );
                     })}
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    우선순위
+                  </div>
+                  <label className="min-h-11 flex items-center justify-between gap-3 text-xs font-semibold text-slate-600 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100 focus-within:ring-2 focus-within:ring-slate-300">
+                    <span>메모도 함께 보내기</span>
+                    <input
+                      type="checkbox"
+                      checked={includeMemoInPriority}
+                      onChange={(event) =>
+                        onIncludeMemoInPriorityChange(event.target.checked)
+                      }
+                      className="w-4 h-4 accent-slate-900"
+                    />
+                  </label>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 space-y-1.5">
