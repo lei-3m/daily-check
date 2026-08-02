@@ -204,6 +204,13 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
 }
 
 function updateSyncStatus(status: SyncStatus) {
+  if (
+    currentSyncStatus.type === status.type &&
+    currentSyncStatus.message === status.message &&
+    currentSyncStatus.lastSavedAt === status.lastSavedAt
+  ) {
+    return;
+  }
   currentSyncStatus = status;
   statusListeners.forEach((listener) => listener(status));
 }
@@ -407,10 +414,18 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
 
       if (pendingSync && localData) {
         if (serverTime > localTime) {
+          const conflictDetails = getConflictDetails(localData, getServerSnapshot() || serverState);
+          if (conflictDetails.items.length === 0) {
+            setPendingSync(false, user.id);
+            lastLoadedUpdatedAt = row.updated_at || null;
+            setLocalCache(serverState, user.id, row.updated_at || null);
+            setServerSnapshot(serverState);
+            updateSyncStatus({ type: 'synced' });
+            return serverState;
+          }
+
           updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
-          conflictListeners.forEach((cb) =>
-            cb(getConflictDetails(localData, getServerSnapshot() || serverState))
-          );
+          conflictListeners.forEach((cb) => cb(conflictDetails));
           return localData;
         }
 
@@ -514,6 +529,15 @@ export async function saveState(state: AppState): Promise<void> {
           active: state.active,
         }) as AppState;
         const conflictDetails = getConflictDetails(state, getServerSnapshot() || serverState);
+        if (conflictDetails.items.length === 0) {
+          setPendingSync(false, userId);
+          lastLoadedUpdatedAt = serverRow.updated_at || null;
+          setLocalCache(serverState, userId, serverRow.updated_at || null);
+          setServerSnapshot(serverState);
+          updateSyncStatus({ type: 'synced' });
+          return;
+        }
+
         setPendingSync(true, userId);
         updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
         conflictListeners.forEach((cb) => cb(conflictDetails));

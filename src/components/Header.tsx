@@ -71,9 +71,7 @@ export function Header({
         return (
           <span className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-md">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {syncStatus.lastSavedAt
-              ? `동기화됨 (${syncStatus.lastSavedAt})`
-              : '동기화됨'}
+            동기화됨
           </span>
         );
       case 'local_only':
