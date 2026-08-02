@@ -350,7 +350,7 @@ export function WeekStrip({
           type="button"
           onClick={goPrev}
           aria-label="이전 주"
-          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
           ‹
         </button>
@@ -359,7 +359,7 @@ export function WeekStrip({
           <button
             type="button"
             onClick={onOpenMonthView}
-            className="flex items-center gap-1 font-bold text-slate-900 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 rounded px-1.5 py-0.5"
+            className="flex items-center gap-1 font-bold text-slate-900 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5"
           >
             <span>{monthTitle}</span>
             <span className="text-xs text-slate-400">›</span>
@@ -369,7 +369,7 @@ export function WeekStrip({
             <button
               type="button"
               onClick={onGoToday}
-              className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
               오늘
             </button>
@@ -380,7 +380,7 @@ export function WeekStrip({
           type="button"
           onClick={goNext}
           aria-label="다음 주"
-          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
           ›
         </button>

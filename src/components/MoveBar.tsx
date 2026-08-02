@@ -48,7 +48,7 @@ export function MoveBar({
           <button
             type="button"
             onClick={onToggleSelectAll}
-            className="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500"
+            className="text-xs px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
           >
             {isAllSelected ? '전체 해제' : '전체 선택'}
           </button>
@@ -60,7 +60,7 @@ export function MoveBar({
         <button
           type="button"
           onClick={onCancel}
-          className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-500"
+          className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
         >
           취소 ✕
         </button>
@@ -72,7 +72,7 @@ export function MoveBar({
           type="button"
           disabled={selectedCount === 0}
           onClick={() => onMoveToDate(tomorrowKey)}
-          className="flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors border border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors border border-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         >
           <span>내일</span>
           <span className="text-[10px] text-slate-400 font-mono font-normal">
@@ -84,7 +84,7 @@ export function MoveBar({
           type="button"
           disabled={selectedCount === 0}
           onClick={() => onMoveToDate(dayAfterTomorrowKey)}
-          className="flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors border border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors border border-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         >
           <span>모레</span>
           <span className="text-[10px] text-slate-400 font-mono font-normal">
@@ -96,7 +96,7 @@ export function MoveBar({
           type="button"
           disabled={selectedCount === 0}
           onClick={() => onMoveToDate(nextWeekKey)}
-          className="flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors border border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors border border-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         >
           <span>일주일 뒤</span>
           <span className="text-[10px] text-slate-400 font-mono font-normal">
@@ -110,7 +110,7 @@ export function MoveBar({
             type="button"
             disabled={selectedCount === 0}
             onClick={handleCustomDateClick}
-            className="w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <span>📅 날짜 선택</span>
             <span className="text-[10px] text-indigo-200 font-normal">

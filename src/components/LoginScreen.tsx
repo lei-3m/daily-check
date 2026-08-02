@@ -60,7 +60,7 @@ export function LoginScreen() {
           type="button"
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold py-2.5 px-4 rounded-xl shadow-2xs hover:shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:opacity-60 cursor-pointer"
+          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold py-2.5 px-4 rounded-xl shadow-2xs hover:shadow-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-60 cursor-pointer"
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
             <path

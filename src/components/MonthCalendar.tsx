@@ -88,7 +88,7 @@ const DayCell = React.memo(function DayCell({
     <button
       type="button"
       onClick={() => onClick(dateKey)}
-      className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 relative select-auto ${
+      className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative select-auto ${
         isSelected
           ? 'bg-slate-900 text-white font-bold shadow-xs'
           : isSameMonth
@@ -432,7 +432,7 @@ export function MonthCalendar({
         <button
           type="button"
           onClick={onBackToWeek}
-          className="flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded px-1.5 py-0.5 select-auto"
+          className="flex items-center gap-1 font-semibold text-slate-700 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5 select-auto"
         >
           <span>‹</span>
           <span className="text-xs">주간 뷰로 돌아가기</span>
@@ -443,7 +443,7 @@ export function MonthCalendar({
             type="button"
             onClick={handleGoPrev}
             aria-label="이전 달"
-            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 select-auto"
+            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
             ‹
           </button>
@@ -452,7 +452,7 @@ export function MonthCalendar({
             type="button"
             onClick={handleGoNext}
             aria-label="다음 달"
-            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 select-auto"
+            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
             ›
           </button>
