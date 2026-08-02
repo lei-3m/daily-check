@@ -12,6 +12,15 @@ export interface SyncStatus {
   message?: string;
 }
 
+export interface ConflictDetailItem {
+  type: 'todo_added' | 'todo_deleted' | 'memo_changed' | 'schedule_added' | 'schedule_deleted';
+  label: string;
+}
+
+export interface ConflictDetails {
+  items: ConflictDetailItem[];
+}
+
 interface LocalCacheEnvelope {
   userId?: string;
   data: AppState;
@@ -22,7 +31,7 @@ let lastLoadedUpdatedAt: string | null = null;
 let currentSyncStatus: SyncStatus = { type: 'synced' };
 
 type StatusListener = (status: SyncStatus) => void;
-type ConflictListener = () => void;
+type ConflictListener = (details: ConflictDetails) => void;
 
 const statusListeners = new Set<StatusListener>();
 const conflictListeners = new Set<ConflictListener>();
@@ -44,6 +53,84 @@ export function subscribeConflict(listener: ConflictListener): () => void {
   return () => {
     conflictListeners.delete(listener);
   };
+}
+
+function summarizeTodo(text: string, date: string): string {
+  return `${date} 할 일: ${text}`;
+}
+
+function summarizeSchedule(text: string, date: string): string {
+  return `${date} 일정: ${text}`;
+}
+
+function getConflictDetails(localState: AppState, serverState: AppState): ConflictDetails {
+  const items: ConflictDetailItem[] = [];
+  const dayKeys = new Set([
+    ...Object.keys(localState.days || {}),
+    ...Object.keys(serverState.days || {}),
+  ]);
+
+  for (const dayKey of [...dayKeys].sort()) {
+    const localDay = localState.days?.[dayKey];
+    const serverDay = serverState.days?.[dayKey];
+    const localTodos = localDay?.todos || [];
+    const serverTodos = serverDay?.todos || [];
+    const serverTodoIds = new Set(serverTodos.map((todo) => todo.id));
+    const localTodoIds = new Set(localTodos.map((todo) => todo.id));
+
+    for (const todo of localTodos) {
+      if (!serverTodoIds.has(todo.id)) {
+        items.push({
+          type: 'todo_added',
+          label: summarizeTodo(todo.text, dayKey),
+        });
+      }
+    }
+
+    for (const todo of serverTodos) {
+      if (!localTodoIds.has(todo.id)) {
+        items.push({
+          type: 'todo_deleted',
+          label: `${summarizeTodo(todo.text, dayKey)} 삭제`,
+        });
+      }
+    }
+
+    const localMemo = localDay?.memo || '';
+    const serverMemo = serverDay?.memo || '';
+    if (localMemo !== serverMemo) {
+      const memoPreview = localMemo.trim().split(/\s+/).slice(0, 8).join(' ');
+      items.push({
+        type: 'memo_changed',
+        label: memoPreview ? `${dayKey} 메모: ${memoPreview}` : `${dayKey} 메모 비우기`,
+      });
+    }
+  }
+
+  const localSchedules = localState.schedule || [];
+  const serverSchedules = serverState.schedule || [];
+  const serverScheduleIds = new Set(serverSchedules.map((item) => item.id));
+  const localScheduleIds = new Set(localSchedules.map((item) => item.id));
+
+  for (const item of localSchedules) {
+    if (!serverScheduleIds.has(item.id)) {
+      items.push({
+        type: 'schedule_added',
+        label: summarizeSchedule(item.text, item.date),
+      });
+    }
+  }
+
+  for (const item of serverSchedules) {
+    if (!localScheduleIds.has(item.id)) {
+      items.push({
+        type: 'schedule_deleted',
+        label: `${summarizeSchedule(item.text, item.date)} 삭제`,
+      });
+    }
+  }
+
+  return { items };
 }
 
 function updateSyncStatus(status: SyncStatus) {
@@ -219,8 +306,14 @@ export async function saveState(state: AppState): Promise<void> {
 
       // Conflict check: server has newer data than what we loaded
       if (lastLoadedUpdatedAt !== null && serverTime > localTime) {
+        const serverState = (serverRow.data || {
+          days: {},
+          schedule: [],
+          active: state.active,
+        }) as AppState;
+        const conflictDetails = getConflictDetails(state, serverState);
         updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
-        conflictListeners.forEach((cb) => cb());
+        conflictListeners.forEach((cb) => cb(conflictDetails));
         return;
       }
 

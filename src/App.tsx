@@ -13,6 +13,7 @@ import {
   markMigrationPrompted,
   uploadLocalToAccount,
 } from './lib/storage';
+import type { ConflictDetails } from './lib/storage';
 import { supabase } from './lib/supabase';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
 import { useThemePreference } from './lib/theme';
@@ -39,6 +40,7 @@ export default function App() {
 
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictDetails, setConflictDetails] = useState<ConflictDetails | null>(null);
 
   const [view, setView] = useState<View>(() => ({
     kind: 'week',
@@ -85,7 +87,8 @@ export default function App() {
       setSyncStatus(status);
     });
 
-    const unsubConflict = subscribeConflict(() => {
+    const unsubConflict = subscribeConflict((details) => {
+      setConflictDetails(details);
       setShowConflictModal(true);
     });
 
@@ -404,6 +407,7 @@ export default function App() {
 
   const handleRefreshConflict = async () => {
     setShowConflictModal(false);
+    setConflictDetails(null);
     const updated = await loadState();
     if (updated) {
       setAppState(updated);
@@ -413,6 +417,7 @@ export default function App() {
 
   const handleDismissConflict = () => {
     setShowConflictModal(false);
+    setConflictDetails(null);
   };
 
   return (
@@ -511,6 +516,7 @@ export default function App() {
       {/* Conflict Modal */}
       {showConflictModal && (
         <ConflictModal
+          details={conflictDetails}
           onRefresh={handleRefreshConflict}
           onDismiss={handleDismissConflict}
         />
