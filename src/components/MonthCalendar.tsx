@@ -90,7 +90,7 @@ const DayCell = React.memo(function DayCell({
       onClick={() => onClick(dateKey)}
       className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative select-auto ${
         isSelected
-          ? 'accent-fill text-white font-bold shadow-xs'
+          ? 'bg-slate-900 text-white font-bold shadow-xs'
           : isSameMonth
           ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-100'
           : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300 opacity-60 border border-transparent'
@@ -104,9 +104,7 @@ const DayCell = React.memo(function DayCell({
         {scheduleExists ? (
           <span
             title="일정 있음"
-            className={`text-[8px] leading-none ${
-              isSelected ? 'accent-text-soft' : 'accent-text'
-            }`}
+            className="text-[8px] leading-none accent-text"
           >
             ●
           </span>
@@ -121,7 +119,7 @@ const DayCell = React.memo(function DayCell({
           <span
             className={
               isSelected
-                ? 'accent-text-soft font-semibold'
+                ? 'text-sky-300 font-semibold'
                 : 'text-slate-500 font-medium'
             }
           >
@@ -131,7 +129,7 @@ const DayCell = React.memo(function DayCell({
         {summaryType === 'memo' && (
           <span
             className={
-              isSelected ? 'accent-text-soft font-bold' : 'text-slate-400'
+              isSelected ? 'text-amber-300 font-bold' : 'text-slate-400'
             }
           >
             ·

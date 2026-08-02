@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Day } from '../lib/types';
+import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, weekDays, weekMonthLabel, parseKey, startOfWeek, addDays } from '../lib/date';
 
 interface WeekStripProps {
   anchor: string;
   activeKey: string;
   days: Record<string, Day>;
+  schedule: ScheduleItem[];
   onSelectDate: (key: string) => void;
   onPrevWeek: () => void;
   onNextWeek: () => void;
@@ -53,6 +54,7 @@ interface WeekPanelProps {
   activeKey: string | null;
   today: string;
   contentKeys: Set<string>;
+  scheduleKeys: Set<string>;
   onSelectDate: (key: string) => void;
 }
 
@@ -61,6 +63,7 @@ const WeekPanel = React.memo(function WeekPanel({
   activeKey,
   today,
   contentKeys,
+  scheduleKeys,
   onSelectDate,
 }: WeekPanelProps) {
   return (
@@ -71,6 +74,7 @@ const WeekPanel = React.memo(function WeekPanel({
         const isSelected = key === activeKey;
         const isToday = key === today;
         const dayHasContent = contentKeys.has(key);
+        const dayHasSchedule = scheduleKeys.has(key);
 
         return (
           // 강조는 항상 한 겹만 그린다.
@@ -85,7 +89,7 @@ const WeekPanel = React.memo(function WeekPanel({
             onClick={() => onSelectDate(key)}
             className={`flex flex-col items-center justify-center py-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative ${
               isSelected
-                ? 'accent-fill text-white font-bold shadow-xs'
+                ? 'bg-slate-900 text-white font-bold shadow-xs'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
             }`}
           >
@@ -97,16 +101,20 @@ const WeekPanel = React.memo(function WeekPanel({
                 <span
                   title="오늘"
                   className={`w-1.5 h-1.5 rounded-full ${
-                    isSelected ? 'bg-white' : 'accent-dot'
+                    isSelected ? 'bg-white' : 'bg-slate-900'
                   }`}
+                />
+              )}
+              {dayHasSchedule && (
+                <span
+                  title="일정 있음"
+                  className="w-1 h-1 rounded-full accent-dot"
                 />
               )}
               {dayHasContent && (
                 <span
                   title="내용 있음"
-                  className={`w-1 h-1 rounded-full ${
-                    isSelected ? 'bg-white/70' : 'bg-slate-400'
-                  }`}
+                  className="w-1 h-1 rounded-full accent-dot"
                 />
               )}
             </div>
@@ -121,6 +129,7 @@ export function WeekStrip({
   anchor,
   activeKey,
   days,
+  schedule,
   onSelectDate,
   onPrevWeek,
   onNextWeek,
@@ -169,6 +178,14 @@ export function WeekStrip({
     }
     return set;
   }, [days]);
+
+  const scheduleKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of schedule) {
+      set.add(item.date);
+    }
+    return set;
+  }, [schedule]);
 
   const handleSelectDateStable = useCallback(
     (key: string) => {
@@ -428,6 +445,7 @@ export function WeekStrip({
                   activeKey={isCurrentPanel ? activeKey : null}
                   today={today}
                   contentKeys={contentKeys}
+                  scheduleKeys={scheduleKeys}
                   onSelectDate={handleSelectDateStable}
                 />
               </div>
