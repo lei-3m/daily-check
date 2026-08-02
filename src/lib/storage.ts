@@ -15,7 +15,16 @@ export interface SyncStatus {
 }
 
 export interface ConflictDetailItem {
-  type: 'todo_added' | 'todo_deleted' | 'memo_changed' | 'schedule_added' | 'schedule_deleted';
+  type:
+    | 'todo_added'
+    | 'todo_deleted'
+    | 'todo_updated'
+    | 'memo_changed'
+    | 'schedule_added'
+    | 'schedule_deleted'
+    | 'schedule_updated';
+  date: string;
+  text?: string;
   label: string;
 }
 
@@ -71,6 +80,26 @@ function summarizeSchedule(text: string, date: string): string {
   return `${date} 일정: ${text}`;
 }
 
+function setServerSnapshot(state: AppState): void {
+  try {
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error('Snapshot storage error:', error);
+  }
+}
+
+function getServerSnapshot(): AppState | null {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || !parsed.days) return null;
+    return parsed as AppState;
+  } catch {
+    return null;
+  }
+}
+
 function getConflictDetails(localState: AppState, serverState: AppState): ConflictDetails {
   const items: ConflictDetailItem[] = [];
   const dayKeys = new Set([
@@ -90,6 +119,8 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
       if (!serverTodoIds.has(todo.id)) {
         items.push({
           type: 'todo_added',
+          date: dayKey,
+          text: todo.text,
           label: summarizeTodo(todo.text, dayKey),
         });
       }
@@ -99,7 +130,21 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
       if (!localTodoIds.has(todo.id)) {
         items.push({
           type: 'todo_deleted',
+          date: dayKey,
+          text: todo.text,
           label: `${summarizeTodo(todo.text, dayKey)} 삭제`,
+        });
+      }
+    }
+
+    for (const todo of localTodos) {
+      const serverTodo = serverTodos.find((item) => item.id === todo.id);
+      if (serverTodo && (serverTodo.text !== todo.text || serverTodo.done !== todo.done)) {
+        items.push({
+          type: 'todo_updated',
+          date: dayKey,
+          text: todo.text,
+          label: summarizeTodo(todo.text, dayKey),
         });
       }
     }
@@ -110,6 +155,7 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
       const memoPreview = localMemo.trim().split(/\s+/).slice(0, 8).join(' ');
       items.push({
         type: 'memo_changed',
+        date: dayKey,
         label: memoPreview ? `${dayKey} 메모: ${memoPreview}` : `${dayKey} 메모 비우기`,
       });
     }
@@ -124,6 +170,8 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
     if (!serverScheduleIds.has(item.id)) {
       items.push({
         type: 'schedule_added',
+        date: item.date,
+        text: item.text,
         label: summarizeSchedule(item.text, item.date),
       });
     }
@@ -133,7 +181,21 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
     if (!localScheduleIds.has(item.id)) {
       items.push({
         type: 'schedule_deleted',
+        date: item.date,
+        text: item.text,
         label: `${summarizeSchedule(item.text, item.date)} 삭제`,
+      });
+    }
+  }
+
+  for (const item of localSchedules) {
+    const serverItem = serverSchedules.find((serverItem) => serverItem.id === item.id);
+    if (serverItem && (serverItem.date !== item.date || serverItem.text !== item.text)) {
+      items.push({
+        type: 'schedule_updated',
+        date: item.date,
+        text: item.text,
+        label: summarizeSchedule(item.text, item.date),
       });
     }
   }
@@ -276,6 +338,7 @@ async function uploadStateToServer(userId: string, state: AppState): Promise<str
 
   lastLoadedUpdatedAt = newUpdatedAt;
   setLocalCache(state, userId, newUpdatedAt);
+  setServerSnapshot(state);
   setPendingSync(false, userId);
   updateSyncStatus({
     type: 'synced',
@@ -345,7 +408,9 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
       if (pendingSync && localData) {
         if (serverTime > localTime) {
           updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
-          conflictListeners.forEach((cb) => cb(getConflictDetails(localData, serverState)));
+          conflictListeners.forEach((cb) =>
+            cb(getConflictDetails(localData, getServerSnapshot() || serverState))
+          );
           return localData;
         }
 
@@ -363,6 +428,7 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
 
       // Update LocalStorage cache with user id
       setLocalCache(serverState, user.id, row.updated_at || null);
+      setServerSnapshot(serverState);
 
       const formattedTime = row.updated_at
         ? new Date(row.updated_at).toLocaleTimeString('ko-KR', {
@@ -447,7 +513,7 @@ export async function saveState(state: AppState): Promise<void> {
           schedule: [],
           active: state.active,
         }) as AppState;
-        const conflictDetails = getConflictDetails(state, serverState);
+        const conflictDetails = getConflictDetails(state, getServerSnapshot() || serverState);
         setPendingSync(true, userId);
         updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
         conflictListeners.forEach((cb) => cb(conflictDetails));
@@ -456,11 +522,7 @@ export async function saveState(state: AppState): Promise<void> {
 
       // Save previous server version snapshot before overwriting
       if (serverRow.data) {
-        try {
-          localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(serverRow.data));
-        } catch (e) {
-          console.error('Snapshot storage error:', e);
-        }
+        setServerSnapshot(serverRow.data as AppState);
       }
     }
 
