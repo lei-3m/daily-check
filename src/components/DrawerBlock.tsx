@@ -169,7 +169,7 @@ function DrawerDocumentRow({
         </button>
       )}
       <span className="text-xs font-semibold text-slate-400 tabular-nums">
-        {doneCount}/{totalCount}
+        {totalCount === 0 ? '열어서 추가' : `${doneCount}/${totalCount}`}
       </span>
       <button
         type="button"
@@ -488,8 +488,8 @@ export function DrawerBlock({
 
         <div className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60">
           {activeDrawer.items.length === 0 ? (
-            <div className="text-xs text-slate-400 py-3 text-center">
-              항목이 없어요.
+            <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
+              이 목록은 아직 비어 있어요. 아래에서 항목을 추가하세요.
             </div>
           ) : (
             activeDrawer.items.map((item) => (
@@ -535,8 +535,9 @@ export function DrawerBlock({
 
       <div className="max-h-[42vh] overflow-y-auto pr-1">
         {drawers.length === 0 ? (
-          <div className="text-xs text-slate-400 py-3 text-center">
-            아직 목록이 없어요.
+          <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
+            날짜와 무관한 체크리스트를 모아두는 곳입니다.<br />
+            살 것, 읽을 책처럼 필요할 때 열어보세요.
           </div>
         ) : (
           <ul className="space-y-1">
