@@ -88,6 +88,10 @@ function setServerSnapshot(state: AppState): void {
   }
 }
 
+export function saveStateSnapshot(state: AppState): void {
+  setServerSnapshot(state);
+}
+
 function getServerSnapshot(): AppState | null {
   try {
     const raw = localStorage.getItem(SNAPSHOT_KEY);
@@ -603,4 +607,10 @@ export async function uploadLocalToAccount(userId: string, state: AppState): Pro
     console.error('Migration upload failed:', e);
   }
   return false;
+}
+
+export async function saveImportedState(userId: string, state: AppState): Promise<boolean> {
+  setLocalCache(state, userId);
+  setPendingSync(true, userId);
+  return (await uploadStateToServer(userId, state)) !== null;
 }
