@@ -25,7 +25,7 @@
   --accent-hover: #475569;
   --accent-soft: #f1f5f9;
   --accent-border: #cbd5e1;
-  --accent-text: #f8fafc;
+  --accent-text: #ffffff;
   --on-accent: #ffffff;
   --danger: #dc2626;
   --danger-soft: #fff1f2;
@@ -34,6 +34,9 @@
   --success: #047857;
   --success-soft: #ecfdf5;
   --info: #0284c7;
+  --calendar-today-dot: #0f172a;
+  --calendar-today-dot-selected: #f8fafc;
+  --calendar-todo-dot: #7dd3fc;
 }
 
 html.dark {
@@ -61,8 +64,8 @@ html.dark {
   --accent-hover: #cbd5e1;
   --accent-soft: #2a303a;
   --accent-border: #64748b;
-  --accent-text: #0f172a;
-  --on-accent: #0f172a;
+  --accent-text: #ffffff;
+  --on-accent: #ffffff;
   --danger: #fb7185;
   --danger-soft: #3a2028;
   --warning: #fbbf24;
@@ -70,6 +73,9 @@ html.dark {
   --success: #6ee7b7;
   --success-soft: #183227;
   --info: #7dd3fc;
+  --calendar-today-dot: #d8dce3;
+  --calendar-today-dot-selected: #f1f3f5;
+  --calendar-todo-dot: #7dd3fc;
 }
 
 html[data-accent='blue'] {
@@ -77,7 +83,7 @@ html[data-accent='blue'] {
   --accent-hover: #1d4ed8;
   --accent-soft: #dbeafe;
   --accent-border: #93c5fd;
-  --accent-text: #dbeafe;
+  --accent-text: #ffffff;
   --focus-ring: #2563eb;
 }
 
@@ -86,7 +92,7 @@ html.dark[data-accent='blue'] {
   --accent-hover: #93c5fd;
   --accent-soft: #172d4f;
   --accent-border: #2563eb;
-  --accent-text: #0f172a;
+  --accent-text: #ffffff;
   --focus-ring: #60a5fa;
 }
 
@@ -95,7 +101,7 @@ html[data-accent='green'] {
   --accent-hover: #15803d;
   --accent-soft: #dcfce7;
   --accent-border: #86efac;
-  --accent-text: #dcfce7;
+  --accent-text: #ffffff;
   --focus-ring: #16a34a;
 }
 
@@ -104,7 +110,7 @@ html.dark[data-accent='green'] {
   --accent-hover: #86efac;
   --accent-soft: #173b26;
   --accent-border: #16a34a;
-  --accent-text: #0f172a;
+  --accent-text: #ffffff;
   --focus-ring: #4ade80;
 }
 
@@ -113,7 +119,7 @@ html[data-accent='yellow'] {
   --accent-hover: #a16207;
   --accent-soft: #fef9c3;
   --accent-border: #fde047;
-  --accent-text: #fef9c3;
+  --accent-text: #ffffff;
   --focus-ring: #ca8a04;
 }
 
@@ -122,7 +128,7 @@ html.dark[data-accent='yellow'] {
   --accent-hover: #fde047;
   --accent-soft: #3c3212;
   --accent-border: #ca8a04;
-  --accent-text: #0f172a;
+  --accent-text: #ffffff;
   --focus-ring: #facc15;
 }
 
@@ -131,7 +137,7 @@ html[data-accent='pink'] {
   --accent-hover: #be185d;
   --accent-soft: #fce7f3;
   --accent-border: #f9a8d4;
-  --accent-text: #fce7f3;
+  --accent-text: #ffffff;
   --focus-ring: #db2777;
 }
 
@@ -140,7 +146,7 @@ html.dark[data-accent='pink'] {
   --accent-hover: #f9a8d4;
   --accent-soft: #442239;
   --accent-border: #db2777;
-  --accent-text: #0f172a;
+  --accent-text: #ffffff;
   --focus-ring: #f472b6;
 }
 
@@ -149,7 +155,7 @@ html[data-accent='orange'] {
   --accent-hover: #c2410c;
   --accent-soft: #ffedd5;
   --accent-border: #fdba74;
-  --accent-text: #ffedd5;
+  --accent-text: #ffffff;
   --focus-ring: #ea580c;
 }
 
@@ -158,7 +164,7 @@ html.dark[data-accent='orange'] {
   --accent-hover: #fdba74;
   --accent-soft: #452816;
   --accent-border: #ea580c;
-  --accent-text: #0f172a;
+  --accent-text: #ffffff;
   --focus-ring: #fb923c;
 }
 
@@ -167,7 +173,7 @@ html[data-accent='purple'] {
   --accent-hover: #6d28d9;
   --accent-soft: #ede9fe;
   --accent-border: #c4b5fd;
-  --accent-text: #ede9fe;
+  --accent-text: #ffffff;
   --focus-ring: #7c3aed;
 }
 
@@ -176,7 +182,7 @@ html.dark[data-accent='purple'] {
   --accent-hover: #c4b5fd;
   --accent-soft: #302449;
   --accent-border: #7c3aed;
-  --accent-text: #0f172a;
+  --accent-text: #ffffff;
   --focus-ring: #a78bfa;
 }
 
@@ -287,6 +293,36 @@ html.theme-switching *::after {
 
 .accent-dot {
   background-color: var(--accent) !important;
+}
+
+.calendar-today-dot {
+  background-color: var(--calendar-today-dot) !important;
+  border-color: var(--surface) !important;
+}
+
+.calendar-day-selected .calendar-today-dot {
+  background-color: var(--calendar-today-dot-selected) !important;
+  border-color: var(--surface-strong) !important;
+}
+
+.calendar-todo-dot {
+  background-color: var(--calendar-todo-dot) !important;
+}
+
+.calendar-cell-surface {
+  background-color: var(--surface) !important;
+}
+
+.calendar-schedule-row {
+  background-color: var(--surface) !important;
+}
+
+.calendar-schedule-row-past {
+  background-color: color-mix(in srgb, var(--surface) 70%, transparent) !important;
+}
+
+.calendar-selected-summary {
+  color: var(--calendar-todo-dot) !important;
 }
 
 .accent-control {
