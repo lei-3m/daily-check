@@ -1,5 +1,285 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+  --app-bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-muted: #f1f5f9;
+  --surface-hover: #e2e8f0;
+  --surface-strong: #0f172a;
+  --surface-strong-hover: #1e293b;
+  --text: #0f172a;
+  --text-strong: #020617;
+  --text-muted: #475569;
+  --text-soft: #64748b;
+  --text-faint: #94a3b8;
+  --text-disabled: #cbd5e1;
+  --on-strong: #f8fafc;
+  --border: #e2e8f0;
+  --border-soft: #f1f5f9;
+  --border-strong: #cbd5e1;
+  --focus-ring: #94a3b8;
+  --overlay: rgb(15 23 42 / 0.4);
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  --accent-soft: #eef2ff;
+  --accent-border: #c7d2fe;
+  --accent-text: #e0e7ff;
+  --danger: #dc2626;
+  --danger-soft: #fff1f2;
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --success: #047857;
+  --success-soft: #ecfdf5;
+  --info: #0284c7;
+}
+
+html.dark {
+  color-scheme: dark;
+  --app-bg: #111318;
+  --surface: #191c22;
+  --surface-soft: #20242c;
+  --surface-muted: #252a33;
+  --surface-hover: #303744;
+  --surface-strong: #39414e;
+  --surface-strong-hover: #485365;
+  --text: #d8dce3;
+  --text-strong: #eef1f5;
+  --text-muted: #bcc3ce;
+  --text-soft: #9da6b4;
+  --text-faint: #7f8998;
+  --text-disabled: #95a0ae;
+  --on-strong: #f1f3f5;
+  --border: #343b47;
+  --border-soft: #2a303a;
+  --border-strong: #596373;
+  --focus-ring: #93a4b8;
+  --overlay: rgb(4 6 10 / 0.68);
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-soft: #272d4b;
+  --accent-border: #5964a8;
+  --accent-text: #dfe5ff;
+  --danger: #fb7185;
+  --danger-soft: #3a2028;
+  --warning: #fbbf24;
+  --warning-soft: #352a16;
+  --success: #6ee7b7;
+  --success-soft: #183227;
+  --info: #7dd3fc;
+}
+
+body {
+  background: var(--app-bg);
+}
+
+.bg-white,
+.bg-white\/70 {
+  background-color: var(--surface) !important;
+}
+
+.bg-slate-50,
+.bg-slate-50\/80,
+.bg-slate-50\/50 {
+  background-color: var(--surface-soft) !important;
+}
+
+.bg-slate-100,
+.bg-slate-200 {
+  background-color: var(--surface-muted) !important;
+}
+
+.bg-slate-200\/70 {
+  background-color: var(--surface-hover) !important;
+}
+
+.bg-slate-300,
+.hover\:bg-slate-300:hover,
+.active\:bg-slate-600:active {
+  background-color: var(--surface-hover) !important;
+}
+
+.bg-slate-700,
+.bg-slate-800,
+.hover\:bg-slate-700:hover,
+.hover\:bg-slate-800:hover {
+  background-color: var(--surface-hover) !important;
+}
+
+.bg-slate-900,
+.hover\:bg-slate-800:hover {
+  background-color: var(--surface-strong) !important;
+}
+
+.hover\:bg-slate-800:hover {
+  background-color: var(--surface-strong-hover) !important;
+}
+
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-100:hover,
+.hover\:bg-slate-100\/80:hover,
+.hover\:bg-slate-200\/60:hover,
+.hover\:bg-slate-200\/70:hover,
+.focus-within\:bg-white:focus-within {
+  background-color: var(--surface-hover) !important;
+}
+
+.bg-indigo-50\/60 {
+  background-color: var(--accent-soft) !important;
+}
+
+.bg-indigo-600,
+.hover\:bg-indigo-500:hover,
+.active\:bg-indigo-700:active {
+  background-color: var(--accent) !important;
+}
+
+.bg-amber-50,
+.bg-amber-100 {
+  background-color: var(--warning-soft) !important;
+}
+
+.bg-rose-50,
+.hover\:bg-rose-50:hover,
+.bg-red-50,
+.hover\:bg-red-50:hover,
+.\[\@media\(hover\:hover\)\]\:hover\:bg-red-50:hover {
+  background-color: var(--danger-soft) !important;
+}
+
+.bg-emerald-50 {
+  background-color: var(--success-soft) !important;
+}
+
+.bg-slate-900\/40 {
+  background-color: var(--overlay) !important;
+}
+
+.text-slate-900,
+.text-slate-800,
+.hover\:text-slate-900:hover,
+.hover\:text-slate-800:hover,
+.focus\:text-red-500:focus {
+  color: var(--text-strong) !important;
+}
+
+.text-slate-700,
+.text-slate-600,
+.hover\:text-slate-700:hover,
+.hover\:text-slate-600:hover {
+  color: var(--text-muted) !important;
+}
+
+.text-slate-500 {
+  color: var(--text-soft) !important;
+}
+
+.text-slate-400 {
+  color: var(--text-faint) !important;
+}
+
+.text-slate-300 {
+  color: var(--text-disabled) !important;
+}
+
+.text-white {
+  color: var(--on-strong) !important;
+}
+
+.text-indigo-200,
+.text-sky-300 {
+  color: var(--accent-text) !important;
+}
+
+.text-amber-300,
+.text-amber-500,
+.text-amber-600,
+.text-amber-700 {
+  color: var(--warning) !important;
+}
+
+.text-rose-600,
+.text-red-500,
+.hover\:text-red-500:hover,
+.\[\@media\(hover\:hover\)\]\:hover\:text-red-500:hover {
+  color: var(--danger) !important;
+}
+
+.text-emerald-700 {
+  color: var(--success) !important;
+}
+
+.text-blue-500\/80,
+.text-sky-300 {
+  color: var(--info) !important;
+}
+
+.text-transparent {
+  color: transparent !important;
+}
+
+.placeholder-slate-400::placeholder {
+  color: var(--text-faint) !important;
+  opacity: 1;
+}
+
+.border-slate-100,
+.border-slate-100\/60,
+.divide-slate-100\/60 > :not(:last-child),
+.border-transparent {
+  border-color: var(--border-soft) !important;
+}
+
+.border-slate-200,
+.border-slate-200\/80,
+.border-indigo-200,
+.ring-slate-200 {
+  border-color: var(--border) !important;
+}
+
+.border-slate-300,
+.focus-within\:border-slate-300:focus-within,
+.border-slate-700\/60,
+.border-slate-800 {
+  border-color: var(--border-strong) !important;
+}
+
+.border-indigo-200 {
+  border-color: var(--accent-border) !important;
+}
+
+.ring-slate-800,
+.ring-1\.5,
+.focus\:ring-slate-300:focus,
+.focus\:ring-slate-400:focus,
+.focus-visible\:ring-slate-400:focus-visible,
+.focus\:ring-indigo-400:focus,
+.focus\:ring-indigo-400:focus-visible,
+.focus\:ring-slate-900:focus,
+.focus\:ring-slate-500:focus,
+.focus\:ring-1:focus,
+.focus-within\:ring-slate-300:focus-within {
+  --tw-ring-color: var(--focus-ring) !important;
+  border-color: var(--focus-ring) !important;
+}
+
+.focus\:ring-offset-2:focus {
+  --tw-ring-offset-color: var(--app-bg) !important;
+}
+
+.line-through.text-slate-400 {
+  color: var(--text-faint) !important;
+}
+
+.group-hover\/cb\:border-slate-400 {
+  border-color: var(--border-strong) !important;
+}
+
+html.dark .opacity-60 {
+  opacity: 0.85 !important;
+}
+
 .app-container {
   padding-top: max(1.5rem, env(safe-area-inset-top));
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
