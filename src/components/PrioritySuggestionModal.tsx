@@ -17,11 +17,14 @@ export function PrioritySuggestionModal({
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
       <div className="bg-white border border-slate-200 rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-4">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-7 text-center">
-            <div
-              className="priority-spinner w-9 h-9 rounded-full border-3 border-slate-200 border-t-slate-900"
-              aria-hidden="true"
-            />
+          <div className="flex flex-col items-center justify-center gap-4 py-7 text-center">
+            <div className="priority-stars" aria-hidden="true">
+              <span className="priority-star priority-star-main">✦</span>
+              <span className="priority-star priority-star-small priority-star-a">✦</span>
+              <span className="priority-star priority-star-small priority-star-b">✧</span>
+              <span className="priority-star priority-star-small priority-star-c">✦</span>
+              <span className="priority-star priority-star-small priority-star-d">✧</span>
+            </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-900">
                 우선순위를 정리하는 중…
