@@ -171,7 +171,7 @@ export function Header({
                   <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                     강조 색상
                   </div>
-                  <div className="grid grid-cols-1 gap-1">
+                  <div className="grid grid-cols-4 justify-start gap-0">
                     {ACCENT_OPTIONS.map((option) => {
                       const isSelected = option.value === accentPreference;
                       return (
@@ -181,20 +181,14 @@ export function Header({
                           onClick={() => onAccentPreferenceChange(option.value)}
                           aria-label={`${option.label} 강조 색상`}
                           aria-pressed={isSelected}
-                          className={`w-full min-h-9 flex items-center justify-between gap-2 text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 ${
-                            isSelected ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-100'
-                          }`}
+                          className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                         >
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="w-4 h-4 rounded-full border border-slate-200 shadow-xs"
-                              style={{ backgroundColor: option.swatch }}
-                            />
-                            <span>{option.label}</span>
-                          </span>
-                          <span className={isSelected ? 'text-slate-700' : 'text-slate-400'}>
-                            {isSelected ? '✓' : ''}
-                          </span>
+                          <span
+                            className={`w-4 h-4 rounded-full ${
+                              isSelected ? 'ring-2 ring-slate-900 ring-offset-2' : ''
+                            }`}
+                            style={{ backgroundColor: option.swatch }}
+                          />
                         </button>
                       );
                     })}
