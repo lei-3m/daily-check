@@ -103,7 +103,7 @@ export function Header({
               type="button"
               onClick={() => setIsMenuOpen((prev) => !prev)}
               aria-label="계정 메뉴"
-              className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer shadow-2xs"
+              className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer shadow-2xs"
             >
               {initialLetter}
             </button>
@@ -139,7 +139,7 @@ export function Header({
                           type="button"
                           onClick={() => onThemePreferenceChange(option.value)}
                           aria-pressed={isSelected}
-                          className={`w-full flex items-center justify-between text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 ${
+                          className={`w-full flex items-center justify-between text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 ${
                             isSelected
                               ? 'bg-slate-900 text-white'
                               : 'text-slate-600 hover:bg-slate-100'

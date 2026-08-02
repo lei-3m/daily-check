@@ -95,7 +95,7 @@ export function TodoRow({
       onClick={isSelectMode ? () => onToggleSelect?.(id) : undefined}
       className={`group flex items-center justify-between py-2 px-2.5 rounded-lg transition-colors border ${
         isDragging
-          ? 'shadow-lg bg-white opacity-90 scale-[1.01] border-slate-200 ring-1 ring-slate-200'
+          ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : isSelectMode
           ? isSelected
             ? 'bg-indigo-50/60 border-indigo-200 cursor-pointer'
@@ -112,7 +112,7 @@ export function TodoRow({
               e.stopPropagation();
               onToggleSelect?.(id);
             }}
-            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded-lg"
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-lg"
             title={isSelected ? '선택 해제' : '선택'}
           >
             <span
@@ -141,8 +141,8 @@ export function TodoRow({
           <span
             {...attributes}
             {...listeners}
-            style={{ touchAction: 'none' }}
-            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab active:cursor-grabbing text-base touch-none focus:outline-none focus:ring-2 focus:ring-slate-300 rounded"
+            style={{ touchAction: 'pan-y' }}
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab active:cursor-grabbing text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded"
             aria-label="순서 변경"
             title="드래그하여 순서 변경"
           >
@@ -170,7 +170,7 @@ export function TodoRow({
               onToggle(id);
             }
           }}
-          className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 mr-1 focus:outline-none focus:ring-2 focus:ring-slate-400 rounded-lg group/cb cursor-pointer"
+          className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 mr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded-lg group/cb cursor-pointer"
           title={isSelectMode ? '이동 대상 선택' : done ? '미완료로 변경' : '완료로 변경'}
         >
           <span
@@ -227,7 +227,7 @@ export function TodoRow({
           type="button"
           onClick={() => onDelete(id)}
           aria-label="할 일 삭제"
-          className="w-10 h-10 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors"
+          className="w-10 h-10 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus-visible:text-red-500 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
           ✕
         </button>
@@ -235,5 +235,4 @@ export function TodoRow({
     </div>
   );
 }
-
 

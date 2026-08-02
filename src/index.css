@@ -75,6 +75,12 @@ body {
   background: var(--app-bg);
 }
 
+button,
+[role='button'],
+[role='checkbox'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html.theme-switching,
 html.theme-switching *,
 html.theme-switching *::before,
@@ -168,7 +174,8 @@ html.theme-switching *::after {
 .text-slate-800,
 .hover\:text-slate-900:hover,
 .hover\:text-slate-800:hover,
-.focus\:text-red-500:focus {
+.focus\:text-red-500:focus,
+.focus-visible\:text-red-500:focus-visible {
   color: var(--text-strong) !important;
 }
 
@@ -261,18 +268,23 @@ html.theme-switching *::after {
 .ring-1\.5,
 .focus\:ring-slate-300:focus,
 .focus\:ring-slate-400:focus,
+.focus-visible\:ring-slate-300:focus-visible,
 .focus-visible\:ring-slate-400:focus-visible,
 .focus\:ring-indigo-400:focus,
-.focus\:ring-indigo-400:focus-visible,
+.focus-visible\:ring-indigo-400:focus-visible,
 .focus\:ring-slate-900:focus,
+.focus-visible\:ring-slate-900:focus-visible,
 .focus\:ring-slate-500:focus,
+.focus-visible\:ring-slate-500:focus-visible,
 .focus\:ring-1:focus,
+.focus-visible\:ring-1:focus-visible,
 .focus-within\:ring-slate-300:focus-within {
   --tw-ring-color: var(--focus-ring) !important;
   border-color: var(--focus-ring) !important;
 }
 
-.focus\:ring-offset-2:focus {
+.focus\:ring-offset-2:focus,
+.focus-visible\:ring-offset-2:focus-visible {
   --tw-ring-offset-color: var(--app-bg) !important;
 }
 

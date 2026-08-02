@@ -118,7 +118,7 @@ function ScheduleItemRow({
             type="button"
             onClick={handleDateClick}
             title="날짜 수정"
-            className="font-mono text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-1.5 py-0.5 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-slate-300 cursor-pointer"
+            className="font-mono text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-1.5 py-0.5 rounded transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 cursor-pointer"
           >
             {formatDisplayDate(item.date)}
           </button>
@@ -158,7 +158,7 @@ function ScheduleItemRow({
         type="button"
         onClick={() => onDeleteSchedule(item.id)}
         aria-label="일정 삭제"
-        className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus:text-red-500 rounded-lg transition-colors cursor-pointer"
+        className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus-visible:text-red-500 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
         ✕
       </button>
@@ -270,7 +270,7 @@ export function ScheduleBlock({
             toggleCollapsed();
           }}
           aria-label={isCollapsed ? '일정 펼치기' : '일정 접기'}
-          className="text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold leading-none"
+          className="text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold leading-none"
         >
           {isCollapsed ? '펼치기 ▾' : '접기 −'}
         </button>
@@ -287,7 +287,7 @@ export function ScheduleBlock({
               <button
                 type="button"
                 onClick={handleDateTriggerClick}
-                className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300 font-mono flex items-center gap-1 font-semibold"
+                className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 font-mono flex items-center gap-1 font-semibold"
               >
                 <span>📅</span>
                 <span>{inputDate ? shortLabel(inputDate) : '날짜'}</span>
@@ -346,7 +346,7 @@ export function ScheduleBlock({
                 <button
                   type="button"
                   onClick={toggleExpanded}
-                  className="w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
+                  className="w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 group"
                 >
                   <span className="font-mono font-semibold text-slate-600 group-hover:text-slate-900">
                     +{after7Days.length}개
@@ -359,7 +359,7 @@ export function ScheduleBlock({
                 <button
                   type="button"
                   onClick={toggleExpanded}
-                  className="w-full flex items-center justify-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-300 group"
+                  className="w-full flex items-center justify-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 group"
                 >
                   <span>접기</span>
                   <span className="font-bold">▴</span>

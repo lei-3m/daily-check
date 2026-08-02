@@ -3,11 +3,13 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
 } from '@dnd-kit/core';
+import type { Modifier } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -16,6 +18,22 @@ import {
 } from '@dnd-kit/sortable';
 import { Todo } from '../lib/types';
 import { TodoRow } from './TodoRow';
+
+const restrictTodoDragToList: Modifier = ({ transform, activeNodeRect, containerNodeRect }) => {
+  const nextTransform = { ...transform, x: 0 };
+
+  if (!activeNodeRect || !containerNodeRect) {
+    return nextTransform;
+  }
+
+  const minY = containerNodeRect.top - activeNodeRect.top;
+  const maxY = containerNodeRect.bottom - activeNodeRect.bottom;
+
+  return {
+    ...nextTransform,
+    y: Math.min(Math.max(nextTransform.y, minY), maxY),
+  };
+};
 
 interface TodoListProps {
   todos: Todo[];
@@ -68,9 +86,15 @@ export function TodoList({
   inputValueRef.current = inputValue;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -136,6 +160,7 @@ export function TodoList({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        modifiers={[restrictTodoDragToList]}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
@@ -182,7 +207,7 @@ export function TodoList({
                 handleAddSingle();
               }}
               aria-label="할 일 추가"
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus:ring-2 focus:ring-slate-300 select-none"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
             >
               ＋
             </button>
@@ -206,5 +231,3 @@ export function TodoList({
     </div>
   );
 }
-
-
