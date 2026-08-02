@@ -9,7 +9,9 @@ import {
   clearPendingSync,
   getScheduleCollapsedPreference,
   resolvePendingSync,
+  saveImportedState,
   savePendingLocalState,
+  saveStateSnapshot,
   setScheduleCollapsedPreference,
   SyncStatus,
   subscribeSyncStatus,
@@ -21,6 +23,7 @@ import {
 import type { ConflictDetails } from './lib/storage';
 import { supabase } from './lib/supabase';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
+import { validateBackupState } from './lib/backup';
 import { useThemePreference } from './lib/theme';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
@@ -435,6 +438,54 @@ export default function App() {
     }
   };
 
+  const handleExportData = () => {
+    if (!appState) return;
+
+    const blob = new Blob([JSON.stringify(appState, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `daily-check-${todayKey()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast('데이터를 내보냈습니다');
+  };
+
+  const handleImportData = async (file: File) => {
+    if (!appState || !session) return;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      showToast('가져오기 실패: JSON 파일이 아닙니다');
+      return;
+    }
+
+    const validation = validateBackupState(parsed);
+    if (validation.ok === false) {
+      showToast(`가져오기 실패: ${validation.message}`);
+      return;
+    }
+
+    if (!window.confirm('현재 데이터를 덮어씁니다. 계속할까요?')) {
+      return;
+    }
+
+    saveStateSnapshot(appState);
+    setAppState(validation.state);
+    setView({ kind: 'week', anchor: validation.state.active || todayKey() });
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+
+    const saved = await saveImportedState(session.user.id, validation.state);
+    showToast(saved ? '데이터를 가져왔습니다' : '가져왔지만 서버 저장은 대기 중입니다');
+  };
+
   const handleRefreshConflict = async () => {
     setShowConflictModal(false);
     setConflictDetails(null);
@@ -464,6 +515,8 @@ export default function App() {
           onSignOut={handleSignOut}
           themePreference={themePreference}
           onThemePreferenceChange={setThemePreference}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
         />
 
         {/* Fixed Schedule Block - Hidden in Month View */}

@@ -11,6 +11,8 @@ interface HeaderProps {
   onSignOut: () => void;
   themePreference: ThemePreference;
   onThemePreferenceChange: (preference: ThemePreference) => void;
+  onExportData: () => void;
+  onImportData: (file: File) => void;
 }
 
 export function Header({
@@ -22,9 +24,12 @@ export function Header({
   onSignOut,
   themePreference,
   onThemePreferenceChange,
+  onExportData,
+  onImportData,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -151,6 +156,44 @@ export function Header({
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    데이터 백업
+                  </div>
+                  <div className="grid grid-cols-1 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onExportData();
+                      }}
+                      className="w-full text-left text-xs font-semibold text-slate-600 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    >
+                      데이터 내보내기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => importInputRef.current?.click()}
+                      className="w-full text-left text-xs font-semibold text-slate-600 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                    >
+                      데이터 가져오기
+                    </button>
+                    <input
+                      ref={importInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = '';
+                        if (!file) return;
+                        setIsMenuOpen(false);
+                        onImportData(file);
+                      }}
+                    />
                   </div>
                 </div>
 
