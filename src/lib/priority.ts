@@ -1,7 +1,5 @@
 import type { ScheduleItem, Todo } from './types';
 
-export const PRIORITY_FUNCTION_NAME = 'prioritize-todos';
-
 export interface PriorityTodoInput {
   id: string;
   text: string;
@@ -31,42 +29,55 @@ export interface PrioritySuggestion {
   items: PrioritySuggestionItem[];
 }
 
-type ReasonMap = Record<string, string>;
+export class PriorityResponseError extends Error {
+  shouldShowMessage: boolean;
 
-function readOrderedIds(data: unknown): string[] | null {
-  if (!data || typeof data !== 'object') return null;
-  const record = data as Record<string, unknown>;
-  const ids = record.order ?? record.sortedIds ?? record.ids;
-  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
-    return null;
+  constructor(message: string, shouldShowMessage = false) {
+    super(message);
+    this.name = 'PriorityResponseError';
+    this.shouldShowMessage = shouldShowMessage;
   }
-  return ids;
 }
 
-function readReasons(data: unknown): ReasonMap | null {
-  if (!data || typeof data !== 'object') return null;
-  const reasons = (data as Record<string, unknown>).reasons;
+interface PriorityOrderItem {
+  id: string;
+  reason: string;
+}
 
-  if (reasons && typeof reasons === 'object' && !Array.isArray(reasons)) {
-    const entries = Object.entries(reasons as Record<string, unknown>);
-    if (entries.some(([, value]) => typeof value !== 'string')) return null;
-    return Object.fromEntries(entries) as ReasonMap;
+function readOrder(data: unknown): PriorityOrderItem[] {
+  if (!data || typeof data !== 'object') {
+    console.error('Invalid priority response:', data);
+    throw new PriorityResponseError('Invalid priority response');
   }
 
-  if (Array.isArray(reasons)) {
-    const result: ReasonMap = {};
-    for (const item of reasons) {
-      if (!item || typeof item !== 'object') return null;
-      const record = item as Record<string, unknown>;
-      if (typeof record.id !== 'string' || typeof record.reason !== 'string') {
-        return null;
-      }
-      result[record.id] = record.reason;
+  const record = data as Record<string, unknown>;
+  if (typeof record.error === 'string' && record.error.trim()) {
+    throw new PriorityResponseError(record.error.trim(), true);
+  }
+
+  if (!Array.isArray(record.order)) {
+    console.error('Invalid priority response:', data);
+    throw new PriorityResponseError('Invalid priority response');
+  }
+
+  const order: PriorityOrderItem[] = [];
+  for (const item of record.order) {
+    if (!item || typeof item !== 'object') continue;
+    const orderItem = item as Record<string, unknown>;
+    if (
+      typeof orderItem.id !== 'string' ||
+      orderItem.id.trim() === '' ||
+      typeof orderItem.reason !== 'string'
+    ) {
+      continue;
     }
-    return result;
+    order.push({
+      id: orderItem.id.trim(),
+      reason: orderItem.reason.trim(),
+    });
   }
 
-  return null;
+  return order;
 }
 
 export function buildPriorityRequest(
@@ -102,34 +113,34 @@ export function parsePrioritySuggestion(
   data: unknown,
   incompleteTodos: Todo[]
 ): PrioritySuggestion {
-  const orderedIds = readOrderedIds(data);
-  const reasons = readReasons(data);
-  if (!orderedIds || !reasons) {
-    throw new Error('Invalid priority response');
-  }
+  const order = readOrder(data);
 
   const todoById = new Map(incompleteTodos.map((todo) => [todo.id, todo]));
   const seen = new Set<string>();
   const items: PrioritySuggestionItem[] = [];
 
-  for (const id of orderedIds) {
+  for (const orderItem of order) {
+    const id = orderItem.id;
     if (seen.has(id)) continue;
     const todo = todoById.get(id);
-    const reason = reasons[id];
-    if (!todo || typeof reason !== 'string' || reason.trim() === '') {
+    if (!todo) {
       continue;
     }
     seen.add(id);
     items.push({
       id,
       text: todo.text,
-      reason: reason.trim(),
+      reason: orderItem.reason || '우선순위 제안',
     });
   }
 
   for (const todo of incompleteTodos) {
     if (!seen.has(todo.id)) {
-      throw new Error('Invalid priority response');
+      items.push({
+        id: todo.id,
+        text: todo.text,
+        reason: '기존 순서 유지',
+      });
     }
   }
 

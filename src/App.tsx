@@ -31,7 +31,7 @@ import { useThemePreference } from './lib/theme';
 import {
   buildPriorityRequest,
   parsePrioritySuggestion,
-  PRIORITY_FUNCTION_NAME,
+  PriorityResponseError,
   PrioritySuggestion,
 } from './lib/priority';
 import { Header } from './components/Header';
@@ -570,18 +570,23 @@ export default function App() {
         upcomingSchedule
       );
 
-      const { data, error } = await supabase.functions.invoke(PRIORITY_FUNCTION_NAME, {
+      const { data, error } = await supabase.functions.invoke('quick-function', {
         body,
       });
 
       if (error) {
+        console.error('Priority Edge Function error:', error);
         throw error;
       }
 
       setPrioritySuggestion(parsePrioritySuggestion(data, incompleteTodos));
     } catch (error) {
-      console.warn('Priority suggestion failed:', error);
-      showToast('우선순위 제안을 가져오지 못했어요');
+      console.error('Priority suggestion failed:', error);
+      if (error instanceof PriorityResponseError && error.shouldShowMessage) {
+        showToast(error.message);
+      } else {
+        showToast('우선순위 제안을 가져오지 못했어요');
+      }
     } finally {
       setIsPrioritizing(false);
     }
