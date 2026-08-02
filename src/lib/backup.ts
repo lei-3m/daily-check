@@ -35,7 +35,9 @@ function isScheduleItem(value: unknown): value is ScheduleItem {
     isRecord(value) &&
     typeof value.id === 'string' &&
     isDateKey(value.date) &&
-    typeof value.text === 'string'
+    typeof value.text === 'string' &&
+    (value.repeat === undefined || value.repeat === 'weekly' || value.repeat === 'monthly') &&
+    (value.repeatUntil === undefined || isDateKey(value.repeatUntil))
   );
 }
 

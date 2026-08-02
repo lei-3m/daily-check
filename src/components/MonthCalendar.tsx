@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, monthGrid, parseKey, startOfWeek, addDays } from '../lib/date';
+import { expandScheduleInRange, hasRepeat } from '../lib/schedule';
 
 interface MonthCalendarProps {
   anchor: string;
@@ -188,11 +189,15 @@ export function MonthCalendar({
   // Pre-calculate schedules and summaries lookup maps
   const scheduleKeysSet = useMemo(() => {
     const set = new Set<string>();
-    for (const item of schedule) {
-      set.add(normalizeDate(item.date).key);
+    const firstGrid = getMonthGridMemoized(getMonthOffsetKeyFromBase(baseMonthKey, monthOffsetIndex - 2));
+    const lastGrid = getMonthGridMemoized(getMonthOffsetKeyFromBase(baseMonthKey, monthOffsetIndex + 2));
+    const startKey = firstGrid[0];
+    const endKey = lastGrid[lastGrid.length - 1];
+    for (const item of expandScheduleInRange(schedule, startKey, endKey)) {
+      set.add(item.occurrenceDate);
     }
     return set;
-  }, [schedule]);
+  }, [baseMonthKey, monthOffsetIndex, schedule]);
 
   const daySummariesMap = useMemo(() => {
     const map = new Map<string, { type: 'todos' | 'memo'; done?: number; total?: number }>();
@@ -387,16 +392,19 @@ export function MonthCalendar({
   };
 
   // Schedules for current displayed month
-  const monthSchedules = schedule
+  const monthStartKey = `${currentDisplayedDate.getFullYear()}-${String(
+    currentDisplayedDate.getMonth() + 1
+  ).padStart(2, '0')}-01`;
+  const monthEndKey = addDays(
+    getMonthOffsetKeyFromBase(currentDisplayedAnchor, 1),
+    -1
+  );
+
+  const monthSchedules = expandScheduleInRange(schedule, monthStartKey, monthEndKey)
     .map((item) => ({
       ...item,
-      norm: normalizeDate(item.date),
+      norm: normalizeDate(item.occurrenceDate),
     }))
-    .filter(
-      (item) =>
-        item.norm.year === currentDisplayedDate.getFullYear() &&
-        item.norm.month === currentDisplayedDate.getMonth()
-    )
     .sort((a, b) => a.norm.key.localeCompare(b.norm.key));
 
   // Sectioning monthSchedules based on today
@@ -494,7 +502,7 @@ export function MonthCalendar({
               <ul className="space-y-1 text-xs">
                 {thisWeekSchedules.map((item) => (
                   <li
-                    key={item.id}
+                    key={`${item.id}:${item.occurrenceDate}`}
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
@@ -502,6 +510,7 @@ export function MonthCalendar({
                     <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
                       {item.norm.label}
                     </span>
+                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-800 truncate">
                       {item.text}
                     </span>
@@ -520,7 +529,7 @@ export function MonthCalendar({
               <ul className="space-y-1 text-xs">
                 {nextWeekSchedules.map((item) => (
                   <li
-                    key={item.id}
+                    key={`${item.id}:${item.occurrenceDate}`}
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
@@ -528,6 +537,7 @@ export function MonthCalendar({
                     <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
                       {item.norm.label}
                     </span>
+                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-800 truncate">
                       {item.text}
                     </span>
@@ -546,7 +556,7 @@ export function MonthCalendar({
               <ul className="space-y-1 text-xs">
                 {afterNextWeekSchedules.map((item) => (
                   <li
-                    key={item.id}
+                    key={`${item.id}:${item.occurrenceDate}`}
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
@@ -554,6 +564,7 @@ export function MonthCalendar({
                     <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
                       {item.norm.label}
                     </span>
+                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-800 truncate">
                       {item.text}
                     </span>
@@ -572,7 +583,7 @@ export function MonthCalendar({
               <ul className="space-y-1 text-xs">
                 {pastSchedules.map((item) => (
                   <li
-                    key={item.id}
+                    key={`${item.id}:${item.occurrenceDate}`}
                     onClick={() => onSelectDate(item.norm.key)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-500 calendar-schedule-row-past border border-slate-100"
                   >
@@ -580,6 +591,7 @@ export function MonthCalendar({
                     <span className="font-mono font-semibold text-slate-400 w-10 shrink-0">
                       {item.norm.label}
                     </span>
+                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-600 truncate">
                       {item.text}
                     </span>

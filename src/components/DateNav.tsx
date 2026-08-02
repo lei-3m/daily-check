@@ -8,7 +8,8 @@ export type View =
   | { kind: 'week'; anchor: string }
   | { kind: 'month'; anchor: string }
   | { kind: 'drawer' }
-  | { kind: 'drawerList'; id: string };
+  | { kind: 'drawerList'; id: string }
+  | { kind: 'scheduleEdit'; id: string | null };
 
 interface DateNavProps {
   view: View;
