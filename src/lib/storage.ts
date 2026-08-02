@@ -1,5 +1,6 @@
 import { AppState, Drawer, Todo } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isAccentPreference } from './theme';
 
 const STORAGE_KEY = 'daily-check:v1';
 const SNAPSHOT_KEY = 'daily-check:snapshot';
@@ -26,7 +27,8 @@ export interface ConflictDetailItem {
     | 'schedule_updated'
     | 'drawer_added'
     | 'drawer_deleted'
-    | 'drawer_updated';
+    | 'drawer_updated'
+    | 'accent_changed';
   date: string;
   text?: string;
   label: string;
@@ -100,6 +102,7 @@ export function normalizeDrawer(drawer?: Drawer[]): Drawer[] {
 function normalizeStoredState(state: AppState): AppState {
   return {
     ...state,
+    accentColor: isAccentPreference(state.accentColor) ? state.accentColor : 'default',
     drawer: normalizeDrawer(state.drawer),
   };
 }
@@ -350,6 +353,14 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
   }
 
   collectDrawerConflictItems(normalizedLocal.drawer, normalizedServer.drawer, items);
+
+  if (normalizedLocal.accentColor !== normalizedServer.accentColor) {
+    items.push({
+      type: 'accent_changed',
+      date: normalizedLocal.active,
+      label: '강조 색상 변경',
+    });
+  }
 
   return { items };
 }
@@ -697,6 +708,7 @@ export async function saveState(state: AppState): Promise<void> {
           schedule: [],
           drawer: createDefaultDrawer(),
           active: state.active,
+          accentColor: state.accentColor,
         }) as AppState);
         const conflictDetails = getConflictDetails(state, getServerSnapshot() || serverState);
         if (conflictDetails.items.length === 0) {

@@ -1,4 +1,5 @@
 import { AppState, Day, Drawer, ScheduleItem, Todo } from './types';
+import { isAccentPreference } from './theme';
 
 type ValidationResult =
   | { ok: true; state: AppState }
@@ -90,6 +91,7 @@ export function validateBackupState(value: unknown): ValidationResult {
       schedule: value.schedule,
       drawer,
       active: value.active,
+      accentColor: isAccentPreference(value.accentColor) ? value.accentColor : 'default',
     },
   };
 }

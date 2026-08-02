@@ -30,7 +30,7 @@ export const ACCENT_OPTIONS: Array<{
 const isThemePreference = (value: string | null): value is ThemePreference =>
   value === 'light' || value === 'dark' || value === 'system';
 
-const isAccentPreference = (value: string | null): value is AccentPreference =>
+export const isAccentPreference = (value: string | null | undefined): value is AccentPreference =>
   value === 'default' ||
   value === 'blue' ||
   value === 'green' ||
