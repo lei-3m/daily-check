@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SyncStatus } from '../lib/storage';
+import { ThemePreference } from '../lib/theme';
 
 interface HeaderProps {
   dateLabel: string;
@@ -8,6 +9,8 @@ interface HeaderProps {
   userEmail?: string | null;
   syncStatus: SyncStatus;
   onSignOut: () => void;
+  themePreference: ThemePreference;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
 }
 
 export function Header({
@@ -17,6 +20,8 @@ export function Header({
   userEmail,
   syncStatus,
   onSignOut,
+  themePreference,
+  onThemePreferenceChange,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -32,6 +37,11 @@ export function Header({
   }, []);
 
   const initialLetter = userEmail ? userEmail.charAt(0).toUpperCase() : 'U';
+  const themeOptions: Array<{ value: ThemePreference; label: string }> = [
+    { value: 'light', label: '라이트' },
+    { value: 'dark', label: '다크' },
+    { value: 'system', label: '시스템 설정 따름' },
+  ];
 
   const renderSyncBadge = () => {
     switch (syncStatus.type) {
@@ -114,6 +124,35 @@ export function Header({
                     동기화 상태
                   </div>
                   <div className="mt-1">{renderSyncBadge()}</div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    테마
+                  </div>
+                  <div className="grid grid-cols-1 gap-1">
+                    {themeOptions.map((option) => {
+                      const isSelected = option.value === themePreference;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => onThemePreferenceChange(option.value)}
+                          aria-pressed={isSelected}
+                          className={`w-full flex items-center justify-between text-left text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300 ${
+                            isSelected
+                              ? 'bg-slate-900 text-white'
+                              : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{option.label}</span>
+                          <span className={isSelected ? 'text-white' : 'text-slate-400'}>
+                            {isSelected ? '✓' : ''}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100">

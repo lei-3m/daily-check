@@ -15,6 +15,7 @@ import {
 } from './lib/storage';
 import { supabase } from './lib/supabase';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
+import { useThemePreference } from './lib/theme';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
 import { DateNav, View } from './components/DateNav';
@@ -34,6 +35,7 @@ export default function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ type: 'synced' });
+  const { themePreference, setThemePreference } = useThemePreference();
 
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
@@ -424,6 +426,8 @@ export default function App() {
           userEmail={session?.user?.email}
           syncStatus={syncStatus}
           onSignOut={handleSignOut}
+          themePreference={themePreference}
+          onThemePreferenceChange={setThemePreference}
         />
 
         {/* Fixed Schedule Block - Hidden in Month View */}
