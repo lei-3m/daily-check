@@ -13,6 +13,7 @@ import {
   savePendingLocalState,
   saveStateSnapshot,
   setScheduleCollapsedPreference,
+  normalizeDrawer,
   SyncStatus,
   subscribeSyncStatus,
   subscribeConflict,
@@ -27,6 +28,7 @@ import { validateBackupState } from './lib/backup';
 import { useThemePreference } from './lib/theme';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
+import { DrawerBlock } from './components/DrawerBlock';
 import { DateNav, View } from './components/DateNav';
 import { TodoList } from './components/TodoList';
 import { MemoBlock } from './components/MemoBlock';
@@ -133,6 +135,7 @@ export default function App() {
             },
           },
           schedule: [],
+          drawer: normalizeDrawer(),
           active: today,
         };
         setAppState(initial);
@@ -143,6 +146,7 @@ export default function App() {
         setAppState({
           days,
           schedule: saved.schedule || [],
+          drawer: normalizeDrawer(saved.drawer),
           active,
         });
       }
@@ -215,9 +219,19 @@ export default function App() {
   const activeKey = appState.active;
   const currentDay = appState.days[activeKey] || { todos: [], memo: '' };
   const todos = currentDay.todos || [];
+  const drawers = normalizeDrawer(appState.drawer);
 
   const completedCount = todos.filter((t) => t.done).length;
   const totalCount = todos.length;
+
+  const createTodo = (text: string): Todo => ({
+    id:
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 9),
+    text,
+    done: false,
+  });
 
   const updateCurrentDay = (newTodos: Todo[], newMemo?: string) => {
     setAppState((prev) => {
@@ -263,15 +277,115 @@ export default function App() {
   };
 
   const handleAddMany = (texts: string[]) => {
-    const newItems: Todo[] = texts.map((text) => ({
-      id:
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2, 9),
-      text,
-      done: false,
-    }));
+    const newItems: Todo[] = texts.map(createTodo);
     updateCurrentDay([...todos, ...newItems]);
+  };
+
+  const updateDrawers = (
+    updater: (current: ReturnType<typeof normalizeDrawer>) => ReturnType<typeof normalizeDrawer>
+  ) => {
+    setAppState((prev) => {
+      if (!prev) return prev;
+      const normalized = normalizeDrawer(prev.drawer);
+      return {
+        ...prev,
+        drawer: updater(normalized),
+      };
+    });
+  };
+
+  const createId = () =>
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).substring(2, 9);
+
+  const handleAddDrawer = (name: string) => {
+    const newDrawer = {
+      id: createId(),
+      name: name.trim(),
+      items: [],
+    };
+    updateDrawers((current) => [...current, newDrawer]);
+  };
+
+  const handleRenameDrawer = (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    updateDrawers((current) =>
+      current.map((drawer) =>
+        drawer.id === id ? { ...drawer, name: trimmed } : drawer
+      )
+    );
+  };
+
+  const handleDeleteDrawer = (id: string) => {
+    const drawer = drawers.find((item) => item.id === id);
+    if (!drawer) return;
+    if (
+      drawer.items.length > 0 &&
+      !window.confirm('목록 안의 항목도 함께 삭제됩니다. 계속할까요?')
+    ) {
+      return;
+    }
+
+    updateDrawers((current) => current.filter((item) => item.id !== id));
+    if (view.kind === 'drawerList' && view.id === id) {
+      setView({ kind: 'drawer' });
+    }
+  };
+
+  const handleAddDrawerItems = (drawerId: string, texts: string[]) => {
+    const newItems = texts.map(createTodo);
+    updateDrawers((current) =>
+      current.map((drawer) =>
+        drawer.id === drawerId
+          ? { ...drawer, items: [...drawer.items, ...newItems] }
+          : drawer
+      )
+    );
+  };
+
+  const handleToggleDrawerItem = (drawerId: string, itemId: string) => {
+    updateDrawers((current) =>
+      current.map((drawer) =>
+        drawer.id === drawerId
+          ? {
+              ...drawer,
+              items: drawer.items.map((item) =>
+                item.id === itemId ? { ...item, done: !item.done } : item
+              ),
+            }
+          : drawer
+      )
+    );
+  };
+
+  const handleEditDrawerItem = (drawerId: string, itemId: string, text: string) => {
+    updateDrawers((current) =>
+      current.map((drawer) =>
+        drawer.id === drawerId
+          ? {
+              ...drawer,
+              items: drawer.items.map((item) =>
+                item.id === itemId ? { ...item, text } : item
+              ),
+            }
+          : drawer
+      )
+    );
+  };
+
+  const handleDeleteDrawerItem = (drawerId: string, itemId: string) => {
+    updateDrawers((current) =>
+      current.map((drawer) =>
+        drawer.id === drawerId
+          ? {
+              ...drawer,
+              items: drawer.items.filter((item) => item.id !== itemId),
+            }
+          : drawer
+      )
+    );
   };
 
   const handleSelectDate = (key: string) => {
@@ -476,13 +590,18 @@ export default function App() {
       return;
     }
 
+    const importedState = {
+      ...validation.state,
+      drawer: normalizeDrawer(validation.state.drawer),
+    };
+
     saveStateSnapshot(appState);
-    setAppState(validation.state);
-    setView({ kind: 'week', anchor: validation.state.active || todayKey() });
+    setAppState(importedState);
+    setView({ kind: 'week', anchor: importedState.active || todayKey() });
     setIsSelectMode(false);
     setSelectedIds(new Set());
 
-    const saved = await saveImportedState(session.user.id, validation.state);
+    const saved = await saveImportedState(session.user.id, importedState);
     showToast(saved ? '데이터를 가져왔습니다' : '가져왔지만 서버 저장은 대기 중입니다');
   };
 
@@ -543,18 +662,49 @@ export default function App() {
           />
         )}
 
+        {view.kind !== 'month' && (
+          <DrawerBlock
+            drawers={drawers}
+            mode={
+              view.kind === 'drawer'
+                ? 'documents'
+                : view.kind === 'drawerList'
+                ? 'list'
+                : 'collapsed'
+            }
+            activeDrawerId={view.kind === 'drawerList' ? view.id : undefined}
+            onOpenDrawer={() => {
+              setIsSelectMode(false);
+              setSelectedIds(new Set());
+              setView({ kind: 'drawer' });
+            }}
+            onCloseDrawer={() => setView({ kind: 'week', anchor: activeKey })}
+            onOpenList={(id) => setView({ kind: 'drawerList', id })}
+            onBackToDocuments={() => setView({ kind: 'drawer' })}
+            onAddDrawer={handleAddDrawer}
+            onRenameDrawer={handleRenameDrawer}
+            onDeleteDrawer={handleDeleteDrawer}
+            onAddItems={handleAddDrawerItems}
+            onToggleItem={handleToggleDrawerItem}
+            onEditItem={handleEditDrawerItem}
+            onDeleteItem={handleDeleteDrawerItem}
+          />
+        )}
+
         {/* Date Navigation (Week Strip / Month Calendar) */}
-        <DateNav
-          view={view}
-          activeKey={activeKey}
-          days={appState.days}
-          schedule={appState.schedule}
-          onChangeView={setView}
-          onSelectDate={handleSelectDate}
-        />
+        {(view.kind === 'week' || view.kind === 'month') && (
+          <DateNav
+            view={view}
+            activeKey={activeKey}
+            days={appState.days}
+            schedule={appState.schedule}
+            onChangeView={setView}
+            onSelectDate={handleSelectDate}
+          />
+        )}
 
         {/* Todo List & Memo (Hidden in Month View) */}
-        {view.kind !== 'month' && (
+        {view.kind === 'week' && (
           <>
             <TodoList
               todos={todos}
@@ -577,7 +727,7 @@ export default function App() {
           </>
         )}
 
-        {view.kind !== 'month' && (
+        {view.kind === 'week' && (
           isSelectMode ? (
             <MoveBar
               activeKey={activeKey}

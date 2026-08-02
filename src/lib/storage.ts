@@ -1,4 +1,4 @@
-import { AppState } from './types';
+import { AppState, Drawer, Todo } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEY = 'daily-check:v1';
@@ -22,7 +22,10 @@ export interface ConflictDetailItem {
     | 'memo_changed'
     | 'schedule_added'
     | 'schedule_deleted'
-    | 'schedule_updated';
+    | 'schedule_updated'
+    | 'drawer_added'
+    | 'drawer_deleted'
+    | 'drawer_updated';
   date: string;
   text?: string;
   label: string;
@@ -80,9 +83,29 @@ function summarizeSchedule(text: string, date: string): string {
   return `${date} 일정: ${text}`;
 }
 
+function createDefaultDrawer(): Drawer[] {
+  return [];
+}
+
+export function normalizeDrawer(drawer?: Drawer[]): Drawer[] {
+  if (!drawer || drawer.length === 0) return createDefaultDrawer();
+  return drawer.map((item, index) => ({
+    id: item.id || `drawer-${index}`,
+    name: item.name || '서랍',
+    items: item.items || [],
+  }));
+}
+
+function normalizeStoredState(state: AppState): AppState {
+  return {
+    ...state,
+    drawer: normalizeDrawer(state.drawer),
+  };
+}
+
 function setServerSnapshot(state: AppState): void {
   try {
-    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(state));
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(normalizeStoredState(state)));
   } catch (error) {
     console.error('Snapshot storage error:', error);
   }
@@ -98,22 +121,137 @@ function getServerSnapshot(): AppState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || !parsed.days) return null;
-    return parsed as AppState;
+    return normalizeStoredState(parsed as AppState);
   } catch {
     return null;
   }
 }
 
+function collectDrawerItemConflictItems(
+  drawerName: string,
+  localItems: Todo[],
+  serverItems: Todo[],
+  items: ConflictDetailItem[]
+): void {
+  const serverTodoIds = new Set(serverItems.map((todo) => todo.id));
+  const localTodoIds = new Set(localItems.map((todo) => todo.id));
+
+  for (const todo of localItems) {
+    if (!serverTodoIds.has(todo.id)) {
+      items.push({
+        type: 'drawer_added',
+        date: drawerName,
+        text: todo.text,
+        label: todo.text,
+      });
+    }
+  }
+
+  for (const todo of serverItems) {
+    if (!localTodoIds.has(todo.id)) {
+      items.push({
+        type: 'drawer_deleted',
+        date: drawerName,
+        text: todo.text,
+        label: todo.text,
+      });
+    }
+  }
+
+  for (const todo of localItems) {
+    const serverTodo = serverItems.find((item) => item.id === todo.id);
+    if (serverTodo && (serverTodo.text !== todo.text || serverTodo.done !== todo.done)) {
+      items.push({
+        type: 'drawer_updated',
+        date: drawerName,
+        text: todo.text,
+        label: todo.text,
+      });
+    }
+  }
+}
+
+function collectDrawerConflictItems(
+  localDrawers: Drawer[],
+  serverDrawers: Drawer[],
+  items: ConflictDetailItem[]
+): void {
+  const serverIds = new Set(serverDrawers.map((drawer) => drawer.id));
+  const localIds = new Set(localDrawers.map((drawer) => drawer.id));
+
+  for (const drawer of localDrawers) {
+    if (!serverIds.has(drawer.id)) {
+      for (const todo of drawer.items || []) {
+        items.push({
+          type: 'drawer_added',
+          date: drawer.name,
+          text: todo.text,
+          label: todo.text,
+        });
+      }
+      if ((drawer.items || []).length === 0) {
+        items.push({
+          type: 'drawer_added',
+          date: drawer.name,
+          label: drawer.name,
+        });
+      }
+    }
+  }
+
+  for (const drawer of serverDrawers) {
+    if (!localIds.has(drawer.id)) {
+      for (const todo of drawer.items || []) {
+        items.push({
+          type: 'drawer_deleted',
+          date: drawer.name,
+          text: todo.text,
+          label: todo.text,
+        });
+      }
+      if ((drawer.items || []).length === 0) {
+        items.push({
+          type: 'drawer_deleted',
+          date: drawer.name,
+          label: drawer.name,
+        });
+      }
+    }
+  }
+
+  for (const drawer of localDrawers) {
+    const serverDrawer = serverDrawers.find((item) => item.id === drawer.id);
+    if (!serverDrawer) continue;
+
+    if (serverDrawer.name !== drawer.name) {
+      items.push({
+        type: 'drawer_updated',
+        date: drawer.name,
+        label: drawer.name,
+      });
+    }
+
+    collectDrawerItemConflictItems(
+      drawer.name,
+      drawer.items || [],
+      serverDrawer.items || [],
+      items
+    );
+  }
+}
+
 function getConflictDetails(localState: AppState, serverState: AppState): ConflictDetails {
   const items: ConflictDetailItem[] = [];
+  const normalizedLocal = normalizeStoredState(localState);
+  const normalizedServer = normalizeStoredState(serverState);
   const dayKeys = new Set([
-    ...Object.keys(localState.days || {}),
-    ...Object.keys(serverState.days || {}),
+    ...Object.keys(normalizedLocal.days || {}),
+    ...Object.keys(normalizedServer.days || {}),
   ]);
 
   for (const dayKey of [...dayKeys].sort()) {
-    const localDay = localState.days?.[dayKey];
-    const serverDay = serverState.days?.[dayKey];
+    const localDay = normalizedLocal.days?.[dayKey];
+    const serverDay = normalizedServer.days?.[dayKey];
     const localTodos = localDay?.todos || [];
     const serverTodos = serverDay?.todos || [];
     const serverTodoIds = new Set(serverTodos.map((todo) => todo.id));
@@ -165,8 +303,8 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
     }
   }
 
-  const localSchedules = localState.schedule || [];
-  const serverSchedules = serverState.schedule || [];
+  const localSchedules = normalizedLocal.schedule || [];
+  const serverSchedules = normalizedServer.schedule || [];
   const serverScheduleIds = new Set(serverSchedules.map((item) => item.id));
   const localScheduleIds = new Set(localSchedules.map((item) => item.id));
 
@@ -203,6 +341,8 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
       });
     }
   }
+
+  collectDrawerConflictItems(normalizedLocal.drawer, normalizedServer.drawer, items);
 
   return { items };
 }
@@ -269,11 +409,11 @@ function getLocalEnvelope(expectedUserId?: string): LocalCacheEnvelope | null {
       envelope = {
         userId: parsed.userId,
         updatedAt: parsed.updatedAt ?? null,
-        data: parsed.data as AppState,
+        data: normalizeStoredState(parsed.data as AppState),
       };
     } else if (parsed.days) {
       envelope = {
-        data: parsed as AppState,
+        data: normalizeStoredState(parsed as AppState),
         updatedAt: null,
       };
     }
@@ -322,7 +462,7 @@ export function setLocalCache(state: AppState, userId?: string, updatedAt = last
     const envelope: LocalCacheEnvelope = {
       userId,
       updatedAt,
-      data: state,
+      data: normalizeStoredState(state),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
   } catch (error) {
@@ -335,10 +475,11 @@ export function getLocalCache(expectedUserId?: string): AppState | null {
 }
 
 async function uploadStateToServer(userId: string, state: AppState): Promise<string | null> {
+  const normalizedState = normalizeStoredState(state);
   const newUpdatedAt = new Date().toISOString();
   const { error } = await supabase.from('user_state').upsert({
     user_id: userId,
-    data: state,
+    data: normalizedState,
     updated_at: newUpdatedAt,
   });
 
@@ -348,8 +489,8 @@ async function uploadStateToServer(userId: string, state: AppState): Promise<str
   }
 
   lastLoadedUpdatedAt = newUpdatedAt;
-  setLocalCache(state, userId, newUpdatedAt);
-  setServerSnapshot(state);
+  setLocalCache(normalizedState, userId, newUpdatedAt);
+  setServerSnapshot(normalizedState);
   setPendingSync(false, userId);
   updateSyncStatus({
     type: 'synced',
@@ -412,7 +553,7 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
     }
 
     if (row && row.data) {
-      const serverState = row.data as AppState;
+      const serverState = normalizeStoredState(row.data as AppState);
       const serverTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
       const localTime = localEnvelope?.updatedAt ? new Date(localEnvelope.updatedAt).getTime() : 0;
 
@@ -527,11 +668,12 @@ export async function saveState(state: AppState): Promise<void> {
 
       // Conflict check: server has newer data than what we loaded
       if (lastLoadedUpdatedAt !== null && serverTime > localTime) {
-        const serverState = (serverRow.data || {
+        const serverState = normalizeStoredState((serverRow.data || {
           days: {},
           schedule: [],
+          drawer: createDefaultDrawer(),
           active: state.active,
-        }) as AppState;
+        }) as AppState);
         const conflictDetails = getConflictDetails(state, getServerSnapshot() || serverState);
         if (conflictDetails.items.length === 0) {
           setPendingSync(false, userId);
@@ -550,7 +692,7 @@ export async function saveState(state: AppState): Promise<void> {
 
       // Save previous server version snapshot before overwriting
       if (serverRow.data) {
-        setServerSnapshot(serverRow.data as AppState);
+        setServerSnapshot(normalizeStoredState(serverRow.data as AppState));
       }
     }
 

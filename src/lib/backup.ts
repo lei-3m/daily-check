@@ -1,4 +1,4 @@
-import { AppState, Day, ScheduleItem, Todo } from './types';
+import { AppState, Day, Drawer, ScheduleItem, Todo } from './types';
 
 type ValidationResult =
   | { ok: true; state: AppState }
@@ -39,6 +39,16 @@ function isScheduleItem(value: unknown): value is ScheduleItem {
   );
 }
 
+function isDrawer(value: unknown): value is Drawer {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    Array.isArray(value.items) &&
+    value.items.every(isTodo)
+  );
+}
+
 export function validateBackupState(value: unknown): ValidationResult {
   if (!isRecord(value)) {
     return { ok: false, message: '백업 파일은 JSON 객체여야 합니다.' };
@@ -62,6 +72,11 @@ export function validateBackupState(value: unknown): ValidationResult {
     return { ok: false, message: '일정 데이터 형식이 잘못되었습니다.' };
   }
 
+  const drawer = value.drawer === undefined ? [] : value.drawer;
+  if (!Array.isArray(drawer) || !drawer.every(isDrawer)) {
+    return { ok: false, message: '서랍 데이터 형식이 잘못되었습니다.' };
+  }
+
   if (!isDateKey(value.active)) {
     return { ok: false, message: '현재 날짜(active) 형식이 잘못되었습니다.' };
   }
@@ -71,6 +86,7 @@ export function validateBackupState(value: unknown): ValidationResult {
     state: {
       days: value.days as Record<string, Day>,
       schedule: value.schedule,
+      drawer,
       active: value.active,
     },
   };
