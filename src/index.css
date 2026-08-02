@@ -337,20 +337,94 @@ html.dark .opacity-60 {
   animation: slideInRight 180ms ease-out forwards;
 }
 
-.priority-spinner {
-  animation: prioritySpin 900ms linear infinite;
+.priority-stars {
+  position: relative;
+  width: 4.5rem;
+  height: 4rem;
+  color: var(--accent);
 }
 
-@keyframes prioritySpin {
-  to {
-    transform: rotate(360deg);
+.priority-star {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.priority-star-main {
+  inset: 50% auto auto 50%;
+  font-size: 2.75rem;
+  opacity: 0.84;
+  transform: translate(-50%, -50%) scale(0.96);
+  animation: priorityStarPulse 2.4s ease-in-out infinite;
+}
+
+.priority-star-small {
+  font-size: 1rem;
+  opacity: 0.34;
+  animation: priorityStarTwinkle 2.8s ease-in-out infinite;
+}
+
+.priority-star-a {
+  left: 0.6rem;
+  top: 0.7rem;
+  animation-delay: 160ms;
+}
+
+.priority-star-b {
+  right: 0.45rem;
+  top: 0.45rem;
+  font-size: 0.85rem;
+  animation-delay: 720ms;
+}
+
+.priority-star-c {
+  left: 0.9rem;
+  bottom: 0.35rem;
+  font-size: 0.75rem;
+  animation-delay: 1180ms;
+}
+
+.priority-star-d {
+  right: 0.75rem;
+  bottom: 0.7rem;
+  animation-delay: 1760ms;
+}
+
+@keyframes priorityStarPulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(0.94);
+    filter: brightness(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+    filter: brightness(1.14);
+  }
+}
+
+@keyframes priorityStarTwinkle {
+  0%,
+  100% {
+    opacity: 0.24;
+    transform: scale(0.9);
+  }
+  45%,
+  60% {
+    opacity: 0.78;
+    transform: scale(1.08);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-left,
   .animate-slide-right,
-  .priority-spinner {
+  .priority-star-main,
+  .priority-star-small {
     animation: none !important;
   }
 }
