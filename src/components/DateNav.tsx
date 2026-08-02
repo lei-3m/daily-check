@@ -35,6 +35,7 @@ export function DateNav({
         anchor={view.anchor}
         activeKey={activeKey}
         days={days}
+        schedule={schedule}
         onSelectDate={(key) => {
           onSelectDate(key);
           onChangeView({ kind: 'week', anchor: key });

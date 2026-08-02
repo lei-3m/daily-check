@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 export type AccentPreference =
-  | 'indigo'
-  | 'sky'
-  | 'teal'
-  | 'emerald'
-  | 'rose'
-  | 'violet'
-  | 'amber';
+  | 'default'
+  | 'blue'
+  | 'green'
+  | 'yellow'
+  | 'pink'
+  | 'orange'
+  | 'purple';
 
 export const THEME_STORAGE_KEY = 'daily-check:theme';
 export const ACCENT_STORAGE_KEY = 'daily-check:accent';
@@ -18,26 +18,26 @@ export const ACCENT_OPTIONS: Array<{
   label: string;
   swatch: string;
 }> = [
-  { value: 'indigo', label: '인디고', swatch: '#4f46e5' },
-  { value: 'sky', label: '스카이', swatch: '#0284c7' },
-  { value: 'teal', label: '틸', swatch: '#0f766e' },
-  { value: 'emerald', label: '에메랄드', swatch: '#047857' },
-  { value: 'rose', label: '로즈', swatch: '#be123c' },
-  { value: 'violet', label: '바이올렛', swatch: '#7c3aed' },
-  { value: 'amber', label: '앰버', swatch: '#b45309' },
+  { value: 'default', label: '기본값', swatch: '#64748B' },
+  { value: 'blue', label: '블루', swatch: '#2563EB' },
+  { value: 'green', label: '그린', swatch: '#16A34A' },
+  { value: 'yellow', label: '옐로', swatch: '#CA8A04' },
+  { value: 'pink', label: '핑크', swatch: '#DB2777' },
+  { value: 'orange', label: '오렌지', swatch: '#EA580C' },
+  { value: 'purple', label: '퍼플', swatch: '#7C3AED' },
 ];
 
 const isThemePreference = (value: string | null): value is ThemePreference =>
   value === 'light' || value === 'dark' || value === 'system';
 
 const isAccentPreference = (value: string | null): value is AccentPreference =>
-  value === 'indigo' ||
-  value === 'sky' ||
-  value === 'teal' ||
-  value === 'emerald' ||
-  value === 'rose' ||
-  value === 'violet' ||
-  value === 'amber';
+  value === 'default' ||
+  value === 'blue' ||
+  value === 'green' ||
+  value === 'yellow' ||
+  value === 'pink' ||
+  value === 'orange' ||
+  value === 'purple';
 
 export const getStoredThemePreference = (): ThemePreference => {
   if (typeof window === 'undefined') return 'system';
@@ -46,9 +46,9 @@ export const getStoredThemePreference = (): ThemePreference => {
 };
 
 export const getStoredAccentPreference = (): AccentPreference => {
-  if (typeof window === 'undefined') return 'indigo';
+  if (typeof window === 'undefined') return 'default';
   const stored = window.localStorage.getItem(ACCENT_STORAGE_KEY);
-  return isAccentPreference(stored) ? stored : 'indigo';
+  return isAccentPreference(stored) ? stored : 'default';
 };
 
 const prefersDark = () =>

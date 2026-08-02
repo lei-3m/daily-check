@@ -21,15 +21,15 @@
               ? stored
               : 'system';
           var accent =
-            storedAccent === 'indigo' ||
-            storedAccent === 'sky' ||
-            storedAccent === 'teal' ||
-            storedAccent === 'emerald' ||
-            storedAccent === 'rose' ||
-            storedAccent === 'violet' ||
-            storedAccent === 'amber'
+            storedAccent === 'default' ||
+            storedAccent === 'blue' ||
+            storedAccent === 'green' ||
+            storedAccent === 'yellow' ||
+            storedAccent === 'pink' ||
+            storedAccent === 'orange' ||
+            storedAccent === 'purple'
               ? storedAccent
-              : 'indigo';
+              : 'default';
           var isDark =
             preference === 'dark' ||
             (preference === 'system' &&
@@ -42,7 +42,7 @@
             document.documentElement.classList.add('dark');
           }
           document.documentElement.dataset.theme = 'system';
-          document.documentElement.dataset.accent = 'indigo';
+          document.documentElement.dataset.accent = 'default';
         }
       })();
     </script>
