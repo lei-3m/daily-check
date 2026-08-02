@@ -3,8 +3,10 @@ import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEY = 'daily-check:v1';
 const SNAPSHOT_KEY = 'daily-check:snapshot';
+const PENDING_SYNC_KEY = 'daily-check:pending-sync';
+const SCHEDULE_COLLAPSED_KEY = 'daily-check:schedule-collapsed';
 
-export type SyncStatusType = 'synced' | 'saving' | 'offline' | 'conflict' | 'local_only';
+export type SyncStatusType = 'synced' | 'saving' | 'pending' | 'offline' | 'conflict' | 'local_only';
 
 export interface SyncStatus {
   type: SyncStatusType;
@@ -23,7 +25,13 @@ export interface ConflictDetails {
 
 interface LocalCacheEnvelope {
   userId?: string;
+  updatedAt?: string | null;
   data: AppState;
+}
+
+interface PendingSyncEnvelope {
+  userId?: string;
+  pending: boolean;
 }
 
 // In-memory state for conflict tracking
@@ -138,20 +146,109 @@ function updateSyncStatus(status: SyncStatus) {
   statusListeners.forEach((listener) => listener(status));
 }
 
+function setPendingSync(pending: boolean, userId?: string): void {
+  try {
+    const envelope: PendingSyncEnvelope = { userId, pending };
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(envelope));
+  } catch (error) {
+    console.error('Failed to save pending sync flag:', error);
+  }
+}
+
+export function clearPendingSync(userId?: string): void {
+  setPendingSync(false, userId);
+}
+
+export function savePendingLocalState(state: AppState, userId?: string): void {
+  setLocalCache(state, userId);
+  setPendingSync(true, userId);
+}
+
+export async function resolvePendingSync(userId?: string): Promise<AppState | null> {
+  if (!hasPendingSync(userId)) return null;
+  updateSyncStatus({ type: 'pending', message: '동기화 대기 중' });
+  return loadState(userId);
+}
+
+export function hasPendingSync(expectedUserId?: string): boolean {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as PendingSyncEnvelope;
+    if (!parsed?.pending) return false;
+    if (expectedUserId && parsed.userId && parsed.userId !== expectedUserId) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getLocalEnvelope(expectedUserId?: string): LocalCacheEnvelope | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    let envelope: LocalCacheEnvelope | null = null;
+
+    if ('data' in parsed && parsed.data && typeof parsed.data === 'object' && parsed.data.days) {
+      envelope = {
+        userId: parsed.userId,
+        updatedAt: parsed.updatedAt ?? null,
+        data: parsed.data as AppState,
+      };
+    } else if (parsed.days) {
+      envelope = {
+        data: parsed as AppState,
+        updatedAt: null,
+      };
+    }
+
+    if (!envelope) return null;
+
+    if (expectedUserId && (!envelope.userId || envelope.userId !== expectedUserId)) {
+      return null;
+    }
+
+    return envelope;
+  } catch {
+    return null;
+  }
+}
+
+export function getScheduleCollapsedPreference(): boolean {
+  try {
+    return localStorage.getItem(SCHEDULE_COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setScheduleCollapsedPreference(isCollapsed: boolean): void {
+  try {
+    localStorage.setItem(SCHEDULE_COLLAPSED_KEY, String(isCollapsed));
+  } catch (error) {
+    console.error('Failed to save schedule collapsed preference:', error);
+  }
+}
+
 export function clearUserCache(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SNAPSHOT_KEY);
+    localStorage.removeItem(PENDING_SYNC_KEY);
     lastLoadedUpdatedAt = null;
   } catch (e) {
     console.error('Failed to clear user cache:', e);
   }
 }
 
-export function setLocalCache(state: AppState, userId?: string): void {
+export function setLocalCache(state: AppState, userId?: string, updatedAt = lastLoadedUpdatedAt): void {
   try {
     const envelope: LocalCacheEnvelope = {
       userId,
+      updatedAt,
       data: state,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
@@ -161,36 +258,34 @@ export function setLocalCache(state: AppState, userId?: string): void {
 }
 
 export function getLocalCache(expectedUserId?: string): AppState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
+  return getLocalEnvelope(expectedUserId)?.data || null;
+}
 
-    let cachedUserId: string | undefined;
-    let appState: AppState | null = null;
+async function uploadStateToServer(userId: string, state: AppState): Promise<string | null> {
+  const newUpdatedAt = new Date().toISOString();
+  const { error } = await supabase.from('user_state').upsert({
+    user_id: userId,
+    data: state,
+    updated_at: newUpdatedAt,
+  });
 
-    if ('data' in parsed && parsed.data && typeof parsed.data === 'object' && parsed.data.days) {
-      cachedUserId = parsed.userId;
-      appState = parsed.data as AppState;
-    } else if (parsed.days) {
-      // Legacy cache without envelope
-      appState = parsed as AppState;
-    }
-
-    if (!appState) return null;
-
-    // Validate user identity if expectedUserId is provided
-    if (expectedUserId) {
-      if (!cachedUserId || cachedUserId !== expectedUserId) {
-        return null;
-      }
-    }
-
-    return appState;
-  } catch {
+  if (error) {
+    console.warn('Failed to upsert to user_state:', error.message);
     return null;
   }
+
+  lastLoadedUpdatedAt = newUpdatedAt;
+  setLocalCache(state, userId, newUpdatedAt);
+  setPendingSync(false, userId);
+  updateSyncStatus({
+    type: 'synced',
+    lastSavedAt: new Date().toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+  });
+  return newUpdatedAt;
 }
 
 export async function loadState(expectedUserId?: string): Promise<AppState | null> {
@@ -205,7 +300,15 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
     }
   }
 
-  const localData = getLocalCache(userId);
+  const localEnvelope = getLocalEnvelope(userId);
+  const localData = localEnvelope?.data || null;
+  const pendingSync = hasPendingSync(userId);
+  if (localEnvelope?.updatedAt) {
+    lastLoadedUpdatedAt = localEnvelope.updatedAt;
+  }
+  if (pendingSync) {
+    updateSyncStatus({ type: 'pending', message: '동기화 대기 중' });
+  }
 
   if (!isSupabaseConfigured()) {
     updateSyncStatus({ type: 'local_only' });
@@ -235,11 +338,31 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
     }
 
     if (row && row.data) {
-      lastLoadedUpdatedAt = row.updated_at || null;
       const serverState = row.data as AppState;
+      const serverTime = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+      const localTime = localEnvelope?.updatedAt ? new Date(localEnvelope.updatedAt).getTime() : 0;
+
+      if (pendingSync && localData) {
+        if (serverTime > localTime) {
+          updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
+          conflictListeners.forEach((cb) => cb(getConflictDetails(localData, serverState)));
+          return localData;
+        }
+
+        const uploadedAt = await uploadStateToServer(user.id, localData);
+        if (uploadedAt) {
+          return localData;
+        }
+
+        setPendingSync(true, user.id);
+        updateSyncStatus({ type: 'offline', message: '오프라인' });
+        return localData;
+      }
+
+      lastLoadedUpdatedAt = row.updated_at || null;
 
       // Update LocalStorage cache with user id
-      setLocalCache(serverState, user.id);
+      setLocalCache(serverState, user.id, row.updated_at || null);
 
       const formattedTime = row.updated_at
         ? new Date(row.updated_at).toLocaleTimeString('ko-KR', {
@@ -253,6 +376,17 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
       return serverState;
     } else {
       // User has no server record yet
+      if (pendingSync && localData) {
+        const uploadedAt = await uploadStateToServer(user.id, localData);
+        if (uploadedAt) {
+          return localData;
+        }
+
+        setPendingSync(true, user.id);
+        updateSyncStatus({ type: 'offline', message: '오프라인' });
+        return localData;
+      }
+
       lastLoadedUpdatedAt = null;
       updateSyncStatus({ type: 'synced' });
       return localData;
@@ -278,6 +412,7 @@ export async function saveState(state: AppState): Promise<void> {
 
   // Save to LocalStorage immediately as offline cache
   setLocalCache(state, userId);
+  setPendingSync(true, userId);
 
   if (!isSupabaseConfigured() || !userId) {
     updateSyncStatus({ type: 'local_only' });
@@ -296,6 +431,7 @@ export async function saveState(state: AppState): Promise<void> {
 
     if (fetchErr) {
       console.warn('Network issue checking server updated_at:', fetchErr.message);
+      setPendingSync(true, userId);
       updateSyncStatus({ type: 'offline', message: '오프라인' });
       return;
     }
@@ -312,6 +448,7 @@ export async function saveState(state: AppState): Promise<void> {
           active: state.active,
         }) as AppState;
         const conflictDetails = getConflictDetails(state, serverState);
+        setPendingSync(true, userId);
         updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
         conflictListeners.forEach((cb) => cb(conflictDetails));
         return;
@@ -327,30 +464,14 @@ export async function saveState(state: AppState): Promise<void> {
       }
     }
 
-    // Save to server (upsert)
-    const newUpdatedAt = new Date().toISOString();
-    const { error: upsertErr } = await supabase.from('user_state').upsert({
-      user_id: userId,
-      data: state,
-      updated_at: newUpdatedAt,
-    });
-
-    if (upsertErr) {
-      console.warn('Failed to upsert to user_state:', upsertErr.message);
+    const uploadedAt = await uploadStateToServer(userId, state);
+    if (!uploadedAt) {
+      setPendingSync(true, userId);
       updateSyncStatus({ type: 'offline', message: '오프라인' });
-      return;
     }
-
-    lastLoadedUpdatedAt = newUpdatedAt;
-    const nowTimeStr = new Date().toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-
-    updateSyncStatus({ type: 'synced', lastSavedAt: nowTimeStr });
   } catch (err) {
     console.error('Save state error:', err);
+    setPendingSync(true, userId);
     updateSyncStatus({ type: 'offline', message: '오프라인' });
   }
 }
@@ -391,24 +512,7 @@ export function markMigrationPrompted(userId: string) {
 export async function uploadLocalToAccount(userId: string, state: AppState): Promise<boolean> {
   markMigrationPrompted(userId);
   try {
-    const newUpdatedAt = new Date().toISOString();
-    const { error } = await supabase.from('user_state').upsert({
-      user_id: userId,
-      data: state,
-      updated_at: newUpdatedAt,
-    });
-    if (!error) {
-      lastLoadedUpdatedAt = newUpdatedAt;
-      updateSyncStatus({
-        type: 'synced',
-        lastSavedAt: new Date().toLocaleTimeString('ko-KR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
-      });
-      return true;
-    }
+    return (await uploadStateToServer(userId, state)) !== null;
   } catch (e) {
     console.error('Migration upload failed:', e);
   }
