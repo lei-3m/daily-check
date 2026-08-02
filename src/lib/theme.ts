@@ -20,8 +20,12 @@ const prefersDark = () =>
 export const applyThemePreference = (preference: ThemePreference) => {
   if (typeof document === 'undefined') return;
   const shouldUseDark = preference === 'dark' || (preference === 'system' && prefersDark());
+  document.documentElement.classList.add('theme-switching');
   document.documentElement.classList.toggle('dark', shouldUseDark);
   document.documentElement.dataset.theme = preference;
+  window.requestAnimationFrame(() => {
+    document.documentElement.classList.remove('theme-switching');
+  });
 };
 
 export function useThemePreference() {

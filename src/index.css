@@ -70,8 +70,16 @@ html.dark {
   --info: #7dd3fc;
 }
 
+html,
 body {
   background: var(--app-bg);
+}
+
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
 }
 
 .bg-white,
