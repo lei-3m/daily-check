@@ -110,10 +110,10 @@ export function MoveBar({
             type="button"
             disabled={selectedCount === 0}
             onClick={handleCustomDateClick}
-            className="w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className="w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg accent-fill accent-fill-hover disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <span>📅 날짜 선택</span>
-            <span className="text-[10px] text-indigo-200 font-normal">
+            <span className="text-[10px] accent-text-soft font-normal">
               달력에서 선택
             </span>
           </button>

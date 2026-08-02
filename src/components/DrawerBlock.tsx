@@ -268,7 +268,7 @@ function DrawerItemRow({
           <span
             className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all duration-150 motion-reduce:transition-none ${
               item.done
-                ? 'bg-slate-800 border-slate-800 text-white'
+                ? 'accent-fill text-white'
                 : 'bg-white border-slate-300 group-hover/cb:border-slate-400 text-transparent'
             }`}
           >

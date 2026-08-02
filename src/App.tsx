@@ -56,7 +56,12 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ type: 'synced' });
   const syncStatusRef = useRef<SyncStatus>({ type: 'synced' });
-  const { themePreference, setThemePreference } = useThemePreference();
+  const {
+    themePreference,
+    setThemePreference,
+    accentPreference,
+    setAccentPreference,
+  } = useThemePreference();
 
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
@@ -728,6 +733,8 @@ export default function App() {
           onSignOut={handleSignOut}
           themePreference={themePreference}
           onThemePreferenceChange={setThemePreference}
+          accentPreference={accentPreference}
+          onAccentPreferenceChange={setAccentPreference}
           onExportData={handleExportData}
           onImportData={handleImportData}
           includeMemoInPriority={includeMemoInPriority}

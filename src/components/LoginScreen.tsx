@@ -39,7 +39,7 @@ export function LoginScreen() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-white border border-slate-200/80 rounded-2xl shadow-xs p-6 text-center space-y-6">
         <div className="space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-bold text-xl shadow-xs">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl accent-fill text-white font-bold text-xl shadow-xs">
             ✓
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">

@@ -85,7 +85,7 @@ const WeekPanel = React.memo(function WeekPanel({
             onClick={() => onSelectDate(key)}
             className={`flex flex-col items-center justify-center py-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative ${
               isSelected
-                ? 'bg-slate-900 text-white font-bold shadow-xs'
+                ? 'accent-fill text-white font-bold shadow-xs'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
             }`}
           >
@@ -97,7 +97,7 @@ const WeekPanel = React.memo(function WeekPanel({
                 <span
                   title="오늘"
                   className={`w-1.5 h-1.5 rounded-full ${
-                    isSelected ? 'bg-amber-400' : 'bg-slate-900'
+                    isSelected ? 'bg-white' : 'accent-dot'
                   }`}
                 />
               )}
@@ -105,7 +105,7 @@ const WeekPanel = React.memo(function WeekPanel({
                 <span
                   title="내용 있음"
                   className={`w-1 h-1 rounded-full ${
-                    isSelected ? 'bg-sky-300' : 'bg-slate-400'
+                    isSelected ? 'bg-white/70' : 'bg-slate-400'
                   }`}
                 />
               )}
@@ -369,7 +369,7 @@ export function WeekStrip({
             <button
               type="button"
               onClick={onGoToday}
-              className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              className="text-xs px-2 py-0.5 rounded-full accent-soft accent-text hover:bg-slate-300 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
               오늘
             </button>

@@ -98,7 +98,7 @@ export function TodoRow({
           ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : isSelectMode
           ? isSelected
-            ? 'bg-indigo-50/60 border-indigo-200 cursor-pointer'
+            ? 'accent-soft accent-border cursor-pointer'
             : 'hover:bg-slate-50 border-slate-100 cursor-pointer'
           : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
       }`}
@@ -118,7 +118,7 @@ export function TodoRow({
             <span
               className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all duration-150 motion-reduce:transition-none ${
                 isSelected
-                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  ? 'accent-fill text-white'
                   : 'bg-white border-slate-300 text-transparent'
               }`}
             >
@@ -176,7 +176,7 @@ export function TodoRow({
           <span
             className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-all duration-150 motion-reduce:transition-none ${
               done
-                ? 'bg-slate-800 border-slate-800 text-white'
+                ? 'accent-fill text-white'
                 : 'bg-white border-slate-300 group-hover/cb:border-slate-400 text-transparent'
             }`}
           >
@@ -235,4 +235,3 @@ export function TodoRow({
     </div>
   );
 }
-

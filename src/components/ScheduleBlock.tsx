@@ -313,7 +313,7 @@ export function ScheduleBlock({
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="text-xs px-3 py-1.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+              className="text-xs px-3 py-1.5 accent-fill accent-fill-hover text-white font-semibold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
             >
               추가
             </button>
