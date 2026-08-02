@@ -28,6 +28,9 @@ const COMMIT_RATIO = 0.25; // 폭의 25% 이상 이동하면 전환
 const FLICK_SPEED = 0.3; // px/ms
 const FLICK_MIN_PX = 20;
 const PANEL_FALLBACK_HEIGHT = 44;
+const WEEK_DOT_ROW_CLASS = 'h-2.5 mt-1 flex items-center justify-center gap-0.5';
+const WEEK_SCHEDULE_DOT_CLASS = 'w-1.5 h-1.5 rounded-full shrink-0 accent-dot';
+const WEEK_TODO_DOT_CLASS = 'w-1 h-1 rounded-full shrink-0 calendar-todo-dot';
 
 function normalizeScheduleDateKey(dateStr: string): string {
   if (dateStr.includes('-')) return dateStr;
@@ -108,23 +111,17 @@ const WeekPanel = React.memo(function WeekPanel({
             <span className="text-sm font-mono leading-none">{dayNum}</span>
 
             {/* Indicator dots container */}
-            <div className="h-2.5 flex items-center justify-center gap-0.5 mt-1">
-              {isToday && (
-                <span
-                  title="오늘"
-                  className="w-1.5 h-1.5 rounded-full border calendar-today-dot"
-                />
-              )}
+            <div className={WEEK_DOT_ROW_CLASS}>
               {dayHasSchedule && (
                 <span
                   title="일정 있음"
-                  className="w-1.5 h-1.5 rounded-full accent-dot"
+                  className={WEEK_SCHEDULE_DOT_CLASS}
                 />
               )}
               {dayHasContent && (
                 <span
                   title="내용 있음"
-                  className="w-1 h-1 rounded-full calendar-todo-dot"
+                  className={WEEK_TODO_DOT_CLASS}
                 />
               )}
             </div>

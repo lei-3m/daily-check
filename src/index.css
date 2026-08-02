@@ -36,7 +36,7 @@
   --info: #0284c7;
   --calendar-today-dot: #0f172a;
   --calendar-today-dot-selected: #f8fafc;
-  --calendar-todo-dot: #7dd3fc;
+  --calendar-todo-dot: #74d1ff;
 }
 
 html.dark {
@@ -75,7 +75,7 @@ html.dark {
   --info: #7dd3fc;
   --calendar-today-dot: #d8dce3;
   --calendar-today-dot-selected: #f1f3f5;
-  --calendar-todo-dot: #7dd3fc;
+  --calendar-todo-dot: #74d1ff;
 }
 
 html[data-accent='blue'] {
