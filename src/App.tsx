@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { AppState, Todo } from './lib/types';
 import { todayKey, fullLabel } from './lib/date';
@@ -41,6 +41,7 @@ export default function App() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ type: 'synced' });
+  const syncStatusRef = useRef<SyncStatus>({ type: 'synced' });
   const { themePreference, setThemePreference } = useThemePreference();
 
   const [showMigrationModal, setShowMigrationModal] = useState(false);
@@ -59,7 +60,7 @@ export default function App() {
   );
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
-  const { toastMessage, showToast, hideToast } = useToast();
+  const { toast, showToast, hideToast } = useToast();
 
   // 1. Session Auth listener
   useEffect(() => {
@@ -91,10 +92,12 @@ export default function App() {
   // 2. Sync status & Conflict listeners
   useEffect(() => {
     const unsubStatus = subscribeSyncStatus((status) => {
+      syncStatusRef.current = status;
       setSyncStatus(status);
     });
 
     const unsubConflict = subscribeConflict((details) => {
+      if (details.items.length === 0) return;
       setConflictDetails(details);
       setShowConflictModal(true);
     });
@@ -159,7 +162,7 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded || !appState || !session) return;
 
-    if (syncStatus.type === 'conflict') {
+    if (syncStatusRef.current.type === 'conflict') {
       savePendingLocalState(appState, session.user.id);
       return;
     }
@@ -169,7 +172,7 @@ export default function App() {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [appState, isLoaded, session, syncStatus.type]);
+  }, [appState, isLoaded, session]);
 
   useEffect(() => {
     if (!session) return;
@@ -405,7 +408,7 @@ export default function App() {
     const text = formatTodosToMarkdown(todos);
     const success = await copyToClipboard(text);
     if (success) {
-      showToast('복사됨 — ChatGPT에 붙여넣기');
+      showToast('복사됨');
     }
   };
 
@@ -521,21 +524,22 @@ export default function App() {
           </>
         )}
 
-        {/* Move Toolbar or Action Bar */}
-        {isSelectMode ? (
-          <MoveBar
-            activeKey={activeKey}
-            selectedCount={selectedIds.size}
-            totalCount={todos.length}
-            onToggleSelectAll={handleToggleSelectAll}
-            onMoveToDate={handleMoveToDate}
-            onCancel={handleCancelMoveMode}
-          />
-        ) : (
-          <ActionBar
-            onCopy={handleCopy}
-            onStartMoveMode={handleStartMoveMode}
-          />
+        {view.kind !== 'month' && (
+          isSelectMode ? (
+            <MoveBar
+              activeKey={activeKey}
+              selectedCount={selectedIds.size}
+              totalCount={todos.length}
+              onToggleSelectAll={handleToggleSelectAll}
+              onMoveToDate={handleMoveToDate}
+              onCancel={handleCancelMoveMode}
+            />
+          ) : (
+            <ActionBar
+              onCopy={handleCopy}
+              onStartMoveMode={handleStartMoveMode}
+            />
+          )
         )}
       </main>
 
@@ -557,7 +561,7 @@ export default function App() {
       )}
 
       {/* Reusable Toast Notification */}
-      <Toast message={toastMessage} onClose={hideToast} />
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 }
