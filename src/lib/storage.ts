@@ -5,6 +5,7 @@ const STORAGE_KEY = 'daily-check:v1';
 const SNAPSHOT_KEY = 'daily-check:snapshot';
 const PENDING_SYNC_KEY = 'daily-check:pending-sync';
 const SCHEDULE_COLLAPSED_KEY = 'daily-check:schedule-collapsed';
+const PRIORITY_INCLUDE_MEMO_KEY = 'daily-check:priority-include-memo';
 
 export type SyncStatusType = 'synced' | 'saving' | 'pending' | 'offline' | 'conflict' | 'local_only';
 
@@ -443,6 +444,23 @@ export function setScheduleCollapsedPreference(isCollapsed: boolean): void {
     localStorage.setItem(SCHEDULE_COLLAPSED_KEY, String(isCollapsed));
   } catch (error) {
     console.error('Failed to save schedule collapsed preference:', error);
+  }
+}
+
+export function getPriorityIncludeMemoPreference(): boolean {
+  try {
+    const stored = localStorage.getItem(PRIORITY_INCLUDE_MEMO_KEY);
+    return stored === null ? true : stored === 'true';
+  } catch {
+    return true;
+  }
+}
+
+export function setPriorityIncludeMemoPreference(includeMemo: boolean): void {
+  try {
+    localStorage.setItem(PRIORITY_INCLUDE_MEMO_KEY, String(includeMemo));
+  } catch (error) {
+    console.error('Failed to save priority memo preference:', error);
   }
 }
 

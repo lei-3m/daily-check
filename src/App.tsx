@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { AppState, Todo } from './lib/types';
-import { todayKey, fullLabel } from './lib/date';
+import { todayKey, fullLabel, weekdayLabel } from './lib/date';
 import {
   loadState,
   saveState,
   clearUserCache,
   clearPendingSync,
+  getPriorityIncludeMemoPreference,
   getScheduleCollapsedPreference,
   resolvePendingSync,
   saveImportedState,
   savePendingLocalState,
   saveStateSnapshot,
+  setPriorityIncludeMemoPreference,
   setScheduleCollapsedPreference,
   normalizeDrawer,
   SyncStatus,
@@ -26,6 +28,12 @@ import { supabase } from './lib/supabase';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
 import { validateBackupState } from './lib/backup';
 import { useThemePreference } from './lib/theme';
+import {
+  buildPriorityRequest,
+  parsePrioritySuggestion,
+  PRIORITY_FUNCTION_NAME,
+  PrioritySuggestion,
+} from './lib/priority';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
 import { DrawerBlock } from './components/DrawerBlock';
@@ -38,6 +46,7 @@ import { Toast, useToast } from './components/Toast';
 import { LoginScreen } from './components/LoginScreen';
 import { MigrationModal } from './components/MigrationModal';
 import { ConflictModal } from './components/ConflictModal';
+import { PrioritySuggestionModal } from './components/PrioritySuggestionModal';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -64,6 +73,11 @@ export default function App() {
     getScheduleCollapsedPreference()
   );
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
+  const [includeMemoInPriority, setIncludeMemoInPriorityState] = useState(() =>
+    getPriorityIncludeMemoPreference()
+  );
+  const [isPrioritizing, setIsPrioritizing] = useState(false);
+  const [prioritySuggestion, setPrioritySuggestion] = useState<PrioritySuggestion | null>(null);
 
   const { toast, showToast, hideToast } = useToast();
 
@@ -529,6 +543,79 @@ export default function App() {
     }
   };
 
+  const handleIncludeMemoInPriorityChange = (includeMemo: boolean) => {
+    setIncludeMemoInPriorityState(includeMemo);
+    setPriorityIncludeMemoPreference(includeMemo);
+  };
+
+  const handlePrioritize = async () => {
+    const incompleteTodos = todos.filter((todo) => !todo.done);
+    if (incompleteTodos.length < 2) {
+      showToast('정렬할 할 일이 부족해요');
+      return;
+    }
+
+    setIsPrioritizing(true);
+    try {
+      const today = todayKey();
+      const upcomingSchedule = (appState.schedule || [])
+        .filter((item) => item.date >= today)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      const body = buildPriorityRequest(
+        activeKey,
+        weekdayLabel(activeKey),
+        incompleteTodos,
+        currentDay.memo || '',
+        includeMemoInPriority,
+        upcomingSchedule
+      );
+
+      const { data, error } = await supabase.functions.invoke(PRIORITY_FUNCTION_NAME, {
+        body,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setPrioritySuggestion(parsePrioritySuggestion(data, incompleteTodos));
+    } catch (error) {
+      console.warn('Priority suggestion failed:', error);
+      showToast('우선순위 제안을 가져오지 못했어요');
+    } finally {
+      setIsPrioritizing(false);
+    }
+  };
+
+  const handleApplyPrioritySuggestion = () => {
+    if (!prioritySuggestion) return;
+
+    const suggestedTodosById = new Map(
+      prioritySuggestion.items
+        .map((item) => todos.find((todo) => todo.id === item.id))
+        .filter((todo): todo is Todo => Boolean(todo))
+        .map((todo) => [todo.id, todo])
+    );
+    const reorderedIncomplete = prioritySuggestion.items
+      .map((item) => suggestedTodosById.get(item.id))
+      .filter((todo): todo is Todo => Boolean(todo));
+
+    if (reorderedIncomplete.length !== todos.filter((todo) => !todo.done).length) {
+      showToast('우선순위 적용에 실패했어요');
+      return;
+    }
+
+    let nextIncompleteIndex = 0;
+    const nextTodos = todos.map((todo) => {
+      if (todo.done) return todo;
+      return reorderedIncomplete[nextIncompleteIndex++] || todo;
+    });
+
+    updateCurrentDay(nextTodos);
+    setPrioritySuggestion(null);
+    showToast('우선순위를 적용했어요');
+  };
+
   const handleSignOut = async () => {
     clearUserCache();
     setAppState(null);
@@ -636,6 +723,8 @@ export default function App() {
           onThemePreferenceChange={setThemePreference}
           onExportData={handleExportData}
           onImportData={handleImportData}
+          includeMemoInPriority={includeMemoInPriority}
+          onIncludeMemoInPriorityChange={handleIncludeMemoInPriorityChange}
         />
 
         {/* Fixed Schedule Block - Hidden in Month View */}
@@ -741,6 +830,8 @@ export default function App() {
             <ActionBar
               onCopy={handleCopy}
               onStartMoveMode={handleStartMoveMode}
+              onPrioritize={handlePrioritize}
+              isPrioritizing={isPrioritizing}
             />
           )
         )}
@@ -760,6 +851,14 @@ export default function App() {
           details={conflictDetails}
           onRefresh={handleRefreshConflict}
           onDismiss={handleDismissConflict}
+        />
+      )}
+
+      {prioritySuggestion && (
+        <PrioritySuggestionModal
+          suggestion={prioritySuggestion}
+          onApply={handleApplyPrioritySuggestion}
+          onCancel={() => setPrioritySuggestion(null)}
         />
       )}
 
