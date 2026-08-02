@@ -6,6 +6,11 @@ import {
   loadState,
   saveState,
   clearUserCache,
+  clearPendingSync,
+  getScheduleCollapsedPreference,
+  resolvePendingSync,
+  savePendingLocalState,
+  setScheduleCollapsedPreference,
   SyncStatus,
   subscribeSyncStatus,
   subscribeConflict,
@@ -49,7 +54,9 @@ export default function App() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const [isScheduleCollapsed, setIsScheduleCollapsed] = useState(false);
+  const [isScheduleCollapsed, setIsScheduleCollapsed] = useState(() =>
+    getScheduleCollapsedPreference()
+  );
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
   const { toastMessage, showToast, hideToast } = useToast();
@@ -152,12 +159,32 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded || !appState || !session) return;
 
+    if (syncStatus.type === 'conflict') {
+      savePendingLocalState(appState, session.user.id);
+      return;
+    }
+
     const timer = setTimeout(() => {
       saveState(appState);
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [appState, isLoaded, session]);
+  }, [appState, isLoaded, session, syncStatus.type]);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const handleOnline = () => {
+      resolvePendingSync(session.user.id).then((state) => {
+        if (state) {
+          setAppState(state);
+        }
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [session]);
 
   if (authChecking) {
     return (
@@ -408,6 +435,7 @@ export default function App() {
   const handleRefreshConflict = async () => {
     setShowConflictModal(false);
     setConflictDetails(null);
+    clearPendingSync(session?.user.id);
     const updated = await loadState();
     if (updated) {
       setAppState(updated);
@@ -444,7 +472,13 @@ export default function App() {
             onEditSchedule={handleEditSchedule}
             onDeleteSchedule={handleDeleteSchedule}
             isCollapsed={isScheduleCollapsed}
-            onToggleCollapsed={() => setIsScheduleCollapsed((prev) => !prev)}
+            onToggleCollapsed={() =>
+              setIsScheduleCollapsed((prev) => {
+                const next = !prev;
+                setScheduleCollapsedPreference(next);
+                return next;
+              })
+            }
             isExpanded={isScheduleExpanded}
             onToggleExpanded={() => setIsScheduleExpanded((prev) => !prev)}
             onOpenMonthView={() =>

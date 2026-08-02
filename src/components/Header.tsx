@@ -46,10 +46,11 @@ export function Header({
   const renderSyncBadge = () => {
     switch (syncStatus.type) {
       case 'saving':
+      case 'pending':
         return (
           <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-md">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            저장 중...
+            동기화 대기 중
           </span>
         );
       case 'offline':
@@ -71,8 +72,8 @@ export function Header({
           <span className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium bg-emerald-50 px-2 py-1 rounded-md">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             {syncStatus.lastSavedAt
-              ? `동기화 완료 (${syncStatus.lastSavedAt})`
-              : '동기화 완료'}
+              ? `동기화됨 (${syncStatus.lastSavedAt})`
+              : '동기화됨'}
           </span>
         );
       case 'local_only':
