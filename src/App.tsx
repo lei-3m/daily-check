@@ -47,7 +47,7 @@ export default function App() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const [isScheduleCollapsed, setIsScheduleCollapsed] = useState(true);
+  const [isScheduleCollapsed, setIsScheduleCollapsed] = useState(false);
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
 
   const { toastMessage, showToast, hideToast } = useToast();

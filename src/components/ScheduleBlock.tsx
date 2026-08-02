@@ -178,7 +178,7 @@ export function ScheduleBlock({
   isExpanded: propIsExpanded,
   onToggleExpanded,
 }: ScheduleBlockProps) {
-  const [localCollapsed, setLocalCollapsed] = useState(true);
+  const [localCollapsed, setLocalCollapsed] = useState(false);
   const [localExpanded, setLocalExpanded] = useState(false);
 
   const isCollapsed = propIsCollapsed ?? localCollapsed;
@@ -325,19 +325,21 @@ export function ScheduleBlock({
               등록된 일정이 없어요.
             </div>
           ) : (
-            <div className="space-y-1 max-h-[35vh] overflow-y-auto pr-1">
-              {displayedSchedules.length > 0 && (
-                <ul className="space-y-1 text-xs text-slate-700">
-                  {displayedSchedules.map((item) => (
-                    <ScheduleItemRow
-                      key={item.id}
-                      item={item}
-                      onEditSchedule={onEditSchedule}
-                      onDeleteSchedule={onDeleteSchedule}
-                    />
-                  ))}
-                </ul>
-              )}
+            <div className="space-y-1">
+              <div className="space-y-1 max-h-[35vh] overflow-y-auto pr-1">
+                {displayedSchedules.length > 0 && (
+                  <ul className="space-y-1 text-xs text-slate-700">
+                    {displayedSchedules.map((item) => (
+                      <ScheduleItemRow
+                        key={item.id}
+                        item={item}
+                        onEditSchedule={onEditSchedule}
+                        onDeleteSchedule={onDeleteSchedule}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               {/* Toggle expand/collapse button for schedules after 7 days */}
               {after7Days.length > 0 && !isExpanded && (
