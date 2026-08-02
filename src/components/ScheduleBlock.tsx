@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScheduleItem } from '../lib/types';
 import { todayKey, shortLabel, addDays } from '../lib/date';
+import { ScheduleOccurrence, expandScheduleInRange } from '../lib/schedule';
 
 interface ScheduleBlockProps {
   schedule: ScheduleItem[];
   activeKey: string;
   onAddSchedule: (date: string, text: string) => void;
-  onEditSchedule: (id: string, newDate: string, newText: string) => void;
   onDeleteSchedule: (id: string) => void;
+  onOpenScheduleEdit: (id: string) => void;
   onOpenMonthView?: () => void;
   isCollapsed?: boolean;
   onToggleCollapsed?: () => void;
@@ -36,122 +37,34 @@ function formatDisplayDate(dateStr: string): string {
 
 interface ScheduleItemRowProps {
   key?: string;
-  item: ScheduleItem;
-  onEditSchedule: (id: string, newDate: string, newText: string) => void;
+  item: ScheduleOccurrence;
   onDeleteSchedule: (id: string) => void;
+  onOpenScheduleEdit: (id: string) => void;
 }
 
 function ScheduleItemRow({
   item,
-  onEditSchedule,
   onDeleteSchedule,
+  onOpenScheduleEdit,
 }: ScheduleItemRowProps) {
-  const [isEditingText, setIsEditingText] = useState(false);
-  const [editText, setEditText] = useState(item.text);
-  const textInputRef = useRef<HTMLInputElement>(null);
-  const datePickerRef = useRef<HTMLInputElement>(null);
-
-  const normalizedDate = normalizeDateKey(item.date);
-
-  useEffect(() => {
-    setEditText(item.text);
-  }, [item.text]);
-
-  useEffect(() => {
-    if (isEditingText && textInputRef.current) {
-      textInputRef.current.focus();
-      textInputRef.current.select();
-    }
-  }, [isEditingText]);
-
-  const handleSaveText = () => {
-    setIsEditingText(false);
-    const trimmed = editText.trim();
-    if (!trimmed) {
-      onDeleteSchedule(item.id);
-    } else if (trimmed !== item.text) {
-      onEditSchedule(item.id, item.date, trimmed);
-    }
-  };
-
-  const handleCancelText = () => {
-    setEditText(item.text);
-    setIsEditingText(false);
-  };
-
-  const handleTextKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSaveText();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      handleCancelText();
-    }
-  };
-
-  const handleDateClick = () => {
-    if (datePickerRef.current) {
-      if (
-        'showPicker' in datePickerRef.current &&
-        typeof datePickerRef.current.showPicker === 'function'
-      ) {
-        datePickerRef.current.showPicker();
-      } else {
-        datePickerRef.current.click();
-      }
-    }
-  };
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    if (newDate && newDate !== normalizedDate) {
-      onEditSchedule(item.id, newDate, item.text);
-    }
-  };
+  const occurrenceDate = normalizeDateKey(item.occurrenceDate);
+  const repeat = item.repeat;
 
   return (
     <li className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0 gap-2">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {/* Date Selector Button */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={handleDateClick}
-            title="날짜 수정"
-            className="font-mono text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 px-1.5 py-0.5 rounded transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 cursor-pointer"
-          >
-            {formatDisplayDate(item.date)}
-          </button>
-          <input
-            ref={datePickerRef}
-            type="date"
-            value={normalizedDate}
-            onChange={handleDateChange}
-            className="sr-only absolute inset-0 opacity-0 pointer-events-none"
-            tabIndex={-1}
-          />
-        </div>
+        <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+          {formatDisplayDate(occurrenceDate)}
+        </span>
 
-        {/* Text Display or Text Input */}
-        {isEditingText ? (
-          <input
-            ref={textInputRef}
-            type="text"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            onBlur={handleSaveText}
-            onKeyDown={handleTextKeyDown}
-            className="flex-1 text-xs border border-slate-300 rounded px-1.5 py-0.5 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 font-medium min-w-0"
-          />
-        ) : (
-          <span
-            onClick={() => setIsEditingText(true)}
-            title="클릭하여 수정"
-            className="font-medium text-slate-800 truncate min-w-0 flex-1 cursor-pointer hover:bg-slate-200/60 rounded px-1 py-0.5 transition-colors"
-          >
-            {item.text}
-          </span>
-        )}
+        {repeat ? <span className="text-slate-400 shrink-0">↻</span> : null}
+        <button
+          type="button"
+          onClick={() => onOpenScheduleEdit(item.id)}
+          className="font-medium text-slate-800 truncate min-w-0 flex-1 cursor-pointer text-left hover:bg-slate-200/60 rounded px-1 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+        >
+          {item.text}
+        </button>
       </div>
 
       <button
@@ -170,8 +83,8 @@ export function ScheduleBlock({
   schedule = [],
   activeKey,
   onAddSchedule,
-  onEditSchedule,
   onDeleteSchedule,
+  onOpenScheduleEdit,
   onOpenMonthView,
   isCollapsed: propIsCollapsed,
   onToggleCollapsed,
@@ -213,20 +126,14 @@ export function ScheduleBlock({
   const today = todayKey();
   const limit7Date = addDays(today, 6);
 
-  // Filter only today or upcoming schedules and sort by date ascending
-  const upcomingSchedules = [...schedule]
-    .filter((item) => normalizeDateKey(item.date) >= today)
-    .sort((a, b) => {
-      const dateA = normalizeDateKey(a.date);
-      const dateB = normalizeDateKey(b.date);
-      return dateA.localeCompare(dateB);
-    });
+  const upcomingLimitDate = addDays(today, 365);
+  const upcomingSchedules = expandScheduleInRange(schedule, today, upcomingLimitDate);
 
   const within7Days = upcomingSchedules.filter(
-    (item) => normalizeDateKey(item.date) <= limit7Date
+    (item) => item.occurrenceDate <= limit7Date
   );
   const after7Days = upcomingSchedules.filter(
-    (item) => normalizeDateKey(item.date) > limit7Date
+    (item) => item.occurrenceDate > limit7Date
   );
 
   // Items to show depending on isExpanded state
@@ -331,10 +238,10 @@ export function ScheduleBlock({
                   <ul className="space-y-1 text-xs text-slate-700">
                     {displayedSchedules.map((item) => (
                       <ScheduleItemRow
-                        key={item.id}
+                        key={`${item.id}:${item.occurrenceDate}`}
                         item={item}
-                        onEditSchedule={onEditSchedule}
                         onDeleteSchedule={onDeleteSchedule}
+                        onOpenScheduleEdit={onOpenScheduleEdit}
                       />
                     ))}
                   </ul>

@@ -333,7 +333,13 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
 
   for (const item of localSchedules) {
     const serverItem = serverSchedules.find((serverItem) => serverItem.id === item.id);
-    if (serverItem && (serverItem.date !== item.date || serverItem.text !== item.text)) {
+    if (
+      serverItem &&
+      (serverItem.date !== item.date ||
+        serverItem.text !== item.text ||
+        serverItem.repeat !== item.repeat ||
+        serverItem.repeatUntil !== item.repeatUntil)
+    ) {
       items.push({
         type: 'schedule_updated',
         date: item.date,

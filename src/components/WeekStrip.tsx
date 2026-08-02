@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, weekDays, weekMonthLabel, parseKey, startOfWeek, addDays } from '../lib/date';
+import { expandScheduleInRange } from '../lib/schedule';
 
 interface WeekStripProps {
   anchor: string;
@@ -31,18 +32,6 @@ const PANEL_FALLBACK_HEIGHT = 44;
 const WEEK_DOT_ROW_CLASS = 'h-2.5 mt-1 flex items-center justify-center gap-0.5';
 const WEEK_SCHEDULE_DOT_CLASS = 'w-1.5 h-1.5 rounded-full shrink-0 accent-dot';
 const WEEK_TODO_DOT_CLASS = 'w-1 h-1 rounded-full shrink-0 calendar-todo-dot';
-
-function normalizeScheduleDateKey(dateStr: string): string {
-  if (dateStr.includes('-')) return dateStr;
-  const parts = dateStr.split('/');
-  if (parts.length === 2) {
-    const year = new Date().getFullYear();
-    const month = parts[0].padStart(2, '0');
-    const day = parts[1].padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-  return dateStr;
-}
 
 function prefersReducedMotion(): boolean {
   return (
@@ -188,11 +177,13 @@ export function WeekStrip({
 
   const scheduleKeys = useMemo(() => {
     const set = new Set<string>();
-    for (const item of schedule) {
-      set.add(normalizeScheduleDateKey(item.date));
+    const startKey = getWeekOffsetKey(baseWeekKey, weekOffsetIndex - 2);
+    const endKey = addDays(getWeekOffsetKey(baseWeekKey, weekOffsetIndex + 2), 6);
+    for (const item of expandScheduleInRange(schedule, startKey, endKey)) {
+      set.add(item.occurrenceDate);
     }
     return set;
-  }, [schedule]);
+  }, [baseWeekKey, schedule, weekOffsetIndex]);
 
   const handleSelectDateStable = useCallback(
     (key: string) => {

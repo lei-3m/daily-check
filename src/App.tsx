@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { AppState, Todo } from './lib/types';
-import { todayKey, fullLabel, weekdayLabel } from './lib/date';
+import { AppState, ScheduleItem, Todo } from './lib/types';
+import { addDays, todayKey, fullLabel, weekdayLabel } from './lib/date';
 import {
   loadState,
   saveState,
@@ -34,8 +34,10 @@ import {
   PriorityResponseError,
   PrioritySuggestion,
 } from './lib/priority';
+import { expandScheduleInRange } from './lib/schedule';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
+import { ScheduleEditView } from './components/ScheduleEditView';
 import { DrawerBlock } from './components/DrawerBlock';
 import { DateNav, View } from './components/DateNav';
 import { TodoList } from './components/TodoList';
@@ -71,6 +73,8 @@ export default function App() {
     kind: 'week',
     anchor: todayKey(),
   }));
+  const viewRef = useRef<View>(view);
+  const activeKeyRef = useRef(todayKey());
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -215,6 +219,25 @@ export default function App() {
     return () => window.removeEventListener('online', handleOnline);
   }, [session]);
 
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+
+  useEffect(() => {
+    activeKeyRef.current = appState?.active || todayKey();
+  }, [appState?.active]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (viewRef.current.kind === 'scheduleEdit') {
+        setView({ kind: 'week', anchor: activeKeyRef.current });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   if (authChecking) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -239,6 +262,10 @@ export default function App() {
   const currentDay = appState.days[activeKey] || { todos: [], memo: '' };
   const todos = currentDay.todos || [];
   const drawers = normalizeDrawer(appState.drawer);
+  const editingSchedule =
+    view.kind === 'scheduleEdit' && view.id
+      ? appState.schedule.find((item) => item.id === view.id)
+      : undefined;
 
   const completedCount = todos.filter((t) => t.done).length;
   const totalCount = todos.length;
@@ -485,7 +512,11 @@ export default function App() {
     showToast(`${movingTodos.length}개 할 일이 이동함`);
   };
 
-  const handleAddSchedule = (date: string, text: string) => {
+  const handleAddSchedule = (
+    date: string,
+    text: string,
+    repeat?: ScheduleItem['repeat']
+  ) => {
     const newItem = {
       id:
         typeof crypto !== 'undefined' && crypto.randomUUID
@@ -493,6 +524,7 @@ export default function App() {
           : Math.random().toString(36).substring(2, 9),
       date,
       text,
+      ...(repeat ? { repeat } : {}),
     };
     setAppState((prev) => {
       if (!prev) return prev;
@@ -503,7 +535,13 @@ export default function App() {
     });
   };
 
-  const handleEditSchedule = (id: string, newDate: string, newText: string) => {
+  const handleEditSchedule = (
+    id: string,
+    newDate: string,
+    newText: string,
+    repeat?: ScheduleItem['repeat'],
+    repeatUntil?: string
+  ) => {
     if (!newText.trim()) {
       handleDeleteSchedule(id);
       return;
@@ -514,7 +552,13 @@ export default function App() {
         ...prev,
         schedule: prev.schedule.map((item) =>
           item.id === id
-            ? { ...item, date: newDate, text: newText.trim() }
+            ? {
+                ...item,
+                date: newDate,
+                text: newText.trim(),
+                repeat,
+                repeatUntil: repeat ? repeatUntil : undefined,
+              }
             : item
         ),
       };
@@ -529,6 +573,29 @@ export default function App() {
         schedule: prev.schedule.filter((item) => item.id !== id),
       };
     });
+  };
+
+  const openScheduleEdit = (id: string | null) => {
+    window.history.pushState({ view: 'scheduleEdit', id }, '');
+    setView({ kind: 'scheduleEdit', id });
+  };
+
+  const closeScheduleEdit = () => {
+    window.history.back();
+  };
+
+  const handleSaveScheduleFromEdit = (
+    id: string | null,
+    date: string,
+    text: string,
+    repeat?: ScheduleItem['repeat'],
+    repeatUntil?: string
+  ) => {
+    if (id) {
+      handleEditSchedule(id, date, text, repeat, repeatUntil);
+    } else {
+      handleAddSchedule(date, text, repeat);
+    }
   };
 
   const handleChangeMemo = (newMemo: string) => {
@@ -565,9 +632,14 @@ export default function App() {
     setIsPrioritizing(true);
     try {
       const today = todayKey();
-      const upcomingSchedule = (appState.schedule || [])
-        .filter((item) => item.date >= today)
-        .sort((a, b) => a.date.localeCompare(b.date));
+      const upcomingSchedule = expandScheduleInRange(
+        appState.schedule || [],
+        today,
+        addDays(today, 6)
+      ).map((item) => ({
+        ...item,
+        date: item.occurrenceDate,
+      }));
       const body = buildPriorityRequest(
         activeKey,
         weekdayLabel(activeKey),
@@ -742,13 +814,13 @@ export default function App() {
         />
 
         {/* Fixed Schedule Block - Hidden in Month View */}
-        {view.kind !== 'month' && (
+        {view.kind === 'week' && (
           <ScheduleBlock
             schedule={appState.schedule}
             activeKey={activeKey}
             onAddSchedule={handleAddSchedule}
-            onEditSchedule={handleEditSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            onOpenScheduleEdit={openScheduleEdit}
             isCollapsed={isScheduleCollapsed}
             onToggleCollapsed={() =>
               setIsScheduleCollapsed((prev) => {
@@ -765,7 +837,7 @@ export default function App() {
           />
         )}
 
-        {view.kind !== 'month' && (
+        {view.kind !== 'month' && view.kind !== 'scheduleEdit' && (
           <DrawerBlock
             drawers={drawers}
             mode={
@@ -791,6 +863,16 @@ export default function App() {
             onToggleItem={handleToggleDrawerItem}
             onEditItem={handleEditDrawerItem}
             onDeleteItem={handleDeleteDrawerItem}
+          />
+        )}
+
+        {view.kind === 'scheduleEdit' && (
+          <ScheduleEditView
+            item={editingSchedule}
+            activeKey={activeKey}
+            onBack={closeScheduleEdit}
+            onSave={handleSaveScheduleFromEdit}
+            onDelete={handleDeleteSchedule}
           />
         )}
 

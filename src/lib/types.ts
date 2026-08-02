@@ -13,6 +13,8 @@ export type ScheduleItem = {
   id: string;
   date: string;
   text: string;
+  repeat?: 'weekly' | 'monthly';
+  repeatUntil?: string;
 };
 
 export type Drawer = {
