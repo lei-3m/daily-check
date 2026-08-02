@@ -56,6 +56,11 @@ function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
       title: '메모 변경',
       items: items.filter((item) => item.type === 'memo_changed'),
     },
+    {
+      key: 'accent',
+      title: '강조 색상',
+      items: items.filter((item) => item.type === 'accent_changed'),
+    },
   ];
 
   return groups.filter((group) => group.items.length > 0);

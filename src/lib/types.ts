@@ -1,3 +1,5 @@
+import type { AccentPreference } from './theme';
+
 export type Todo = {
   id: string;
   text: string;
@@ -28,4 +30,5 @@ export type AppState = {
   schedule: ScheduleItem[];
   drawer: Drawer[];
   active: string;
+  accentColor?: AccentPreference;
 };

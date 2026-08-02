@@ -27,7 +27,7 @@ import type { ConflictDetails } from './lib/storage';
 import { supabase } from './lib/supabase';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
 import { validateBackupState } from './lib/backup';
-import { useThemePreference } from './lib/theme';
+import { AccentPreference, useThemePreference } from './lib/theme';
 import {
   buildPriorityRequest,
   parsePrioritySuggestion,
@@ -64,6 +64,7 @@ export default function App() {
     accentPreference,
     setAccentPreference,
   } = useThemePreference();
+  const initialAccentPreferenceRef = useRef(accentPreference);
 
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
@@ -160,18 +161,22 @@ export default function App() {
           schedule: [],
           drawer: normalizeDrawer(),
           active: today,
+          accentColor: initialAccentPreferenceRef.current,
         };
         setAppState(initial);
       } else {
         const days = { ...(saved.days || {}) };
         const active = saved.active || today;
+        const accentColor = saved.accentColor || initialAccentPreferenceRef.current;
 
         setAppState({
           days,
           schedule: saved.schedule || [],
           drawer: normalizeDrawer(saved.drawer),
           active,
+          accentColor,
         });
+        setAccentPreference(accentColor);
       }
       setIsLoaded(true);
 
@@ -186,7 +191,7 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [session, authChecking]);
+  }, [session, authChecking, setAccentPreference]);
 
   // 4. Auto save state with debounce
   useEffect(() => {
@@ -211,6 +216,7 @@ export default function App() {
       resolvePendingSync(session.user.id).then((state) => {
         if (state) {
           setAppState(state);
+          setAccentPreference(state.accentColor || 'default');
         }
       });
     };
@@ -620,6 +626,11 @@ export default function App() {
     setPriorityIncludeMemoPreference(includeMemo);
   };
 
+  const handleAccentPreferenceChange = (accentColor: AccentPreference) => {
+    setAccentPreference(accentColor);
+    setAppState((prev) => (prev ? { ...prev, accentColor } : prev));
+  };
+
   const handlePrioritize = async () => {
     if (isPrioritizing) return;
 
@@ -764,10 +775,12 @@ export default function App() {
     const importedState = {
       ...validation.state,
       drawer: normalizeDrawer(validation.state.drawer),
+      accentColor: validation.state.accentColor || 'default',
     };
 
     saveStateSnapshot(appState);
     setAppState(importedState);
+    setAccentPreference(importedState.accentColor || 'default');
     setView({ kind: 'week', anchor: importedState.active || todayKey() });
     setIsSelectMode(false);
     setSelectedIds(new Set());
@@ -783,6 +796,7 @@ export default function App() {
     const updated = await loadState();
     if (updated) {
       setAppState(updated);
+      setAccentPreference(updated.accentColor || 'default');
       showToast('최신 내용으로 새로고침되었습니다');
     }
   };
@@ -806,7 +820,7 @@ export default function App() {
           themePreference={themePreference}
           onThemePreferenceChange={setThemePreference}
           accentPreference={accentPreference}
-          onAccentPreferenceChange={setAccentPreference}
+          onAccentPreferenceChange={handleAccentPreferenceChange}
           onExportData={handleExportData}
           onImportData={handleImportData}
           includeMemoInPriority={includeMemoInPriority}
