@@ -15,8 +15,15 @@ export type ScheduleItem = {
   text: string;
 };
 
+export type Drawer = {
+  id: string;
+  name: string;
+  items: Todo[];
+};
+
 export type AppState = {
   days: Record<string, Day>;
   schedule: ScheduleItem[];
+  drawer: Drawer[];
   active: string;
 };

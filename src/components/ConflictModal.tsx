@@ -25,21 +25,30 @@ function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
       key: 'added',
       title: '추가한 항목',
       items: items.filter(
-        (item) => item.type === 'todo_added' || item.type === 'schedule_added'
+        (item) =>
+          item.type === 'todo_added' ||
+          item.type === 'schedule_added' ||
+          item.type === 'drawer_added'
       ),
     },
     {
       key: 'deleted',
       title: '삭제한 항목',
       items: items.filter(
-        (item) => item.type === 'todo_deleted' || item.type === 'schedule_deleted'
+        (item) =>
+          item.type === 'todo_deleted' ||
+          item.type === 'schedule_deleted' ||
+          item.type === 'drawer_deleted'
       ),
     },
     {
       key: 'updated',
       title: '수정한 항목',
       items: items.filter(
-        (item) => item.type === 'todo_updated' || item.type === 'schedule_updated'
+        (item) =>
+          item.type === 'todo_updated' ||
+          item.type === 'schedule_updated' ||
+          item.type === 'drawer_updated'
       ),
     },
     {

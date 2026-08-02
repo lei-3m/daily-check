@@ -6,7 +6,9 @@ import { MonthCalendar } from './MonthCalendar';
 
 export type View =
   | { kind: 'week'; anchor: string }
-  | { kind: 'month'; anchor: string };
+  | { kind: 'month'; anchor: string }
+  | { kind: 'drawer' }
+  | { kind: 'drawerList'; id: string };
 
 interface DateNavProps {
   view: View;
@@ -54,7 +56,8 @@ export function DateNav({
     );
   }
 
-  return (
+  if (view.kind === 'month') {
+    return (
     <MonthCalendar
       anchor={view.anchor}
       activeKey={activeKey}
@@ -74,5 +77,8 @@ export function DateNav({
         onChangeView({ kind: 'month', anchor: addMonths(view.anchor, 1) })
       }
     />
-  );
+    );
+  }
+
+  return null;
 }
