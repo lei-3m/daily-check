@@ -49,7 +49,8 @@ function getWeekDifference(baseWeekKey: string, key: string): number {
 
 interface WeekPanelProps {
   weekKey: string;
-  activeKey: string;
+  /** 현재 보이는 주 패널에만 선택 상태를 넘긴다. 레일의 인접 주 패널은 항상 null. */
+  activeKey: string | null;
   today: string;
   contentKeys: Set<string>;
   onSelectDate: (key: string) => void;
@@ -72,11 +73,17 @@ const WeekPanel = React.memo(function WeekPanel({
         const dayHasContent = contentKeys.has(key);
 
         return (
+          // 강조는 항상 한 겹만 그린다.
+          //   선택됨        -> 진한 채움 한 겹 (오늘이든 아니든 동일)
+          //   오늘, 미선택  -> 채움 없이 아래쪽 점만
+          //   선택 + 오늘   -> 진한 채움 + 점만 amber 로 (테두리를 덧그리지 않음)
+          // 링은 focus-visible 에서만 그린다. focus 로 두면 클릭/탭한 뒤에도 링이 남아
+          // 채움 위에 사각형이 하나 더 겹쳐 보인다.
           <button
             key={key}
             type="button"
             onClick={() => onSelectDate(key)}
-            className={`flex flex-col items-center justify-center py-2 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 relative ${
+            className={`flex flex-col items-center justify-center py-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative ${
               isSelected
                 ? 'bg-slate-900 text-white font-bold shadow-xs'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
@@ -147,9 +154,10 @@ export function WeekStrip({
   const suppressClickRef = useRef<boolean>(false);
 
   const currentWeekKey = getWeekOffsetKey(baseWeekKey, weekOffsetIndex);
-  const currentWeekDays = weekDays(currentWeekKey);
-  const isTodayInWeek = currentWeekDays.includes(today);
   const monthTitle = weekMonthLabel(currentWeekKey);
+  // 선택된 날짜가 오늘이 아니면 언제든 오늘로 돌아갈 수 있어야 한다.
+  // (이번 주 안에서 다른 날짜를 고른 경우도 포함)
+  const showTodayButton = activeKey !== today;
 
   const contentKeys = useMemo(() => {
     const set = new Set<string>();
@@ -179,8 +187,10 @@ export function WeekStrip({
     rail.style.transform = `translateX(${-offsetIndexRef.current * stepRef.current + dx}px)`;
   }, []);
 
-  // Measure container width on resize
-  useEffect(() => {
+  // Measure container width on resize.
+  // useLayoutEffect 로 첫 페인트 전에 재야 한다. useEffect 면 첫 프레임 동안
+  // step 이 폴백값(300+gap)이라 인접 주 패널이 컨테이너 안으로 겹쳐 들어온다.
+  useLayoutEffect(() => {
     if (!containerRef.current) return;
     const el = containerRef.current;
     setContainerWidth(el.clientWidth);
@@ -355,7 +365,7 @@ export function WeekStrip({
             <span className="text-xs text-slate-400">›</span>
           </button>
 
-          {!isTodayInWeek && (
+          {showTodayButton && (
             <button
               type="button"
               onClick={onGoToday}
@@ -404,17 +414,18 @@ export function WeekStrip({
         <div ref={railRef} className="relative w-full h-full" style={{ willChange: 'transform' }}>
           {visibleOffsetIndices.map((offsetIndex) => {
             const panelWeekKey = getWeekOffsetKey(baseWeekKey, offsetIndex);
+            const isCurrentPanel = offsetIndex === weekOffsetIndex;
             return (
               <div
                 key={panelWeekKey}
-                ref={offsetIndex === weekOffsetIndex ? measurePanelRef : undefined}
+                ref={isCurrentPanel ? measurePanelRef : undefined}
                 className="absolute top-0 left-0 w-full"
                 style={{ transform: `translateX(${offsetIndex * step}px)` }}
-                inert={offsetIndex !== weekOffsetIndex}
+                inert={!isCurrentPanel}
               >
                 <WeekPanel
                   weekKey={panelWeekKey}
-                  activeKey={activeKey}
+                  activeKey={isCurrentPanel ? activeKey : null}
                   today={today}
                   contentKeys={contentKeys}
                   onSelectDate={handleSelectDateStable}
