@@ -205,7 +205,7 @@ export function Header({
                   <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                     우선순위
                   </div>
-                  <label className="min-h-11 flex items-center justify-between gap-3 text-xs font-semibold text-slate-600 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100 focus-within:ring-2 focus-within:ring-slate-300">
+                  <label className="min-h-11 flex items-center justify-between gap-3 text-xs font-semibold text-slate-600 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100">
                     <span>메모도 함께 보내기</span>
                     <span className="relative flex items-center justify-center">
                       <input
