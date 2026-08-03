@@ -86,6 +86,22 @@ function summarizeSchedule(text: string, date: string): string {
   return `${date} 일정: ${text}`;
 }
 
+function drawerDisplayName(name: string): string {
+  return name.trim() || '목록 이름';
+}
+
+function summarizeDrawerList(name: string, action: '추가' | '삭제' | '수정'): string {
+  return `서랍 목록 ${action}: ${drawerDisplayName(name)}`;
+}
+
+function summarizeDrawerItem(
+  drawerName: string,
+  text: string,
+  action: '추가' | '삭제' | '수정'
+): string {
+  return `서랍 항목 ${action}: ${drawerDisplayName(drawerName)} - ${text}`;
+}
+
 function createDefaultDrawer(): Drawer[] {
   return [];
 }
@@ -94,7 +110,7 @@ export function normalizeDrawer(drawer?: Drawer[]): Drawer[] {
   if (!drawer || drawer.length === 0) return createDefaultDrawer();
   return drawer.map((item, index) => ({
     id: item.id || `drawer-${index}`,
-    name: item.name || '서랍',
+    name: typeof item.name === 'string' ? item.name : '서랍',
     items: item.items || [],
   }));
 }
@@ -144,9 +160,9 @@ function collectDrawerItemConflictItems(
     if (!serverTodoIds.has(todo.id)) {
       items.push({
         type: 'drawer_added',
-        date: drawerName,
+        date: drawerDisplayName(drawerName),
         text: todo.text,
-        label: todo.text,
+        label: summarizeDrawerItem(drawerName, todo.text, '추가'),
       });
     }
   }
@@ -155,9 +171,9 @@ function collectDrawerItemConflictItems(
     if (!localTodoIds.has(todo.id)) {
       items.push({
         type: 'drawer_deleted',
-        date: drawerName,
+        date: drawerDisplayName(drawerName),
         text: todo.text,
-        label: todo.text,
+        label: summarizeDrawerItem(drawerName, todo.text, '삭제'),
       });
     }
   }
@@ -167,9 +183,9 @@ function collectDrawerItemConflictItems(
     if (serverTodo && (serverTodo.text !== todo.text || serverTodo.done !== todo.done)) {
       items.push({
         type: 'drawer_updated',
-        date: drawerName,
+        date: drawerDisplayName(drawerName),
         text: todo.text,
-        label: todo.text,
+        label: summarizeDrawerItem(drawerName, todo.text, '수정'),
       });
     }
   }
@@ -185,19 +201,17 @@ function collectDrawerConflictItems(
 
   for (const drawer of localDrawers) {
     if (!serverIds.has(drawer.id)) {
+      items.push({
+        type: 'drawer_added',
+        date: drawerDisplayName(drawer.name),
+        label: summarizeDrawerList(drawer.name, '추가'),
+      });
       for (const todo of drawer.items || []) {
         items.push({
           type: 'drawer_added',
-          date: drawer.name,
+          date: drawerDisplayName(drawer.name),
           text: todo.text,
-          label: todo.text,
-        });
-      }
-      if ((drawer.items || []).length === 0) {
-        items.push({
-          type: 'drawer_added',
-          date: drawer.name,
-          label: drawer.name,
+          label: summarizeDrawerItem(drawer.name, todo.text, '추가'),
         });
       }
     }
@@ -205,19 +219,17 @@ function collectDrawerConflictItems(
 
   for (const drawer of serverDrawers) {
     if (!localIds.has(drawer.id)) {
+      items.push({
+        type: 'drawer_deleted',
+        date: drawerDisplayName(drawer.name),
+        label: summarizeDrawerList(drawer.name, '삭제'),
+      });
       for (const todo of drawer.items || []) {
         items.push({
           type: 'drawer_deleted',
-          date: drawer.name,
+          date: drawerDisplayName(drawer.name),
           text: todo.text,
-          label: todo.text,
-        });
-      }
-      if ((drawer.items || []).length === 0) {
-        items.push({
-          type: 'drawer_deleted',
-          date: drawer.name,
-          label: drawer.name,
+          label: summarizeDrawerItem(drawer.name, todo.text, '삭제'),
         });
       }
     }
@@ -230,8 +242,8 @@ function collectDrawerConflictItems(
     if (serverDrawer.name !== drawer.name) {
       items.push({
         type: 'drawer_updated',
-        date: drawer.name,
-        label: drawer.name,
+        date: drawerDisplayName(drawer.name),
+        label: summarizeDrawerList(drawer.name, '수정'),
       });
     }
 

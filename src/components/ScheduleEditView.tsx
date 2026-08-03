@@ -70,10 +70,10 @@ export function ScheduleEditView({
         <button
           type="button"
           onClick={onBack}
-          aria-label="일정 목록으로 돌아가기"
-          className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          aria-label="뒤로"
+          className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
         >
-          ‹
+          <span className="text-[34px] leading-none">〈</span>
         </button>
         <h2 className="text-sm font-semibold text-slate-900">일정 편집</h2>
       </div>

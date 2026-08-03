@@ -91,6 +91,53 @@ export default function App() {
 
   const { toast, showToast, hideToast } = useToast();
 
+  const getViewFromHistoryState = (state: unknown): View | null => {
+    if (!state || typeof state !== 'object') return null;
+    const value = state as { view?: unknown; anchor?: unknown; id?: unknown };
+    if (value.view === 'drawer') return { kind: 'drawer' };
+    if (value.view === 'drawerList' && typeof value.id === 'string') {
+      return { kind: 'drawerList', id: value.id };
+    }
+    if (value.view === 'scheduleEdit') {
+      return { kind: 'scheduleEdit', id: typeof value.id === 'string' ? value.id : null };
+    }
+    if (value.view === 'month' && typeof value.anchor === 'string') {
+      return { kind: 'month', anchor: value.anchor };
+    }
+    if (value.view === 'week' && typeof value.anchor === 'string') {
+      return { kind: 'week', anchor: value.anchor };
+    }
+    return null;
+  };
+
+  const getHistoryStateForView = (nextView: View) => {
+    if (nextView.kind === 'drawer') return { view: 'drawer' };
+    if (nextView.kind === 'drawerList') return { view: 'drawerList', id: nextView.id };
+    if (nextView.kind === 'scheduleEdit') return { view: 'scheduleEdit', id: nextView.id };
+    return { view: nextView.kind, anchor: nextView.anchor };
+  };
+
+  const finalizeUntitledDrawer = (id: string) => {
+    setAppState((prev) => {
+      if (!prev) return prev;
+      const normalized = normalizeDrawer(prev.drawer);
+      const drawer = normalized.find((item) => item.id === id);
+      if (!drawer || drawer.name.trim()) return prev;
+      if (drawer.items.length > 0) {
+        return {
+          ...prev,
+          drawer: normalized.map((item) =>
+            item.id === id ? { ...item, name: '목록 이름' } : item
+          ),
+        };
+      }
+      return {
+        ...prev,
+        drawer: normalized.filter((item) => item.id !== id),
+      };
+    });
+  };
+
   // 1. Session Auth listener
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -234,10 +281,25 @@ export default function App() {
   }, [appState?.active]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      if (viewRef.current.kind === 'scheduleEdit') {
-        setView({ kind: 'week', anchor: activeKeyRef.current });
+    if (!isLoaded) return;
+    window.history.replaceState(
+      getHistoryStateForView({ kind: 'week', anchor: activeKeyRef.current }),
+      ''
+    );
+  }, [isLoaded]);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const currentView = viewRef.current;
+      if (currentView.kind === 'drawerList') {
+        finalizeUntitledDrawer(currentView.id);
       }
+
+      const nextView = getViewFromHistoryState(event.state) || {
+        kind: 'week',
+        anchor: activeKeyRef.current,
+      };
+      setView(nextView);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -351,13 +413,56 @@ export default function App() {
       ? crypto.randomUUID()
       : Math.random().toString(36).substring(2, 9);
 
-  const handleAddDrawer = (name: string) => {
+  const pushView = (nextView: View) => {
+    window.history.pushState(getHistoryStateForView(nextView), '');
+    setView(nextView);
+  };
+
+  const handleOpenDrawer = () => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+    pushView({ kind: 'drawer' });
+  };
+
+  const handleOpenDrawerList = (id: string) => {
+    pushView({ kind: 'drawerList', id });
+  };
+
+  const handleBackToDrawerDocuments = () => {
+    if (viewRef.current.kind === 'drawerList') {
+      finalizeUntitledDrawer(viewRef.current.id);
+    }
+    window.history.back();
+  };
+
+  const handleCloseDrawer = () => {
+    window.history.back();
+  };
+
+  const handleCreateDrawer = () => {
     const newDrawer = {
       id: createId(),
-      name: name.trim(),
+      name: '',
       items: [],
     };
     updateDrawers((current) => [...current, newDrawer]);
+    pushView({ kind: 'drawerList', id: newDrawer.id });
+  };
+
+  const handleChangeView = (nextView: View) => {
+    const currentView = viewRef.current;
+    if (currentView.kind !== 'month' && nextView.kind === 'month') {
+      pushView(nextView);
+      return;
+    }
+    if (currentView.kind === 'month' && nextView.kind === 'week') {
+      window.history.back();
+      if (nextView.anchor !== activeKeyRef.current) {
+        window.setTimeout(() => setView(nextView), 0);
+      }
+      return;
+    }
+    setView(nextView);
   };
 
   const handleRenameDrawer = (id: string, name: string) => {
@@ -582,8 +687,7 @@ export default function App() {
   };
 
   const openScheduleEdit = (id: string | null) => {
-    window.history.pushState({ view: 'scheduleEdit', id }, '');
-    setView({ kind: 'scheduleEdit', id });
+    pushView({ kind: 'scheduleEdit', id });
   };
 
   const closeScheduleEdit = () => {
@@ -846,7 +950,7 @@ export default function App() {
             isExpanded={isScheduleExpanded}
             onToggleExpanded={() => setIsScheduleExpanded((prev) => !prev)}
             onOpenMonthView={() =>
-              setView({ kind: 'month', anchor: activeKey || todayKey() })
+              handleChangeView({ kind: 'month', anchor: activeKey || todayKey() })
             }
           />
         )}
@@ -862,15 +966,11 @@ export default function App() {
                 : 'collapsed'
             }
             activeDrawerId={view.kind === 'drawerList' ? view.id : undefined}
-            onOpenDrawer={() => {
-              setIsSelectMode(false);
-              setSelectedIds(new Set());
-              setView({ kind: 'drawer' });
-            }}
-            onCloseDrawer={() => setView({ kind: 'week', anchor: activeKey })}
-            onOpenList={(id) => setView({ kind: 'drawerList', id })}
-            onBackToDocuments={() => setView({ kind: 'drawer' })}
-            onAddDrawer={handleAddDrawer}
+            onOpenDrawer={handleOpenDrawer}
+            onCloseDrawer={handleCloseDrawer}
+            onOpenList={handleOpenDrawerList}
+            onBackToDocuments={handleBackToDrawerDocuments}
+            onCreateDrawer={handleCreateDrawer}
             onRenameDrawer={handleRenameDrawer}
             onDeleteDrawer={handleDeleteDrawer}
             onAddItems={handleAddDrawerItems}
@@ -897,7 +997,7 @@ export default function App() {
             activeKey={activeKey}
             days={appState.days}
             schedule={appState.schedule}
-            onChangeView={setView}
+            onChangeView={handleChangeView}
             onSelectDate={handleSelectDate}
           />
         )}
