@@ -19,6 +19,11 @@ function shortDate(date: string): string {
   return `${Number(match[2])}/${Number(match[3])}`;
 }
 
+function conflictText(item: ConflictDetailItem): string {
+  if (item.type.startsWith('drawer_')) return item.label;
+  return item.text || item.label;
+}
+
 function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
   const groups: ConflictGroup[] = [
     {
@@ -101,8 +106,10 @@ export function ConflictModal({ details, onRefresh, onDismiss }: ConflictModalPr
                         className="grid grid-cols-[34px_1fr] gap-2 min-w-0"
                       >
                         <span className="font-mono text-slate-500">{shortDate(item.date)}</span>
-                        {item.text ? (
-                          <span className="min-w-0 break-words text-slate-800">{item.text}</span>
+                        {conflictText(item) ? (
+                          <span className="min-w-0 break-words text-slate-800">
+                            {conflictText(item)}
+                          </span>
                         ) : (
                           <span className="min-w-0 text-slate-500">내용 변경</span>
                         )}
@@ -117,9 +124,10 @@ export function ConflictModal({ details, onRefresh, onDismiss }: ConflictModalPr
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1 py-0.5"
+                className="min-h-11 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg px-2"
               >
-                외 {hiddenCount}개 ▾
+                <span>외 {hiddenCount}개</span>
+                <span className="text-[22px] leading-none font-bold">⌄</span>
               </button>
             )}
           </div>

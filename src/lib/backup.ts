@@ -80,9 +80,15 @@ export function validateBackupState(value: unknown): ValidationResult {
     return { ok: false, message: '서랍 데이터 형식이 잘못되었습니다.' };
   }
 
-  if (!isDateKey(value.active)) {
+  const active = value.active;
+  if (!isDateKey(active)) {
     return { ok: false, message: '현재 날짜(active) 형식이 잘못되었습니다.' };
   }
+
+  const accentColor =
+    typeof value.accentColor === 'string' && isAccentPreference(value.accentColor)
+      ? value.accentColor
+      : 'default';
 
   return {
     ok: true,
@@ -90,8 +96,8 @@ export function validateBackupState(value: unknown): ValidationResult {
       days: value.days as Record<string, Day>,
       schedule: value.schedule,
       drawer,
-      active: value.active,
-      accentColor: isAccentPreference(value.accentColor) ? value.accentColor : 'default',
+      active,
+      accentColor,
     },
   };
 }

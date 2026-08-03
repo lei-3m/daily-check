@@ -12,7 +12,7 @@ interface DrawerBlockProps {
   onCloseDrawer: () => void;
   onOpenList: (id: string) => void;
   onBackToDocuments: () => void;
-  onAddDrawer: (name: string) => void;
+  onCreateDrawer: () => void;
   onRenameDrawer: (id: string, name: string) => void;
   onDeleteDrawer: (id: string) => void;
   onAddItems: (drawerId: string, texts: string[]) => void;
@@ -28,12 +28,15 @@ interface EditableDrawerNameProps {
 }
 
 function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(drawer.name.trim() === '');
   const [name, setName] = useState(drawer.name);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setName(drawer.name);
+    if (drawer.name.trim() === '') {
+      setIsEditing(true);
+    }
   }, [drawer.name]);
 
   useEffect(() => {
@@ -45,9 +48,18 @@ function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps)
 
   const save = () => {
     const trimmed = name.trim();
-    onRenameDrawer(drawer.id, trimmed || drawer.name);
-    setIsEditing(false);
+    if (trimmed) {
+      onRenameDrawer(drawer.id, trimmed);
+      setIsEditing(false);
+    } else if (drawer.items.length > 0) {
+      onRenameDrawer(drawer.id, '목록 이름');
+      setIsEditing(false);
+    } else {
+      setName('');
+      setIsEditing(true);
+    }
   };
+  const displayName = drawer.name.trim();
 
   if (isEditing) {
     return (
@@ -69,6 +81,7 @@ function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps)
           }
         }}
         enterKeyHint="done"
+        placeholder="목록 이름"
         className="w-full min-w-0 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-400"
       />
     );
@@ -81,10 +94,12 @@ function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps)
         e.stopPropagation();
         setIsEditing(true);
       }}
-      className="min-w-0 text-left truncate text-sm font-semibold text-slate-800 hover:text-slate-900 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+      className={`min-w-0 text-left truncate text-sm font-semibold rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 ${
+        displayName ? 'text-slate-800 hover:text-slate-900' : 'text-slate-400'
+      }`}
       title="목록 이름 수정"
     >
-      {drawer.name}
+      {displayName || '이름 없음'}
     </button>
   );
 }
@@ -102,94 +117,36 @@ interface DrawerDocumentRowProps {
   key?: string;
   drawer: Drawer;
   onOpenList: (id: string) => void;
-  onRenameDrawer: (id: string, name: string) => void;
   onDeleteDrawer: (id: string) => void;
 }
 
 function DrawerDocumentRow({
   drawer,
   onOpenList,
-  onRenameDrawer,
   onDeleteDrawer,
 }: DrawerDocumentRowProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(drawer.name);
-  const inputRef = useRef<HTMLInputElement>(null);
   const doneCount = drawer.items.filter((item) => item.done).length;
   const totalCount = drawer.items.length;
-
-  useEffect(() => {
-    setName(drawer.name);
-  }, [drawer.name]);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isEditing]);
-
-  const save = () => {
-    const trimmed = name.trim();
-    onRenameDrawer(drawer.id, trimmed || drawer.name);
-    setIsEditing(false);
-  };
+  const displayName = drawer.name.trim();
 
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 min-h-[44px] py-1 px-2.5 rounded-lg border border-transparent hover:bg-slate-50 hover:border-slate-100">
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={save}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              save();
-            } else if (e.key === 'Escape') {
-              e.preventDefault();
-              setName(drawer.name);
-              setIsEditing(false);
-            }
-          }}
-          enterKeyHint="done"
-          className="w-full min-w-0 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-400"
-        />
-      ) : (
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 min-h-[44px] py-1 px-2.5 rounded-lg border border-transparent hover:bg-slate-50 hover:border-slate-100">
         <button
           type="button"
           onClick={() => onOpenList(drawer.id)}
           className="min-w-0 min-h-[44px] flex items-center justify-between gap-2 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
-          <span className="block truncate text-sm font-semibold text-slate-800">
-            {drawer.name}
+          <span
+            className={`block truncate text-sm font-semibold ${
+              displayName ? 'text-slate-800' : 'text-slate-400'
+            }`}
+          >
+            {displayName || '이름 없음'}
           </span>
           <span className="shrink-0 text-xs font-semibold text-slate-400 tabular-nums">
             {totalCount === 0 ? '열어서 추가' : `${doneCount}/${totalCount}`}
           </span>
         </button>
-      )}
-      <button
-        type="button"
-        onPointerDown={(e) => {
-          e.preventDefault();
-        }}
-        onMouseDown={(e) => {
-          e.preventDefault();
-        }}
-        onClick={() => {
-          if (isEditing) {
-            save();
-          } else {
-            setIsEditing(true);
-          }
-        }}
-        className="min-h-[36px] px-2 text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-      >
-        {isEditing ? '완료' : '수정'}
-      </button>
       <button
         type="button"
         onClick={() => onDeleteDrawer(drawer.id)}
@@ -424,7 +381,7 @@ export function DrawerBlock({
   onCloseDrawer,
   onOpenList,
   onBackToDocuments,
-  onAddDrawer,
+  onCreateDrawer,
   onRenameDrawer,
   onDeleteDrawer,
   onAddItems,
@@ -433,34 +390,6 @@ export function DrawerBlock({
   onDeleteItem,
 }: DrawerBlockProps) {
   const activeDrawer = drawers.find((drawer) => drawer.id === activeDrawerId);
-  const [isAddingDrawer, setIsAddingDrawer] = useState(false);
-  const [newDrawerName, setNewDrawerName] = useState('');
-  const newDrawerInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isAddingDrawer) {
-      newDrawerInputRef.current?.focus();
-    }
-  }, [isAddingDrawer]);
-
-  const confirmNewDrawer = () => {
-    const trimmed = newDrawerName.trim();
-    if (!trimmed) {
-      setIsAddingDrawer(false);
-      setNewDrawerName('');
-      return;
-    }
-    onAddDrawer(trimmed);
-    setNewDrawerName('');
-    window.requestAnimationFrame(() => {
-      newDrawerInputRef.current?.focus();
-    });
-  };
-
-  const cancelNewDrawer = () => {
-    setIsAddingDrawer(false);
-    setNewDrawerName('');
-  };
 
   if (mode === 'collapsed') {
     return (
@@ -473,7 +402,9 @@ export function DrawerBlock({
           <span>▤</span>
           <span>서랍</span>
         </span>
-        <span className="text-xs font-semibold text-slate-400">펼치기 ▾</span>
+        <span className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-slate-600">
+          <span className="text-[28px] font-bold leading-none">⌄</span>
+        </span>
       </button>
     );
   }
@@ -485,10 +416,10 @@ export function DrawerBlock({
           <button
             type="button"
             onClick={onBackToDocuments}
-            aria-label="서랍 목록으로 돌아가기"
-            className="w-10 h-10 flex items-center justify-center shrink-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            aria-label="뒤로"
+            className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
           >
-            ‹
+            <span className="text-[34px] leading-none">〈</span>
           </button>
           <div className="min-w-0 flex-1">
             <EditableDrawerName
@@ -524,24 +455,14 @@ export function DrawerBlock({
 
   return (
     <section className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3 max-w-full overflow-hidden">
-      <div
-        onClick={onCloseDrawer}
-        className="flex items-center justify-between cursor-pointer select-none"
-      >
-        <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-          <span>▤</span>
-          <span>서랍</span>
-        </div>
+      <div className="flex items-center justify-between select-none">
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCloseDrawer();
-          }}
-          aria-label="서랍 접기"
-          className="text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold leading-none"
+          onClick={onCloseDrawer}
+          aria-label="뒤로"
+          className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
         >
-          접기 −
+          <span className="text-[34px] leading-none">〈</span>
         </button>
       </div>
 
@@ -558,53 +479,21 @@ export function DrawerBlock({
                 key={drawer.id}
                 drawer={drawer}
                 onOpenList={onOpenList}
-                onRenameDrawer={onRenameDrawer}
                 onDeleteDrawer={onDeleteDrawer}
               />
             ))}
           </ul>
         )}
-
-        {isAddingDrawer && (
-          <div className="pt-2">
-            <input
-              ref={newDrawerInputRef}
-              type="text"
-              value={newDrawerName}
-              onChange={(e) => setNewDrawerName(e.target.value)}
-              onBlur={() => {
-                if (!newDrawerName.trim()) {
-                  cancelNewDrawer();
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.nativeEvent.isComposing) return;
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  confirmNewDrawer();
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  cancelNewDrawer();
-                }
-              }}
-              enterKeyHint="done"
-              placeholder="목록 제목"
-              className="w-full min-h-[44px] text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400 placeholder-slate-400"
-            />
-          </div>
-        )}
       </div>
 
-      {!isAddingDrawer && (
-        <button
-          type="button"
-          onClick={() => setIsAddingDrawer(true)}
-          className="w-full min-h-[44px] flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-        >
-          <span>＋</span>
-          <span>새 목록</span>
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onCreateDrawer}
+        className="w-full min-h-[44px] flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+      >
+        <span>＋</span>
+        <span>새 목록</span>
+      </button>
     </section>
   );
 }

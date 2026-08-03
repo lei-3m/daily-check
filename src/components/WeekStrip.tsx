@@ -367,9 +367,9 @@ export function WeekStrip({
           type="button"
           onClick={goPrev}
           aria-label="이전 주"
-          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
-          ‹
+          <span className="text-[30px] font-bold leading-none">〈</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -379,7 +379,7 @@ export function WeekStrip({
             className="flex items-center gap-1 font-bold text-slate-900 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5"
           >
             <span>{monthTitle}</span>
-            <span className="text-xs text-slate-400">›</span>
+            <span className="text-xl font-bold leading-none text-slate-500">〉</span>
           </button>
 
           {showTodayButton && (
@@ -397,9 +397,9 @@ export function WeekStrip({
           type="button"
           onClick={goNext}
           aria-label="다음 주"
-          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
-          ›
+          <span className="text-[30px] font-bold leading-none">〉</span>
         </button>
       </div>
 
