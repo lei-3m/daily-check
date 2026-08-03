@@ -52,6 +52,8 @@ type MergeResult = {
   details: ConflictDetails;
 };
 
+type MergeScope = 'load' | 'save' | 'realtime';
+
 interface LocalCacheEnvelope {
   userId?: string;
   updatedAt?: string | null;
@@ -956,6 +958,51 @@ function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: A
   };
 }
 
+function getTodoIdsByDay(state: AppState): Record<string, string[]> {
+  const normalized = normalizeStoredState(state);
+  return Object.fromEntries(
+    Object.entries(normalized.days || {}).map(([date, day]) => [
+      date,
+      (day.todos || []).map((todo) => todo.id),
+    ])
+  );
+}
+
+function logMergeAttempt(
+  scope: MergeScope,
+  baseState: AppState,
+  localState: AppState,
+  remoteState: AppState,
+  mergeResult: MergeResult
+): void {
+  console.log('[daily-check merge]', scope, {
+    todoIds: {
+      base: getTodoIdsByDay(baseState),
+      local: getTodoIdsByDay(localState),
+      remote: getTodoIdsByDay(remoteState),
+      merged: getTodoIdsByDay(mergeResult.state),
+    },
+    conflicts: mergeResult.details,
+  });
+}
+
+function fallbackConflict(
+  scope: MergeScope,
+  localState: AppState,
+  remoteState: AppState
+): ConflictDetails {
+  const details = getConflictDetails(localState, remoteState);
+  console.log('[daily-check merge]', scope, {
+    skipped: 'missing base snapshot',
+    todoIds: {
+      local: getTodoIdsByDay(localState),
+      remote: getTodoIdsByDay(remoteState),
+    },
+    conflicts: details,
+  });
+  return details;
+}
+
 function updateSyncStatus(status: SyncStatus) {
   if (
     currentSyncStatus.type === status.type &&
@@ -1156,8 +1203,16 @@ export async function pullRealtimeServerState(
     const serverState = normalizeStoredState(row.data as AppState);
 
     if (hasUnsavedLocalChanges || hasLocalWriteRisk(userId)) {
-      const baseServerState = getServerSnapshot() || serverState;
+      const baseServerState = getServerSnapshot();
+      if (!baseServerState) {
+        const details = fallbackConflict('realtime', localState, serverState);
+        setLocalCache(localState, userId);
+        setPendingSync(true, userId);
+        updateSyncStatus({ type: 'conflict', message: 'Conflict detected' });
+        return { type: 'conflict', state: localState, details };
+      }
       const mergeResult = mergeThreeWay(localState, baseServerState, serverState);
+      logMergeAttempt('realtime', baseServerState, localState, serverState, mergeResult);
       if (mergeResult.details.items.length > 0 || mergeResult.details.otherItems.length > 0) {
         setLocalCache(mergeResult.state, userId);
         setPendingSync(true, userId);
@@ -1278,12 +1333,21 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
 
       if (pendingSync && localData) {
         if (serverTime > localTime) {
-          const baseServerState = getServerSnapshot() || serverState;
+          const baseServerState = getServerSnapshot();
+          if (!baseServerState) {
+            const details = fallbackConflict('load', localData, serverState);
+            setLocalCache(localData, user.id);
+            setPendingSync(true, user.id);
+            updateSyncStatus({ type: 'conflict', message: 'Conflict detected' });
+            conflictListeners.forEach((cb) => cb(details));
+            return localData;
+          }
           const mergeResult = mergeThreeWay(
             localData,
             baseServerState,
             serverState
           );
+          logMergeAttempt('load', baseServerState, localData, serverState, mergeResult);
           if (
             mergeResult.details.items.length === 0 &&
             mergeResult.details.otherItems.length === 0
@@ -1369,7 +1433,9 @@ export async function saveState(state: AppState): Promise<AppState | null> {
   }
 
   // Save to LocalStorage immediately as offline cache
-  setLocalCache(state, userId);
+  const localEnvelopeBeforeSave = getLocalEnvelope(userId);
+  const localBaseUpdatedAt = localEnvelopeBeforeSave?.updatedAt ?? lastLoadedUpdatedAt;
+  setLocalCache(state, userId, localBaseUpdatedAt);
   setPendingSync(true, userId);
 
   if (!isSupabaseConfigured() || !userId) {
@@ -1396,10 +1462,10 @@ export async function saveState(state: AppState): Promise<AppState | null> {
 
     if (serverRow && serverRow.updated_at) {
       const serverTime = new Date(serverRow.updated_at).getTime();
-      const localTime = lastLoadedUpdatedAt ? new Date(lastLoadedUpdatedAt).getTime() : 0;
+      const localTime = localBaseUpdatedAt ? new Date(localBaseUpdatedAt).getTime() : 0;
 
       // Conflict check: server has newer data than what we loaded
-      if (lastLoadedUpdatedAt !== null && serverTime > localTime) {
+      if (localBaseUpdatedAt !== null && serverTime > localTime) {
         const serverState = normalizeStoredState((serverRow.data || {
           days: {},
           schedule: [],
@@ -1407,12 +1473,21 @@ export async function saveState(state: AppState): Promise<AppState | null> {
           active: state.active,
           accentColor: state.accentColor,
         }) as AppState);
-        const baseServerState = getServerSnapshot() || serverState;
+        const baseServerState = getServerSnapshot();
+        if (!baseServerState) {
+          const details = fallbackConflict('save', state, serverState);
+          setLocalCache(state, userId, localBaseUpdatedAt);
+          setPendingSync(true, userId);
+          updateSyncStatus({ type: 'conflict', message: 'Conflict detected' });
+          conflictListeners.forEach((cb) => cb(details));
+          return state;
+        }
         const mergeResult = mergeThreeWay(
           state,
           baseServerState,
           serverState
         );
+        logMergeAttempt('save', baseServerState, state, serverState, mergeResult);
         if (
           mergeResult.details.items.length === 0 &&
           mergeResult.details.otherItems.length === 0
