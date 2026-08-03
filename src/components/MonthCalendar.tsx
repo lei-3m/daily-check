@@ -441,7 +441,7 @@ export function MonthCalendar({
           aria-label="뒤로"
           className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
         >
-          <span className="text-[34px] leading-none">〈</span>
+          <span className="text-[32px] leading-none">‹</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -449,18 +449,18 @@ export function MonthCalendar({
             type="button"
             onClick={handleGoPrev}
             aria-label="이전 달"
-            className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
+            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
-            <span className="text-[30px] font-bold leading-none">〈</span>
+            ‹
           </button>
           <span className="font-bold text-slate-900">{monthTitle}</span>
           <button
             type="button"
             onClick={handleGoNext}
             aria-label="다음 달"
-            className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
+            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
-            <span className="text-[30px] font-bold leading-none">〉</span>
+            ›
           </button>
         </div>
       </div>
