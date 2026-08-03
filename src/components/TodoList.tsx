@@ -178,7 +178,7 @@ export function TodoList({
           <div className="divide-y divide-slate-100/60">
             {todos.length === 0 ? (
               <div className="text-xs text-slate-400 py-3 text-center">
-                등록된 할 일이 없어요. 아래에서 새로운 할 일을 추가해 보세요!
+                오늘 할 일이 없어요. 아래 입력칸에 할 일을 추가하세요.
               </div>
             ) : (
               <>
@@ -232,7 +232,6 @@ export function TodoList({
         </SortableContext>
       </DndContext>
 
-      {/* Add Todo Input Field (Hidden in select mode) */}
       {!isSelectMode && (
         <form onSubmit={handleSubmit} className="pt-2">
           <div className="flex items-center gap-2 px-2 py-1 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
@@ -251,7 +250,7 @@ export function TodoList({
               aria-label="할 일 추가"
               className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
             >
-              ＋
+              +
             </button>
             <input
               ref={inputRef}

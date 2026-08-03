@@ -17,7 +17,7 @@ export function MemoBlock({ memo = '', onChangeMemo }: MemoBlockProps) {
       <textarea
         value={memo}
         onChange={(e) => onChangeMemo(e.target.value)}
-        placeholder="이 날의 메모를 입력하세요..."
+        placeholder="이 날에 참고할 내용을 적어두세요."
         rows={3}
         className="w-full text-sm text-slate-700 placeholder-slate-400 bg-white border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-300 leading-relaxed resize-y min-h-[70px]"
       />

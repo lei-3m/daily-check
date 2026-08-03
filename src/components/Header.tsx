@@ -400,7 +400,7 @@ export function Header({
 
       <div className="pt-2 border-t border-slate-100 space-y-1.5">
         <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-          우선순위
+          AI 순서 제안
         </div>
         <label className="min-h-11 flex items-center justify-between gap-3 text-xs font-semibold text-slate-600 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100">
           <span>메모도 함께 보내기</span>

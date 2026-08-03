@@ -32,7 +32,7 @@ export function MoveBar({
   };
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value; // YYYY-MM-DD
+    const val = e.target.value;
     if (val) {
       onMoveToDate(val);
     }
@@ -45,7 +45,6 @@ export function MoveBar({
 
   return (
     <div className="bg-slate-900 text-white p-3 sm:p-4 rounded-xl shadow-lg border border-slate-800 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
-      {/* Header Info & Select All / Cancel */}
       <div className="flex items-center justify-between text-xs sm:text-sm font-medium border-b border-slate-800 pb-2.5">
         <div className="flex items-center gap-2">
           <button
@@ -65,11 +64,10 @@ export function MoveBar({
           onClick={onCancel}
           className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-500"
         >
-          취소 ✕
+          취소
         </button>
       </div>
 
-      {/* Quick Move Buttons */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           type="button"
@@ -78,9 +76,7 @@ export function MoveBar({
           className={quickMoveButtonClass}
         >
           <span>내일</span>
-          <span className={quickMoveDateClass}>
-            ({shortLabel(tomorrowKey)})
-          </span>
+          <span className={quickMoveDateClass}>({shortLabel(tomorrowKey)})</span>
         </button>
 
         <button
@@ -90,9 +86,7 @@ export function MoveBar({
           className={quickMoveButtonClass}
         >
           <span>모레</span>
-          <span className={quickMoveDateClass}>
-            ({shortLabel(dayAfterTomorrowKey)})
-          </span>
+          <span className={quickMoveDateClass}>({shortLabel(dayAfterTomorrowKey)})</span>
         </button>
 
         <button
@@ -101,13 +95,10 @@ export function MoveBar({
           onClick={() => onMoveToDate(nextWeekKey)}
           className={quickMoveButtonClass}
         >
-          <span>일주일 뒤</span>
-          <span className={quickMoveDateClass}>
-            ({shortLabel(nextWeekKey)})
-          </span>
+          <span>다음 주</span>
+          <span className={quickMoveDateClass}>({shortLabel(nextWeekKey)})</span>
         </button>
 
-        {/* Custom Date Picker Button */}
         <div className="relative">
           <button
             type="button"
@@ -115,7 +106,7 @@ export function MoveBar({
             onClick={handleCustomDateClick}
             className="w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg accent-fill accent-fill-hover disabled:opacity-70 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
           >
-            <span>📅 날짜 선택</span>
+            <span>날짜 고르기</span>
             <span className="text-[10px] accent-text-soft font-normal">
               달력에서 선택
             </span>

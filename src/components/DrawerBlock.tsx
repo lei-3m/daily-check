@@ -145,7 +145,7 @@ function DrawerListRow({
             {displayName || '이름 없음'}
           </span>
           <span className="shrink-0 text-xs font-semibold text-slate-400 tabular-nums">
-            {totalCount === 0 ? '열어서 추가' : `${doneCount}/${totalCount}`}
+            {totalCount === 0 ? '할 일 추가' : `${doneCount}/${totalCount}`}
           </span>
         </button>
       <button
@@ -399,9 +399,12 @@ export function DrawerBlock({
         onClick={onOpenDrawer}
         className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
-        <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-          <span>▤</span>
-          <span>서랍</span>
+        <span className="flex flex-col gap-0.5 min-w-0">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+            <span>▤</span>
+            <span>서랍</span>
+          </span>
+          <span className="text-xs font-medium text-slate-500">날짜 없는 목록</span>
         </span>
         <span className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-slate-500">
           <ChevronDown size={20} strokeWidth={2} aria-hidden="true" />
@@ -433,7 +436,8 @@ export function DrawerBlock({
         <div className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60">
           {activeList.items.length === 0 ? (
             <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
-              이 목록에는 아직 할 일이 없어요. 아래에서 할 일을 추가하세요.
+              이 목록에는 할 일이 없어요.<br />
+              아래 입력칸에 추가하세요.
             </div>
           ) : (
             activeList.items.map((item) => (
@@ -470,8 +474,8 @@ export function DrawerBlock({
       <div className="max-h-[42vh] overflow-y-auto pr-1">
         {lists.length === 0 ? (
           <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
-            날짜와 무관한 체크리스트를 모아두는 곳입니다.<br />
-            살 것, 읽을 책처럼 필요할 때 열어보세요.
+            서랍은 날짜와 상관없는 목록을 모아두는 곳이에요.<br />
+            아래에서 목록을 만들어 보세요.
           </div>
         ) : (
           <ul className="space-y-1">
