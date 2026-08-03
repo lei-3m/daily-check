@@ -317,14 +317,14 @@ export function TodoList({
 
   return (
     <div
-      className="overflow-hidden touch-pan-y"
+      className="min-h-[128px] overflow-hidden touch-pan-y"
       onPointerDown={handleSwipePointerDown}
       onPointerMove={handleSwipePointerMove}
       onPointerUp={handleSwipePointerUp}
       onPointerCancel={handleSwipePointerCancel}
       onClickCapture={handleSwipeClickCapture}
     >
-      <div ref={swipeRailRef} className="space-y-1" style={{ willChange: 'transform' }}>
+      <div ref={swipeRailRef} className="min-h-[128px] space-y-1" style={{ willChange: 'transform' }}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -345,9 +345,9 @@ export function TodoList({
           items={todos.map((todo) => todo.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="divide-y divide-slate-100/60">
+          <div className="min-h-[128px] divide-y divide-slate-100/60">
             {todos.length === 0 ? (
-              <div className="text-xs text-slate-400 py-3 text-center">
+              <div className="min-h-[128px] flex items-center justify-center text-xs text-slate-400 py-3 text-center">
                 오늘 할 일이 없어요. 아래 입력칸에 할 일을 추가하세요.
               </div>
             ) : (
@@ -401,9 +401,10 @@ export function TodoList({
           </div>
         </SortableContext>
       </DndContext>
+      </div>
 
       {!isSelectMode && (
-        <form onSubmit={handleSubmit} className="pt-2">
+        <form onSubmit={handleSubmit} className="pt-2" data-todo-swipe-ignore="true">
           <div className="flex items-center gap-2 px-2 py-1 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
             <button
               type="button"
@@ -439,7 +440,6 @@ export function TodoList({
           </div>
         </form>
       )}
-      </div>
     </div>
   );
 }
