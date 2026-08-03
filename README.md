@@ -1,64 +1,64 @@
-# Daily Check (데일리 체크)
+# Daily Check
 
-하루 단위 체크리스트 및 일정 관리 PWA 웹 애플리케이션입니다.
+하루 단위 할 일, 일정, 메모, 서랍 체크리스트를 관리하는 정적 웹앱.
 
----
+## 기술 스택
 
-## 🚀 주요 기능
+- React 19 + TypeScript
+- Vite + Tailwind CSS
+- Supabase Auth/DB/Realtime/Edge Functions
+- Vercel 배포
 
-- **일일 체크리스트 & 메모**: 날짜별 할 일 목록 작성, 순서 변경, 삭제 및 메모 기능
-- **주간/월간 뷰**: 주간 네비게이션 및 월 달력을 통한 간편한 일정 조회
-- **Supabase 동기화**: 로그인 시 클라우드 실시간 동기화 지원 (비로그인 시 로컬 스토리지 저장)
-- **PWA (Progressive Web App)**:
-  - 홈 화면에 추가 (Standalone 모드)
-  - 서비스 워커 기반 정적 자산 오프라인 캐싱 (Supabase API 응답 제외)
-  - iOS 노치 영역 대응 (`viewport-fit=cover`, `safe-area-inset` 적용)
+## 로컬 실행
 
----
-
-## 🛠️ 로컬 개발 환경 실행 방법
-
-### 1. 의존성 설치
 ```bash
 npm install
+npm run dev -- --host
 ```
 
-### 2. 환경변수 설정
-`.env` 파일에 아래 필수 환경변수를 설정합니다. (`.env.example` 참고)
+환경변수는 `.env.local`에 둡니다.
 
 ```env
-# Supabase 설정 (선택 사항: 미설정 시 로컬 저장소 모드로 작동)
-VITE_SUPABASE_URL="https://your-supabase-project.supabase.co"
-VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
-
-# Gemini API (선택 사항)
-GEMINI_API_KEY="your-gemini-api-key"
-
-# 앱 호스팅 URL
-APP_URL="http://localhost:3000"
+VITE_SUPABASE_URL="https://your-project.supabase.co"
+VITE_SUPABASE_ANON_KEY="your-anon-key"
 ```
 
-### 3. 개발 서버 실행
+## 폰에서 테스트
+
+`npm run dev -- --host` 실행 후 Vite가 표시하는 `Network` 주소로 접속합니다.
+
+예: `http://192.168.0.10:3000`
+
+Supabase 로그인 테스트를 하려면 이 Network 주소를 Supabase Auth Redirect URLs에 등록해야 합니다.
+
+## 배포
+
+`main`에 `git push`하면 Vercel이 자동 배포합니다.
+
 ```bash
-npm run dev
+git push
 ```
-브라우저에서 `http://localhost:3000`으로 접속합니다.
 
----
+## Edge Function
 
-## 📦 빌드 및 배포 방법
+Edge Function 코드는 `supabase/functions/` 아래에 기록용으로 보관합니다.
 
-### 1. 앱 빌드
+배포는 Supabase 콘솔에서 합니다. 현재 함수:
+
+- `supabase/functions/prioritize/index.ts`
+
+## 문서
+
+- `docs/`: 기획서, 버전별 프롬프트, 작업 메모
+- `CLAUDE.md`: 에이전트 작업 규칙
+- `AGENTS.md`: Codex/OMX 작업 규칙
+
+## 자주 겪은 문제
+
+- CSS 변경이 안 보이면 개발 서버를 재시작합니다.
+- 코드 변경이 안 보이면 서비스 워커 해제 후 사이트 데이터를 삭제합니다.
+- 브라우저 CORS 오류는 404/401이 가려진 경우가 많습니다. Edge Function은 `curl`로 직접 확인합니다.
+
 ```bash
-npm run build
+curl.exe -i -X OPTIONS https://<project>.supabase.co/functions/v1/<name>
 ```
-빌드 산출물은 `dist/` 디렉토리에 생성됩니다.
-
-### 2. 프로덕션 실행
-```bash
-npm start
-```
-
-### 3. 클라우드 및 플랫폼 배포
-- **Cloud Run / Docker**: `package.json`의 `start` 스크립트를 통해 Node.js 서버로 수신 포트 `3000`에 배포합니다.
-- **Vercel / Netlify**: static SPA 배포가 가능하며, 빌드 명령어로 `npm run build`, 출력 디렉토리로 `dist`를 지정합니다.
