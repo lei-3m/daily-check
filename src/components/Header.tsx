@@ -44,6 +44,8 @@ const AVATAR_EMOJIS = [
   '🌙',
   '☀️',
   '⭐',
+  '✨',
+  '🌟',
   '🔥',
   '💧',
   '🍀',
@@ -55,6 +57,21 @@ const AVATAR_EMOJIS = [
   '🎯',
   '💡',
   '🧭',
+  '❤️',
+  '🧡',
+  '💛',
+  '💚',
+  '💙',
+  '💜',
+  '🖤',
+  '🤍',
+  '🩷',
+  '💗',
+  '💖',
+  '💕',
+  '💎',
+  '💍',
+  '🔮',
 ];
 
 export function Header({
@@ -260,7 +277,7 @@ export function Header({
         <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
           아바타
         </div>
-        <div className="grid grid-cols-4 gap-0">
+        <div className="grid grid-cols-4 gap-0 max-h-60 overflow-y-auto pr-1">
           {AVATAR_EMOJIS.map((emoji) => {
             const isSelected = profile.avatarEmoji === emoji;
             return (
