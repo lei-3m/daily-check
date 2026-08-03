@@ -7,6 +7,7 @@ interface MoveBarProps {
   totalCount: number;
   onToggleSelectAll: () => void;
   onMoveToDate: (targetKey: string) => void;
+  onEmptySelection: () => void;
   onCancel: () => void;
 }
 
@@ -16,6 +17,7 @@ export function MoveBar({
   totalCount,
   onToggleSelectAll,
   onMoveToDate,
+  onEmptySelection,
   onCancel,
 }: MoveBarProps) {
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -25,10 +27,22 @@ export function MoveBar({
   const nextWeekKey = addDays(activeKey, 7);
 
   const handleCustomDateClick = () => {
+    if (selectedCount === 0) {
+      onEmptySelection();
+      return;
+    }
     if (dateInputRef.current) {
       dateInputRef.current.showPicker?.();
       dateInputRef.current.click();
     }
+  };
+
+  const handleMoveClick = (targetKey: string) => {
+    if (selectedCount === 0) {
+      onEmptySelection();
+      return;
+    }
+    onMoveToDate(targetKey);
   };
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,8 +53,9 @@ export function MoveBar({
   };
 
   const isAllSelected = selectedCount > 0 && selectedCount === totalCount;
+  const hasSelection = selectedCount > 0;
   const quickMoveButtonClass =
-    'move-date-button flex flex-col items-center justify-center py-2 px-2 rounded-lg disabled:cursor-not-allowed text-xs font-semibold transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400';
+    'move-date-button flex flex-col items-center justify-center py-2 px-2 rounded-lg text-xs font-semibold transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400';
   const quickMoveDateClass = 'move-date-button-date text-[10px] font-mono font-normal';
 
   return (
@@ -71,9 +86,9 @@ export function MoveBar({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           type="button"
-          disabled={selectedCount === 0}
-          onClick={() => onMoveToDate(tomorrowKey)}
-          className={quickMoveButtonClass}
+          aria-disabled={!hasSelection}
+          onClick={() => handleMoveClick(tomorrowKey)}
+          className={`${quickMoveButtonClass} ${hasSelection ? '' : 'opacity-70'}`}
         >
           <span>내일</span>
           <span className={quickMoveDateClass}>({shortLabel(tomorrowKey)})</span>
@@ -81,9 +96,9 @@ export function MoveBar({
 
         <button
           type="button"
-          disabled={selectedCount === 0}
-          onClick={() => onMoveToDate(dayAfterTomorrowKey)}
-          className={quickMoveButtonClass}
+          aria-disabled={!hasSelection}
+          onClick={() => handleMoveClick(dayAfterTomorrowKey)}
+          className={`${quickMoveButtonClass} ${hasSelection ? '' : 'opacity-70'}`}
         >
           <span>모레</span>
           <span className={quickMoveDateClass}>({shortLabel(dayAfterTomorrowKey)})</span>
@@ -91,9 +106,9 @@ export function MoveBar({
 
         <button
           type="button"
-          disabled={selectedCount === 0}
-          onClick={() => onMoveToDate(nextWeekKey)}
-          className={quickMoveButtonClass}
+          aria-disabled={!hasSelection}
+          onClick={() => handleMoveClick(nextWeekKey)}
+          className={`${quickMoveButtonClass} ${hasSelection ? '' : 'opacity-70'}`}
         >
           <span>다음 주</span>
           <span className={quickMoveDateClass}>({shortLabel(nextWeekKey)})</span>
@@ -102,9 +117,11 @@ export function MoveBar({
         <div className="relative">
           <button
             type="button"
-            disabled={selectedCount === 0}
+            aria-disabled={!hasSelection}
             onClick={handleCustomDateClick}
-            className="w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg accent-fill accent-fill-hover disabled:opacity-70 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            className={`w-full h-full flex flex-col items-center justify-center py-2 px-2 rounded-lg accent-fill accent-fill-hover-media text-xs font-semibold text-white transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+              hasSelection ? '' : 'opacity-70'
+            }`}
           >
             <span>날짜 고르기</span>
             <span className="text-[10px] accent-text-soft font-normal">

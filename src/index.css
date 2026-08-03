@@ -221,6 +221,12 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 
+button:not(:disabled),
+[role='button'],
+[role='checkbox'] {
+  cursor: pointer;
+}
+
 html.theme-switching,
 html.theme-switching *,
 html.theme-switching *::before,
@@ -292,6 +298,17 @@ html.theme-switching *::after {
 .accent-fill-hover:hover {
   background-color: var(--accent-hover) !important;
   border-color: var(--accent-hover) !important;
+}
+
+@media (hover: hover) {
+  .surface-hover-media:hover {
+    background-color: var(--surface-hover) !important;
+  }
+
+  .accent-fill-hover-media:hover {
+    background-color: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+  }
 }
 
 .accent-soft {

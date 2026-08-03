@@ -397,7 +397,7 @@ export function DrawerBlock({
       <button
         type="button"
         onClick={onOpenDrawer}
-        className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+        className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
         <span className="flex flex-col gap-0.5 min-w-0">
           <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">

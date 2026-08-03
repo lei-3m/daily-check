@@ -1291,6 +1291,7 @@ export default function App() {
               totalCount={todos.length}
               onToggleSelectAll={handleToggleSelectAll}
               onMoveToDate={handleMoveToDate}
+              onEmptySelection={() => showToast('옮길 할 일을 선택해주세요')}
               onCancel={handleCancelMoveMode}
             />
           ) : (
