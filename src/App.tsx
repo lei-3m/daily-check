@@ -782,7 +782,7 @@ export default function App() {
 
     setIsSelectMode(false);
     setSelectedIds(new Set());
-    showToast(`할 일 ${movingTodos.length}개를 다른 날짜로 이동했어요`);
+    showToast(`선택한 할 일 ${movingTodos.length}개를 옮겼어요`);
   };
 
   const handleDismissYesterdayCarryover = () => {
@@ -926,14 +926,14 @@ export default function App() {
 
   const handleCopy = async () => {
     if (todos.every((todo) => todo.done)) {
-      showToast('복사할 할 일이 없어요');
+      showToast('복사할 미완료 할 일이 없어요');
       return;
     }
 
     const text = formatTodosToMarkdown(todos);
     const success = await copyToClipboard(text);
     if (success) {
-      showToast('복사됨');
+      showToast('미완료 할 일을 복사했어요');
     }
   };
 
@@ -976,7 +976,7 @@ export default function App() {
         upcomingSchedule
       );
 
-      const { data, error } = await supabase.functions.invoke('quick-function', {
+      const { data, error } = await supabase.functions.invoke('prioritize', {
         body,
       });
 
@@ -991,7 +991,7 @@ export default function App() {
       if (error instanceof PriorityResponseError && error.shouldShowMessage) {
         showToast(error.message);
       } else {
-        showToast('우선순위 제안을 가져오지 못했어요');
+        showToast('AI 순서 제안을 가져오지 못했어요');
       }
     } finally {
       setIsPrioritizing(false);
@@ -1012,7 +1012,7 @@ export default function App() {
       .filter((todo): todo is Todo => Boolean(todo));
 
     if (reorderedIncomplete.length !== todos.filter((todo) => !todo.done).length) {
-      showToast('우선순위 적용에 실패했어요');
+      showToast('AI 순서 적용에 실패했어요');
       return;
     }
 
@@ -1024,7 +1024,7 @@ export default function App() {
 
     updateCurrentDay(nextTodos);
     setPrioritySuggestion(null);
-    showToast('우선순위를 적용했어요');
+    showToast('AI가 제안한 순서를 적용했어요');
   };
 
   const handleSignOut = async () => {

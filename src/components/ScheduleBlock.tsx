@@ -218,7 +218,7 @@ export function ScheduleBlock({
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="일정 입력"
+              placeholder="일정 추가 (마감, 약속 등)"
               className="flex-1 min-w-[120px] text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
 
@@ -234,7 +234,7 @@ export function ScheduleBlock({
           {/* Schedule List or Empty State */}
           {upcomingSchedules.length === 0 ? (
             <div className="text-xs text-slate-400 py-2 text-center">
-              등록된 일정이 없어요.
+              다가오는 일정이 없어요.
             </div>
           ) : (
             <div className="space-y-1">

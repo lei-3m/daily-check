@@ -46,7 +46,7 @@ export function LoginScreen() {
             오늘의 작업 공간
           </h1>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Google 계정으로 로그인하여 기기 간에 데이터를 동기화하세요.
+            날짜별 할 일과 메모, 일정을 간단히 정리하고 기기 간에 동기화합니다.
           </p>
         </div>
 
@@ -84,7 +84,7 @@ export function LoginScreen() {
         </button>
 
         <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-400">
-          안전하게 Supabase Auth를 이용해 세션을 관리합니다.
+          Google 계정으로 로그인하면 PC와 폰에서 같은 내용을 봅니다.
         </div>
       </div>
     </div>
