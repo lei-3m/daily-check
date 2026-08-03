@@ -2,18 +2,16 @@ import { Todo } from './types';
 
 export function normalizeTodoOrder(todos: Todo[]): Todo[] {
   return [
-    ...todos.filter((todo) => !todo.done),
     ...todos.filter((todo) => todo.done),
+    ...todos.filter((todo) => !todo.done),
   ];
 }
 
 export function appendIncompleteTodos(todos: Todo[], newTodos: Todo[]): Todo[] {
-  const firstDoneIndex = todos.findIndex((todo) => todo.done);
-  if (firstDoneIndex === -1) return [...todos, ...newTodos];
   return [
-    ...todos.slice(0, firstDoneIndex),
+    ...todos.filter((todo) => todo.done),
+    ...todos.filter((todo) => !todo.done),
     ...newTodos,
-    ...todos.slice(firstDoneIndex),
   ];
 }
 
@@ -25,15 +23,17 @@ export function toggleTodoDoneAndMove(todos: Todo[], id: string): Todo[] {
   const rest = todos.filter((todo) => todo.id !== id);
 
   if (toggled.done) {
-    return [...rest, toggled];
+    return [
+      ...rest.filter((todo) => todo.done),
+      toggled,
+      ...rest.filter((todo) => !todo.done),
+    ];
   }
 
-  const firstDoneIndex = rest.findIndex((todo) => todo.done);
-  if (firstDoneIndex === -1) return [...rest, toggled];
   return [
-    ...rest.slice(0, firstDoneIndex),
+    ...rest.filter((todo) => todo.done),
     toggled,
-    ...rest.slice(firstDoneIndex),
+    ...rest.filter((todo) => !todo.done),
   ];
 }
 
@@ -55,5 +55,5 @@ export function moveIncompleteTodo(
   const nextIncompleteTodos = [...incompleteTodos];
   const [moved] = nextIncompleteTodos.splice(oldIndex, 1);
   nextIncompleteTodos.splice(newIndex, 0, moved);
-  return [...nextIncompleteTodos, ...completedTodos];
+  return [...completedTodos, ...nextIncompleteTodos];
 }

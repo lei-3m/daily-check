@@ -1,4 +1,5 @@
-import React, { useState, useRef, KeyboardEvent, ClipboardEvent } from 'react';
+import React, { useEffect, useState, useRef, KeyboardEvent, ClipboardEvent } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -81,9 +82,17 @@ export function TodoList({
   onReorderTodos,
 }: TodoListProps) {
   const [inputValue, setInputValue] = useState('');
+  const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputValueRef = useRef('');
   inputValueRef.current = inputValue;
+  const incompleteTodos = todos.filter((todo) => !todo.done);
+  const completedTodos = todos.filter((todo) => todo.done);
+  const todoIdsKey = todos.map((todo) => todo.id).join('|');
+
+  useEffect(() => {
+    setIsCompletedExpanded(false);
+  }, [todoIdsKey]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -172,19 +181,52 @@ export function TodoList({
                 등록된 할 일이 없어요. 아래에서 새로운 할 일을 추가해 보세요!
               </div>
             ) : (
-              todos.map((todo) => (
-                <TodoRow
-                  key={todo.id}
-                  todo={todo}
-                  isSelectMode={isSelectMode}
-                  isSelected={selectedIds?.has(todo.id)}
-                  isDragDisabled={todo.done}
-                  onToggleSelect={onToggleSelect}
-                  onToggle={onToggle}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))
+              <>
+                {completedTodos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCompletedExpanded((prev) => !prev)}
+                    aria-expanded={isCompletedExpanded}
+                    className="min-h-11 w-full flex items-center justify-between gap-2 px-2.5 py-2 text-left text-xs font-semibold text-slate-500 [@media(hover:hover)]:hover:text-slate-800 [@media(hover:hover)]:hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
+                  >
+                    <span>완료한 일 {completedTodos.length}개</span>
+                    {isCompletedExpanded ? (
+                      <ChevronUp size={20} strokeWidth={2} aria-hidden="true" />
+                    ) : (
+                      <ChevronDown size={20} strokeWidth={2} aria-hidden="true" />
+                    )}
+                  </button>
+                )}
+
+                {isCompletedExpanded &&
+                  completedTodos.map((todo) => (
+                    <TodoRow
+                      key={todo.id}
+                      todo={todo}
+                      isSelectMode={isSelectMode}
+                      isSelected={selectedIds?.has(todo.id)}
+                      isDragDisabled
+                      onToggleSelect={onToggleSelect}
+                      onToggle={onToggle}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
+                  ))}
+
+                {incompleteTodos.map((todo) => (
+                  <TodoRow
+                    key={todo.id}
+                    todo={todo}
+                    isSelectMode={isSelectMode}
+                    isSelected={selectedIds?.has(todo.id)}
+                    isDragDisabled={false}
+                    onToggleSelect={onToggleSelect}
+                    onToggle={onToggle}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
+                ))}
+              </>
             )}
           </div>
         </SortableContext>

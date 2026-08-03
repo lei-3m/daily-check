@@ -719,7 +719,7 @@ export default function App() {
   };
 
   const handleCopy = async () => {
-    if (todos.length === 0) {
+    if (todos.every((todo) => todo.done)) {
       showToast('복사할 할 일이 없어요');
       return;
     }
