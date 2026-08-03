@@ -60,6 +60,21 @@ import { MigrationModal } from './components/MigrationModal';
 import { ConflictModal } from './components/ConflictModal';
 import { PrioritySuggestionModal } from './components/PrioritySuggestionModal';
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="loading-checks" role="status" aria-live="polite">
+        <div className="loading-checks-list" aria-hidden="true">
+          <span className="loading-check" />
+          <span className="loading-check" />
+          <span className="loading-check" />
+        </div>
+        <div className="text-slate-400 text-sm font-medium">불러오는 중</div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
@@ -457,11 +472,7 @@ export default function App() {
   }, []);
 
   if (authChecking) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-400 text-sm font-medium">세션 확인 중...</div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!session) {
@@ -469,11 +480,7 @@ export default function App() {
   }
 
   if (!isLoaded || !appState) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-400 text-sm font-medium">로딩 중...</div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const activeKey = appState.active;
