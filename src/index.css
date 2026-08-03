@@ -645,6 +645,89 @@ html.dark .opacity-60 {
   animation: slideInRight 180ms ease-out forwards;
 }
 
+.loading-checks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loading-checks-list {
+  display: flex;
+  flex-direction: row;
+  gap: 0.35rem;
+}
+
+.loading-check {
+  position: relative;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1.5px solid var(--surface-hover);
+  border-radius: 0.35rem;
+  background-color: var(--surface);
+  animation: loadingCheckCycle 960ms ease-in-out infinite;
+}
+
+.loading-check::after {
+  content: '';
+  position: absolute;
+  left: 0.29rem;
+  top: 0.13rem;
+  width: 0.38rem;
+  height: 0.65rem;
+  border: solid var(--accent);
+  border-width: 0 2px 2px 0;
+  opacity: 0;
+  transform: rotate(45deg) scale(0.82);
+  animation: loadingCheckMarkCycle 960ms ease-in-out infinite;
+}
+
+.loading-check:nth-child(2),
+.loading-check:nth-child(2)::after {
+  animation-delay: 160ms;
+}
+
+.loading-check:nth-child(3),
+.loading-check:nth-child(3)::after {
+  animation-delay: 320ms;
+}
+
+@keyframes loadingCheckCycle {
+  0%,
+  18% {
+    border-color: var(--surface-hover);
+    background-color: var(--surface);
+  }
+  24%,
+  74% {
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+  }
+  86%,
+  100% {
+    border-color: var(--surface-hover);
+    background-color: var(--surface);
+  }
+}
+
+@keyframes loadingCheckMarkCycle {
+  0%,
+  20% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0.82);
+  }
+  26%,
+  74% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+  86%,
+  100% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0.82);
+  }
+}
+
 .priority-stars {
   position: relative;
   width: 4.5rem;
@@ -729,8 +812,14 @@ html.dark .opacity-60 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .loading-checks-list {
+    display: none;
+  }
+
   .animate-slide-left,
   .animate-slide-right,
+  .loading-check,
+  .loading-check::after,
   .priority-star-main,
   .priority-star-small {
     animation: none !important;
