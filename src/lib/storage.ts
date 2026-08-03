@@ -37,7 +37,14 @@ export interface ConflictDetailItem {
 
 export interface ConflictDetails {
   items: ConflictDetailItem[];
+  otherItems: ConflictDetailItem[];
 }
+
+export type RealtimePullResult =
+  | { type: 'ignored' }
+  | { type: 'applied'; state: AppState }
+  | { type: 'conflict'; details: ConflictDetails }
+  | { type: 'offline' };
 
 interface LocalCacheEnvelope {
   userId?: string;
@@ -375,7 +382,18 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
     });
   }
 
-  return { items };
+  return { items, otherItems: [] };
+}
+
+function getBidirectionalConflictDetails(
+  localState: AppState,
+  baseServerState: AppState,
+  latestServerState: AppState
+): ConflictDetails {
+  return {
+    items: getConflictDetails(localState, baseServerState).items,
+    otherItems: getConflictDetails(latestServerState, baseServerState).items,
+  };
 }
 
 function updateSyncStatus(status: SyncStatus) {
@@ -538,6 +556,75 @@ export function getLocalCache(expectedUserId?: string): AppState | null {
   return getLocalEnvelope(expectedUserId)?.data || null;
 }
 
+function isCurrentServerVersion(updatedAt?: string | null): boolean {
+  if (!updatedAt || !lastLoadedUpdatedAt) return false;
+  return new Date(updatedAt).getTime() <= new Date(lastLoadedUpdatedAt).getTime();
+}
+
+function hasLocalWriteRisk(userId?: string): boolean {
+  return (
+    hasPendingSync(userId) ||
+    currentSyncStatus.type === 'saving' ||
+    currentSyncStatus.type === 'pending' ||
+    currentSyncStatus.type === 'offline' ||
+    currentSyncStatus.type === 'conflict'
+  );
+}
+
+export async function pullRealtimeServerState(
+  userId: string,
+  localState: AppState,
+  hasUnsavedLocalChanges: boolean
+): Promise<RealtimePullResult> {
+  if (!isSupabaseConfigured()) return { type: 'ignored' };
+
+  try {
+    const { data: row, error } = await supabase
+      .from('user_state')
+      .select('data, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Failed to load realtime server state:', error.message);
+      return { type: 'offline' };
+    }
+
+    if (!row?.data) return { type: 'ignored' };
+    if (isCurrentServerVersion(row.updated_at || null)) return { type: 'ignored' };
+
+    const serverState = normalizeStoredState(row.data as AppState);
+
+    if (hasUnsavedLocalChanges || hasLocalWriteRisk(userId)) {
+      const baseServerState = getServerSnapshot() || serverState;
+      const details = getBidirectionalConflictDetails(localState, baseServerState, serverState);
+      if (details.items.length > 0 || details.otherItems.length > 0) {
+        updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
+        return { type: 'conflict', details };
+      }
+    }
+
+    lastLoadedUpdatedAt = row.updated_at || null;
+    setLocalCache(serverState, userId, row.updated_at || null);
+    setServerSnapshot(serverState);
+    setPendingSync(false, userId);
+
+    const formattedTime = row.updated_at
+      ? new Date(row.updated_at).toLocaleTimeString('ko-KR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      : undefined;
+
+    updateSyncStatus({ type: 'synced', lastSavedAt: formattedTime });
+    return { type: 'applied', state: serverState };
+  } catch (error) {
+    console.warn('Realtime server state pull failed:', error);
+    return { type: 'offline' };
+  }
+}
+
 async function uploadStateToServer(userId: string, state: AppState): Promise<string | null> {
   const normalizedState = normalizeStoredState(state);
   const newUpdatedAt = new Date().toISOString();
@@ -623,7 +710,12 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
 
       if (pendingSync && localData) {
         if (serverTime > localTime) {
-          const conflictDetails = getConflictDetails(localData, getServerSnapshot() || serverState);
+          const baseServerState = getServerSnapshot() || serverState;
+          const conflictDetails = getBidirectionalConflictDetails(
+            localData,
+            baseServerState,
+            serverState
+          );
           if (conflictDetails.items.length === 0) {
             setPendingSync(false, user.id);
             lastLoadedUpdatedAt = row.updated_at || null;
@@ -739,7 +831,12 @@ export async function saveState(state: AppState): Promise<void> {
           active: state.active,
           accentColor: state.accentColor,
         }) as AppState);
-        const conflictDetails = getConflictDetails(state, getServerSnapshot() || serverState);
+        const baseServerState = getServerSnapshot() || serverState;
+        const conflictDetails = getBidirectionalConflictDetails(
+          state,
+          baseServerState,
+          serverState
+        );
         if (conflictDetails.items.length === 0) {
           setPendingSync(false, userId);
           lastLoadedUpdatedAt = serverRow.updated_at || null;

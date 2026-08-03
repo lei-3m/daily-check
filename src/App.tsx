@@ -24,6 +24,7 @@ import {
   checkMigrationNeeded,
   markMigrationPrompted,
   uploadLocalToAccount,
+  pullRealtimeServerState,
 } from './lib/storage';
 import type { ConflictDetails } from './lib/storage';
 import { supabase } from './lib/supabase';
@@ -66,6 +67,10 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ type: 'synced' });
   const syncStatusRef = useRef<SyncStatus>({ type: 'synced' });
+  const appStateRef = useRef<AppState | null>(null);
+  const hasUnsavedLocalChangesRef = useRef(false);
+  const pendingRealtimeUpdateRef = useRef(false);
+  const suppressNextSaveRef = useRef(false);
   const {
     themePreference,
     setThemePreference,
@@ -183,11 +188,14 @@ export default function App() {
   useEffect(() => {
     const unsubStatus = subscribeSyncStatus((status) => {
       syncStatusRef.current = status;
+      if (status.type === 'synced' || status.type === 'local_only') {
+        hasUnsavedLocalChangesRef.current = false;
+      }
       setSyncStatus(status);
     });
 
     const unsubConflict = subscribeConflict((details) => {
-      if (details.items.length === 0) return;
+      if (details.items.length === 0 && details.otherItems.length === 0) return;
       setConflictDetails(details);
       setShowConflictModal(true);
     });
@@ -258,6 +266,14 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded || !appState || !session) return;
 
+    if (suppressNextSaveRef.current) {
+      suppressNextSaveRef.current = false;
+      hasUnsavedLocalChangesRef.current = false;
+      return;
+    }
+
+    hasUnsavedLocalChangesRef.current = true;
+
     if (syncStatusRef.current.type === 'conflict') {
       savePendingLocalState(appState, session.user.id);
       return;
@@ -287,12 +303,99 @@ export default function App() {
   }, [session]);
 
   useEffect(() => {
+    if (!session || !isLoaded) return;
+
+    let isDisposed = false;
+    let isPulling = false;
+
+    const isTextInputFocused = () => {
+      const activeElement = document.activeElement;
+      if (!activeElement) return false;
+      if (activeElement instanceof HTMLInputElement) return true;
+      if (activeElement instanceof HTMLTextAreaElement) return true;
+      if (activeElement instanceof HTMLSelectElement) return true;
+      return activeElement instanceof HTMLElement && activeElement.isContentEditable;
+    };
+
+    const pullRemoteChange = async () => {
+      if (isDisposed || isPulling) return;
+      const currentState = appStateRef.current;
+      if (!currentState) return;
+
+      isPulling = true;
+      try {
+        const result = await pullRealtimeServerState(
+          session.user.id,
+          currentState,
+          hasUnsavedLocalChangesRef.current
+        );
+        if (isDisposed) return;
+
+        if (result.type === 'applied') {
+          suppressNextSaveRef.current = true;
+          hasUnsavedLocalChangesRef.current = false;
+          setAppState(result.state);
+          setAccentPreference(result.state.accentColor || 'default');
+        } else if (result.type === 'conflict') {
+          setConflictDetails(result.details);
+          setShowConflictModal(true);
+        }
+      } finally {
+        isPulling = false;
+      }
+    };
+
+    const handleRemoteChange = () => {
+      if (isTextInputFocused()) {
+        pendingRealtimeUpdateRef.current = true;
+        return;
+      }
+      void pullRemoteChange();
+    };
+
+    const handleFocusOut = () => {
+      window.setTimeout(() => {
+        if (isDisposed || isTextInputFocused() || !pendingRealtimeUpdateRef.current) return;
+        pendingRealtimeUpdateRef.current = false;
+        void pullRemoteChange();
+      }, 0);
+    };
+
+    const channel = supabase
+      .channel(`user-state:${session.user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_state',
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        handleRemoteChange
+      )
+      .subscribe();
+
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      isDisposed = true;
+      pendingRealtimeUpdateRef.current = false;
+      document.removeEventListener('focusout', handleFocusOut);
+      void supabase.removeChannel(channel);
+    };
+  }, [session, isLoaded, setAccentPreference]);
+
+  useEffect(() => {
     viewRef.current = view;
   }, [view]);
 
   useEffect(() => {
     activeKeyRef.current = appState?.active || todayKey();
   }, [appState?.active]);
+
+  useEffect(() => {
+    appStateRef.current = appState;
+  }, [appState]);
 
   useEffect(() => {
     if (!isLoaded) return;

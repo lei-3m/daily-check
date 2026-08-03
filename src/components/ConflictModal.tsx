@@ -8,12 +8,6 @@ interface ConflictModalProps {
   onDismiss: () => void;
 }
 
-type ConflictGroup = {
-  key: string;
-  title: string;
-  items: ConflictDetailItem[];
-};
-
 function shortDate(date: string): string {
   const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return date;
@@ -25,59 +19,81 @@ function conflictText(item: ConflictDetailItem): string {
   return item.text || item.label;
 }
 
-function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
-  const groups: ConflictGroup[] = [
-    {
-      key: 'added',
-      title: '추가한 내용',
-      items: items.filter(
-        (item) =>
-          item.type === 'todo_added' ||
-          item.type === 'schedule_added' ||
-          item.type === 'drawer_added'
-      ),
-    },
-    {
-      key: 'deleted',
-      title: '삭제될 내용',
-      items: items.filter(
-        (item) =>
-          item.type === 'todo_deleted' ||
-          item.type === 'schedule_deleted' ||
-          item.type === 'drawer_deleted'
-      ),
-    },
-    {
-      key: 'updated',
-      title: '수정한 내용',
-      items: items.filter(
-        (item) =>
-          item.type === 'todo_updated' ||
-          item.type === 'schedule_updated' ||
-          item.type === 'drawer_updated'
-      ),
-    },
-    {
-      key: 'memo',
-      title: '메모 변경',
-      items: items.filter((item) => item.type === 'memo_changed'),
-    },
-    {
-      key: 'accent',
-      title: '강조 색상',
-      items: items.filter((item) => item.type === 'accent_changed'),
-    },
-  ];
+function changePrefix(item: ConflictDetailItem): string {
+  if (
+    item.type === 'todo_added' ||
+    item.type === 'schedule_added' ||
+    item.type === 'drawer_added'
+  ) {
+    return '+';
+  }
+  if (
+    item.type === 'todo_deleted' ||
+    item.type === 'schedule_deleted' ||
+    item.type === 'drawer_deleted'
+  ) {
+    return '-';
+  }
+  return '';
+}
 
-  return groups.filter((group) => group.items.length > 0);
+function changeLabel(item: ConflictDetailItem): string {
+  if (item.type === 'memo_changed') return `메모 변경 ${shortDate(item.date)}`;
+  if (item.type === 'accent_changed') return '강조 색상 변경';
+  return conflictText(item) || '내용 변경';
+}
+
+function ConflictColumn({
+  items,
+  emptyText,
+}: {
+  items: ConflictDetailItem[];
+  emptyText: string;
+}) {
+  if (items.length === 0) {
+    return <div className="text-xs text-slate-400 py-1">{emptyText}</div>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {items.map((item, index) => {
+        const prefix = changePrefix(item);
+        return (
+          <div
+            key={`${item.type}-${item.date}-${item.text || item.label}-${index}`}
+            className="grid grid-cols-[12px_1fr] gap-1.5 min-w-0 text-xs"
+          >
+            <span
+              className={`font-mono font-semibold ${
+                prefix === '+'
+                  ? 'text-emerald-700'
+                  : prefix === '-'
+                  ? 'text-rose-600'
+                  : 'text-slate-400'
+              }`}
+            >
+              {prefix}
+            </span>
+            <span className="min-w-0 break-words text-slate-800">
+              {changeLabel(item)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function ConflictModal({ details, onRefresh, onDismiss }: ConflictModalProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const allItems = details?.items || [];
-  const visibleItems = isExpanded ? allItems : allItems.slice(0, 5);
-  const hiddenCount = Math.max(allItems.length - visibleItems.length, 0);
-  const groups = groupItems(visibleItems);
+  const localItems = details?.items || [];
+  const otherItems = details?.otherItems || [];
+  const visibleLimit = isExpanded ? Number.POSITIVE_INFINITY : 5;
+  const visibleLocalItems = localItems.slice(0, visibleLimit);
+  const visibleOtherItems = otherItems.slice(0, visibleLimit);
+  const hiddenCount =
+    Math.max(localItems.length - visibleLocalItems.length, 0) +
+    Math.max(otherItems.length - visibleOtherItems.length, 0);
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -94,31 +110,27 @@ export function ConflictModal({ details, onRefresh, onDismiss }: ConflictModalPr
           </p>
         </div>
 
-        {allItems.length > 0 && (
+        {(localItems.length > 0 || otherItems.length > 0) && (
           <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 space-y-2">
-            <div className="space-y-1.5 text-xs text-slate-700">
-              {groups.map((group) => (
-                <div key={group.key} className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1">
-                  <div className="font-semibold text-slate-500">{group.title}</div>
-                  <div className="space-y-1">
-                    {group.items.map((item, index) => (
-                      <div
-                        key={`${group.key}-${item.date}-${item.text || ''}-${index}`}
-                        className="grid grid-cols-[34px_1fr] gap-2 min-w-0"
-                      >
-                        <span className="font-mono text-slate-500">{shortDate(item.date)}</span>
-                        {conflictText(item) ? (
-                          <span className="min-w-0 break-words text-slate-800">
-                            {conflictText(item)}
-                          </span>
-                        ) : (
-                          <span className="min-w-0 text-slate-500">내용 변경</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0 space-y-1.5">
+                <div className="text-[11px] font-bold text-slate-500">
+                  이 기기에서 한 변경
                 </div>
-              ))}
+                <ConflictColumn
+                  items={visibleLocalItems}
+                  emptyText="변경 없음"
+                />
+              </div>
+              <div className="min-w-0 space-y-1.5">
+                <div className="text-[11px] font-bold text-slate-500">
+                  다른 기기에서 한 변경
+                </div>
+                <ConflictColumn
+                  items={visibleOtherItems}
+                  emptyText="변경 없음"
+                />
+              </div>
             </div>
 
             {hiddenCount > 0 && (
