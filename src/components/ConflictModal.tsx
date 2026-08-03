@@ -40,6 +40,7 @@ function changePrefix(item: ConflictDetailItem): string {
 function changeLabel(item: ConflictDetailItem): string {
   if (item.type === 'memo_changed') return `메모 변경 ${shortDate(item.date)}`;
   if (item.type === 'accent_changed') return '강조 색상 변경';
+  if (item.type === 'active_changed') return item.label;
   return conflictText(item) || '내용 변경';
 }
 
