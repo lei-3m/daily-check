@@ -9,6 +9,8 @@ import {
   clearPendingSync,
   getPriorityIncludeMemoPreference,
   getScheduleCollapsedPreference,
+  dismissYesterdayCarryover,
+  isYesterdayCarryoverDismissed,
   resolvePendingSync,
   saveImportedState,
   savePendingLocalState,
@@ -46,6 +48,7 @@ import { ScheduleEditView } from './components/ScheduleEditView';
 import { DrawerBlock } from './components/DrawerBlock';
 import { DateNav, View } from './components/DateNav';
 import { TodoList } from './components/TodoList';
+import { YesterdayCarryover } from './components/YesterdayCarryover';
 import { MemoBlock } from './components/MemoBlock';
 import { ActionBar } from './components/ActionBar';
 import { MoveBar } from './components/MoveBar';
@@ -93,6 +96,12 @@ export default function App() {
   );
   const [isPrioritizing, setIsPrioritizing] = useState(false);
   const [prioritySuggestion, setPrioritySuggestion] = useState<PrioritySuggestion | null>(null);
+  const [dismissedYesterdayCarryoverDate, setDismissedYesterdayCarryoverDate] = useState<
+    string | null
+  >(() => {
+    const today = todayKey();
+    return isYesterdayCarryoverDismissed(today) ? today : null;
+  });
 
   const { toast, showToast, hideToast } = useToast();
 
@@ -332,8 +341,19 @@ export default function App() {
   }
 
   const activeKey = appState.active;
+  const today = todayKey();
+  const yesterdayKey = addDays(today, -1);
   const currentDay = appState.days[activeKey] || { todos: [], memo: '' };
   const todos = normalizeTodoOrder(currentDay.todos || []);
+  const yesterdayIncompleteTodos = (appState.days[yesterdayKey]?.todos || []).filter(
+    (todo) => !todo.done
+  );
+  const shouldShowYesterdayCarryover =
+    view.kind === 'week' &&
+    activeKey === today &&
+    yesterdayIncompleteTodos.length > 0 &&
+    dismissedYesterdayCarryoverDate !== today &&
+    !isYesterdayCarryoverDismissed(today);
   const drawerLists = normalizeDrawer(appState.drawer).map((list) => ({
     ...list,
     items: normalizeTodoOrder(list.items),
@@ -627,6 +647,56 @@ export default function App() {
     setIsSelectMode(false);
     setSelectedIds(new Set());
     showToast(`할 일 ${movingTodos.length}개를 다른 날짜로 이동했어요`);
+  };
+
+  const handleDismissYesterdayCarryover = () => {
+    dismissYesterdayCarryover(today);
+    setDismissedYesterdayCarryoverDate(today);
+  };
+
+  const handleImportYesterdayTodos = (ids: string[]) => {
+    if (ids.length === 0) return;
+
+    setAppState((prev) => {
+      if (!prev) return prev;
+      const sourceDay = prev.days[yesterdayKey];
+      if (!sourceDay) return prev;
+
+      const selectedIds = new Set(ids);
+      const movingTodos = (sourceDay.todos || []).filter(
+        (todo) => selectedIds.has(todo.id) && !todo.done
+      );
+      if (movingTodos.length === 0) return prev;
+
+      const remainingYesterdayTodos = (sourceDay.todos || []).filter(
+        (todo) => !selectedIds.has(todo.id)
+      );
+      const todayDay = prev.days[today] || { todos: [], memo: '' };
+      const nextDays = { ...prev.days };
+
+      if (
+        remainingYesterdayTodos.length === 0 &&
+        (!sourceDay.memo || sourceDay.memo.trim() === '')
+      ) {
+        delete nextDays[yesterdayKey];
+      } else {
+        nextDays[yesterdayKey] = {
+          ...sourceDay,
+          todos: normalizeTodoOrder(remainingYesterdayTodos),
+        };
+      }
+
+      nextDays[today] = {
+        ...todayDay,
+        todos: appendIncompleteTodos(todayDay.todos || [], movingTodos),
+      };
+
+      return {
+        ...prev,
+        days: nextDays,
+        active: today,
+      };
+    });
   };
 
   const handleAddSchedule = (
@@ -1012,6 +1082,14 @@ export default function App() {
         {/* Todo List & Memo (Hidden in Month View) */}
         {view.kind === 'week' && (
           <>
+            {shouldShowYesterdayCarryover && (
+              <YesterdayCarryover
+                todos={yesterdayIncompleteTodos}
+                onImport={handleImportYesterdayTodos}
+                onDismiss={handleDismissYesterdayCarryover}
+              />
+            )}
+
             <TodoList
               todos={todos}
               isSelectMode={isSelectMode}
