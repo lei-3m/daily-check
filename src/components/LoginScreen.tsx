@@ -46,7 +46,7 @@ export function LoginScreen() {
             오늘의 작업 공간
           </h1>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Google 계정으로 로그인하여 기기 간에 일정을 동기화하세요.
+            Google 계정으로 로그인하여 기기 간에 데이터를 동기화하세요.
           </p>
         </div>
 

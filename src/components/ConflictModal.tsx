@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { ConflictDetailItem, ConflictDetails } from '../lib/storage';
 
 interface ConflictModalProps {
@@ -28,7 +29,7 @@ function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
   const groups: ConflictGroup[] = [
     {
       key: 'added',
-      title: '추가한 항목',
+      title: '추가한 내용',
       items: items.filter(
         (item) =>
           item.type === 'todo_added' ||
@@ -38,7 +39,7 @@ function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
     },
     {
       key: 'deleted',
-      title: '삭제한 항목',
+      title: '삭제될 내용',
       items: items.filter(
         (item) =>
           item.type === 'todo_deleted' ||
@@ -48,7 +49,7 @@ function groupItems(items: ConflictDetailItem[]): ConflictGroup[] {
     },
     {
       key: 'updated',
-      title: '수정한 항목',
+      title: '수정한 내용',
       items: items.filter(
         (item) =>
           item.type === 'todo_updated' ||
@@ -124,9 +125,10 @@ export function ConflictModal({ details, onRefresh, onDismiss }: ConflictModalPr
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1 py-0.5"
+                className="min-h-11 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg px-2"
               >
-                외 {hiddenCount}개 ▾
+                <span>외 {hiddenCount}개</span>
+                <ChevronDown size={20} strokeWidth={2} aria-hidden="true" />
               </button>
             )}
           </div>

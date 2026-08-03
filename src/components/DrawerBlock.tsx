@@ -1,43 +1,44 @@
 import React, { KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { Drawer, Todo } from '../lib/types';
+import { ChevronDown, ChevronLeft } from 'lucide-react';
+import { DrawerList, Todo } from '../lib/types';
 import { cleanTodoPrefix } from './TodoList';
 
-type DrawerMode = 'collapsed' | 'documents' | 'list';
+type DrawerMode = 'collapsed' | 'lists' | 'list';
 
 interface DrawerBlockProps {
-  drawers: Drawer[];
+  lists: DrawerList[];
   mode: DrawerMode;
-  activeDrawerId?: string;
+  activeListId?: string;
   onOpenDrawer: () => void;
   onCloseDrawer: () => void;
   onOpenList: (id: string) => void;
-  onBackToDocuments: () => void;
+  onBackToLists: () => void;
   onCreateDrawer: () => void;
   onRenameDrawer: (id: string, name: string) => void;
   onDeleteDrawer: (id: string) => void;
-  onAddItems: (drawerId: string, texts: string[]) => void;
-  onToggleItem: (drawerId: string, itemId: string) => void;
-  onEditItem: (drawerId: string, itemId: string, text: string) => void;
-  onDeleteItem: (drawerId: string, itemId: string) => void;
+  onAddTodos: (listId: string, texts: string[]) => void;
+  onToggleTodo: (listId: string, todoId: string) => void;
+  onEditTodo: (listId: string, todoId: string, text: string) => void;
+  onDeleteTodo: (listId: string, todoId: string) => void;
 }
 
 interface EditableDrawerNameProps {
   key?: string;
-  drawer: Drawer;
+  list: DrawerList;
   onRenameDrawer: (id: string, name: string) => void;
 }
 
-function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps) {
-  const [isEditing, setIsEditing] = useState(drawer.name.trim() === '');
-  const [name, setName] = useState(drawer.name);
+function EditableListName({ list, onRenameDrawer }: EditableDrawerNameProps) {
+  const [isEditing, setIsEditing] = useState(list.name.trim() === '');
+  const [name, setName] = useState(list.name);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setName(drawer.name);
-    if (drawer.name.trim() === '') {
+    setName(list.name);
+    if (list.name.trim() === '') {
       setIsEditing(true);
     }
-  }, [drawer.name]);
+  }, [list.name]);
 
   useEffect(() => {
     if (isEditing) {
@@ -49,17 +50,17 @@ function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps)
   const save = () => {
     const trimmed = name.trim();
     if (trimmed) {
-      onRenameDrawer(drawer.id, trimmed);
+      onRenameDrawer(list.id, trimmed);
       setIsEditing(false);
-    } else if (drawer.items.length > 0) {
-      onRenameDrawer(drawer.id, '목록 이름');
+    } else if (list.items.length > 0) {
+      onRenameDrawer(list.id, '목록 이름');
       setIsEditing(false);
     } else {
       setName('');
       setIsEditing(true);
     }
   };
-  const displayName = drawer.name.trim();
+  const displayName = list.name.trim();
 
   if (isEditing) {
     return (
@@ -76,7 +77,7 @@ function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps)
             save();
           } else if (e.key === 'Escape') {
             e.preventDefault();
-            setName(drawer.name);
+            setName(list.name);
             setIsEditing(false);
           }
         }}
@@ -104,36 +105,36 @@ function EditableDrawerName({ drawer, onRenameDrawer }: EditableDrawerNameProps)
   );
 }
 
-interface DrawerItemRowProps {
+interface DrawerTodoRowProps {
   key?: string;
-  drawerId: string;
+  listId: string;
   item: Todo;
-  onToggleItem: (drawerId: string, itemId: string) => void;
-  onEditItem: (drawerId: string, itemId: string, text: string) => void;
-  onDeleteItem: (drawerId: string, itemId: string) => void;
+  onToggleTodo: (listId: string, todoId: string) => void;
+  onEditTodo: (listId: string, todoId: string, text: string) => void;
+  onDeleteTodo: (listId: string, todoId: string) => void;
 }
 
-interface DrawerDocumentRowProps {
+interface DrawerListRowProps {
   key?: string;
-  drawer: Drawer;
+  list: DrawerList;
   onOpenList: (id: string) => void;
   onDeleteDrawer: (id: string) => void;
 }
 
-function DrawerDocumentRow({
-  drawer,
+function DrawerListRow({
+  list,
   onOpenList,
   onDeleteDrawer,
-}: DrawerDocumentRowProps) {
-  const doneCount = drawer.items.filter((item) => item.done).length;
-  const totalCount = drawer.items.length;
-  const displayName = drawer.name.trim();
+}: DrawerListRowProps) {
+  const doneCount = list.items.filter((item) => item.done).length;
+  const totalCount = list.items.length;
+  const displayName = list.name.trim();
 
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 min-h-[44px] py-1 px-2.5 rounded-lg border border-transparent hover:bg-slate-50 hover:border-slate-100">
         <button
           type="button"
-          onClick={() => onOpenList(drawer.id)}
+          onClick={() => onOpenList(list.id)}
           className="min-w-0 min-h-[44px] flex items-center justify-between gap-2 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
           <span
@@ -149,7 +150,7 @@ function DrawerDocumentRow({
         </button>
       <button
         type="button"
-        onClick={() => onDeleteDrawer(drawer.id)}
+        onClick={() => onDeleteDrawer(list.id)}
         aria-label="목록 삭제"
         className="w-10 h-10 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus-visible:text-red-500 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
@@ -159,13 +160,13 @@ function DrawerDocumentRow({
   );
 }
 
-function DrawerItemRow({
-  drawerId,
+function DrawerTodoRow({
+  listId,
   item,
-  onToggleItem,
-  onEditItem,
-  onDeleteItem,
-}: DrawerItemRowProps) {
+  onToggleTodo,
+  onEditTodo,
+  onDeleteTodo,
+}: DrawerTodoRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(item.text);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -186,9 +187,9 @@ function DrawerItemRow({
     if (isCancelledRef.current) return;
     const trimmed = editText.trim();
     if (trimmed) {
-      onEditItem(drawerId, item.id, trimmed);
+      onEditTodo(listId, item.id, trimmed);
     } else {
-      onDeleteItem(drawerId, item.id);
+      onDeleteTodo(listId, item.id);
     }
     setIsEditing(false);
   };
@@ -213,11 +214,11 @@ function DrawerItemRow({
           role="checkbox"
           aria-checked={item.done}
           aria-label={item.done ? '미완료로 변경' : '완료로 변경'}
-          onClick={() => onToggleItem(drawerId, item.id)}
+          onClick={() => onToggleTodo(listId, item.id)}
           onKeyDown={(e) => {
             if (e.key === ' ' || e.key === 'Enter') {
               e.preventDefault();
-              onToggleItem(drawerId, item.id);
+              onToggleTodo(listId, item.id);
             }
           }}
           className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 mr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded-lg group/cb cursor-pointer"
@@ -278,8 +279,8 @@ function DrawerItemRow({
 
       <button
         type="button"
-        onClick={() => onDeleteItem(drawerId, item.id)}
-        aria-label="항목 삭제"
+        onClick={() => onDeleteTodo(listId, item.id)}
+        aria-label="할 일 삭제"
         className="w-10 h-10 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus-visible:text-red-500 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
         ×
@@ -288,12 +289,12 @@ function DrawerItemRow({
   );
 }
 
-interface DrawerAddFormProps {
-  drawerId: string;
-  onAddItems: (drawerId: string, texts: string[]) => void;
+interface DrawerTodoAddFormProps {
+  listId: string;
+  onAddTodos: (listId: string, texts: string[]) => void;
 }
 
-function DrawerAddForm({ drawerId, onAddItems }: DrawerAddFormProps) {
+function DrawerTodoAddForm({ listId, onAddTodos }: DrawerTodoAddFormProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const inputValueRef = useRef('');
@@ -302,7 +303,7 @@ function DrawerAddForm({ drawerId, onAddItems }: DrawerAddFormProps) {
   const addSingle = () => {
     const cleaned = cleanTodoPrefix(inputValueRef.current || inputValue);
     if (cleaned) {
-      onAddItems(drawerId, [cleaned]);
+      onAddTodos(listId, [cleaned]);
       setInputValue('');
       inputValueRef.current = '';
     }
@@ -320,7 +321,7 @@ function DrawerAddForm({ drawerId, onAddItems }: DrawerAddFormProps) {
       .filter((line) => line.length > 0);
 
     if (lines.length > 0) {
-      onAddItems(drawerId, lines);
+      onAddTodos(listId, lines);
       setInputValue('');
       inputValueRef.current = '';
       inputRef.current?.focus();
@@ -344,7 +345,7 @@ function DrawerAddForm({ drawerId, onAddItems }: DrawerAddFormProps) {
             e.preventDefault();
             addSingle();
           }}
-          aria-label="항목 추가"
+          aria-label="할 일 추가"
           className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
         >
           ＋
@@ -365,7 +366,7 @@ function DrawerAddForm({ drawerId, onAddItems }: DrawerAddFormProps) {
           }}
           onPaste={handlePaste}
           enterKeyHint="done"
-          placeholder="항목 추가"
+          placeholder="할 일 추가"
           className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
         />
       </div>
@@ -374,22 +375,22 @@ function DrawerAddForm({ drawerId, onAddItems }: DrawerAddFormProps) {
 }
 
 export function DrawerBlock({
-  drawers,
+  lists,
   mode,
-  activeDrawerId,
+  activeListId,
   onOpenDrawer,
   onCloseDrawer,
   onOpenList,
-  onBackToDocuments,
+  onBackToLists,
   onCreateDrawer,
   onRenameDrawer,
   onDeleteDrawer,
-  onAddItems,
-  onToggleItem,
-  onEditItem,
-  onDeleteItem,
+  onAddTodos,
+  onToggleTodo,
+  onEditTodo,
+  onDeleteTodo,
 }: DrawerBlockProps) {
-  const activeDrawer = drawers.find((drawer) => drawer.id === activeDrawerId);
+  const activeList = lists.find((list) => list.id === activeListId);
 
   if (mode === 'collapsed') {
     return (
@@ -402,51 +403,53 @@ export function DrawerBlock({
           <span>▤</span>
           <span>서랍</span>
         </span>
-        <span className="text-xs font-semibold text-slate-400">펼치기 ▾</span>
+        <span className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-slate-500">
+          <ChevronDown size={20} strokeWidth={2} aria-hidden="true" />
+        </span>
       </button>
     );
   }
 
-  if (mode === 'list' && activeDrawer) {
+  if (mode === 'list' && activeList) {
     return (
       <section className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3 max-w-full overflow-hidden">
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={onBackToDocuments}
+            onClick={onBackToLists}
             aria-label="뒤로"
-            className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
+            className="min-h-11 min-w-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
           >
-            <span className="text-[32px] leading-none">‹</span>
+            <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
           </button>
           <div className="min-w-0 flex-1">
-            <EditableDrawerName
-              drawer={activeDrawer}
+            <EditableListName
+              list={activeList}
               onRenameDrawer={onRenameDrawer}
             />
           </div>
         </div>
 
         <div className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60">
-          {activeDrawer.items.length === 0 ? (
+          {activeList.items.length === 0 ? (
             <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
-              이 목록은 아직 비어 있어요. 아래에서 항목을 추가하세요.
+              이 목록에는 아직 할 일이 없어요. 아래에서 할 일을 추가하세요.
             </div>
           ) : (
-            activeDrawer.items.map((item) => (
-              <DrawerItemRow
+            activeList.items.map((item) => (
+              <DrawerTodoRow
                 key={item.id}
-                drawerId={activeDrawer.id}
+                listId={activeList.id}
                 item={item}
-                onToggleItem={onToggleItem}
-                onEditItem={onEditItem}
-                onDeleteItem={onDeleteItem}
+                onToggleTodo={onToggleTodo}
+                onEditTodo={onEditTodo}
+                onDeleteTodo={onDeleteTodo}
               />
             ))
           )}
         </div>
 
-        <DrawerAddForm drawerId={activeDrawer.id} onAddItems={onAddItems} />
+        <DrawerTodoAddForm listId={activeList.id} onAddTodos={onAddTodos} />
       </section>
     );
   }
@@ -458,24 +461,24 @@ export function DrawerBlock({
           type="button"
           onClick={onCloseDrawer}
           aria-label="뒤로"
-          className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
+          className="min-h-11 min-w-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
         >
-          <span className="text-[32px] leading-none">‹</span>
+          <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
 
       <div className="max-h-[42vh] overflow-y-auto pr-1">
-        {drawers.length === 0 ? (
+        {lists.length === 0 ? (
           <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
             날짜와 무관한 체크리스트를 모아두는 곳입니다.<br />
             살 것, 읽을 책처럼 필요할 때 열어보세요.
           </div>
         ) : (
           <ul className="space-y-1">
-            {drawers.map((drawer) => (
-              <DrawerDocumentRow
-                key={drawer.id}
-                drawer={drawer}
+            {lists.map((list) => (
+              <DrawerListRow
+                key={list.id}
+                list={list}
                 onOpenList={onOpenList}
                 onDeleteDrawer={onDeleteDrawer}
               />

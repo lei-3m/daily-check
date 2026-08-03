@@ -1,4 +1,4 @@
-import { AppState, Day, Drawer, ScheduleItem, Todo } from './types';
+import { AppState, Day, DrawerList, ScheduleItem, Todo } from './types';
 import { isAccentPreference } from './theme';
 
 type ValidationResult =
@@ -42,7 +42,7 @@ function isScheduleItem(value: unknown): value is ScheduleItem {
   );
 }
 
-function isDrawer(value: unknown): value is Drawer {
+function isDrawerList(value: unknown): value is DrawerList {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
@@ -76,7 +76,7 @@ export function validateBackupState(value: unknown): ValidationResult {
   }
 
   const drawer = value.drawer === undefined ? [] : value.drawer;
-  if (!Array.isArray(drawer) || !drawer.every(isDrawer)) {
+  if (!Array.isArray(drawer) || !drawer.every(isDrawerList)) {
     return { ok: false, message: '서랍 데이터 형식이 잘못되었습니다.' };
   }
 

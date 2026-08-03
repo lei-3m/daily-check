@@ -19,7 +19,7 @@ export type ScheduleItem = {
   repeatUntil?: string;
 };
 
-export type Drawer = {
+export type DrawerList = {
   id: string;
   name: string;
   items: Todo[];
@@ -28,7 +28,7 @@ export type Drawer = {
 export type AppState = {
   days: Record<string, Day>;
   schedule: ScheduleItem[];
-  drawer: Drawer[];
+  drawer: DrawerList[];
   active: string;
   accentColor?: AccentPreference;
 };
