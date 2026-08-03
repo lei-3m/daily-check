@@ -44,6 +44,7 @@ import {
   toggleTodoDoneAndMove,
 } from './lib/todoOrder';
 import { Header } from './components/Header';
+import type { AccountProfile, AccountProfileUpdate } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
 import { ScheduleEditView } from './components/ScheduleEditView';
 import { DrawerBlock } from './components/DrawerBlock';
@@ -109,6 +110,30 @@ export default function App() {
   });
 
   const { toast, showToast, hideToast } = useToast();
+
+  const getMetadataString = (key: string): string => {
+    const value = session?.user.user_metadata?.[key];
+    return typeof value === 'string' ? value.trim() : '';
+  };
+
+  const googleName =
+    getMetadataString('full_name') ||
+    getMetadataString('name') ||
+    getMetadataString('user_name');
+  const profile: AccountProfile = {
+    displayName:
+      getMetadataString('display_name') ||
+      googleName ||
+      session?.user.email ||
+      '',
+    googleName,
+    email: session?.user.email,
+    avatarEmoji: getMetadataString('avatar_emoji') || null,
+    avatarUrl:
+      getMetadataString('avatar_url') ||
+      getMetadataString('picture') ||
+      null,
+  };
 
   const getViewFromHistoryState = (state: unknown): View | null => {
     if (!state || typeof state !== 'object') return null;
@@ -1010,6 +1035,40 @@ export default function App() {
     setSession(null);
   };
 
+  const handleUpdateProfile = async (update: AccountProfileUpdate): Promise<boolean> => {
+    if (!session) return false;
+
+    const nextMetadata = { ...(session.user.user_metadata || {}) };
+
+    if ('displayName' in update) {
+      const displayName = update.displayName?.trim() || '';
+      if (displayName) {
+        nextMetadata.display_name = displayName;
+      } else {
+        delete nextMetadata.display_name;
+      }
+    }
+
+    if ('avatarEmoji' in update) {
+      if (update.avatarEmoji) {
+        nextMetadata.avatar_emoji = update.avatarEmoji;
+      } else {
+        delete nextMetadata.avatar_emoji;
+      }
+    }
+
+    const { error } = await supabase.auth.updateUser({ data: nextMetadata });
+    if (error) {
+      showToast('프로필 저장에 실패했습니다');
+      return false;
+    }
+
+    const { data } = await supabase.auth.getSession();
+    setSession(data.session);
+    showToast('프로필을 저장했습니다');
+    return true;
+  };
+
   const handleConfirmMigration = async () => {
     setShowMigrationModal(false);
     if (session && appState) {
@@ -1105,9 +1164,10 @@ export default function App() {
           dateLabel={fullLabel(activeKey)}
           completedCount={completedCount}
           totalCount={totalCount}
-          userEmail={session?.user?.email}
+          profile={profile}
           syncStatus={syncStatus}
           onSignOut={handleSignOut}
+          onUpdateProfile={handleUpdateProfile}
           themePreference={themePreference}
           onThemePreferenceChange={setThemePreference}
           accentPreference={accentPreference}
