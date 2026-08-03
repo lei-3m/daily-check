@@ -11,8 +11,6 @@
   --surface-strong-hover: #1e293b;
   --surface-selected: #475569;
   --surface-selected-hover: #334155;
-  --surface-today: #e2e8f0;
-  --surface-today-hover: #cbd5e1;
   --on-selected: #ffffff;
   --text: #0f172a;
   --text-strong: #020617;
@@ -55,8 +53,6 @@ html.dark {
   --surface-strong-hover: #485365;
   --surface-selected: #4b5563;
   --surface-selected-hover: #5b6472;
-  --surface-today: #2f3642;
-  --surface-today-hover: #3a4350;
   --on-selected: #ffffff;
   --text: #d8dce3;
   --text-strong: #eef1f5;
@@ -416,12 +412,7 @@ html.theme-switching *::after {
 }
 
 .calendar-day-today {
-  background-color: var(--surface-today) !important;
   border-color: var(--border-strong) !important;
-}
-
-.calendar-day-today:hover {
-  background-color: var(--surface-today-hover) !important;
 }
 
 .text-sky-300 {
