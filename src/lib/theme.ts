@@ -18,13 +18,13 @@ export const ACCENT_OPTIONS: Array<{
   label: string;
   swatch: string;
 }> = [
-  { value: 'default', label: '기본값', swatch: '#64748B' },
-  { value: 'blue', label: '블루', swatch: '#2563EB' },
-  { value: 'green', label: '그린', swatch: '#16A34A' },
-  { value: 'yellow', label: '옐로', swatch: '#CA8A04' },
-  { value: 'pink', label: '핑크', swatch: '#DB2777' },
-  { value: 'orange', label: '오렌지', swatch: '#EA580C' },
-  { value: 'purple', label: '퍼플', swatch: '#7C3AED' },
+  { value: 'default', label: '기본값', swatch: '#9B9B9B' },
+  { value: 'blue', label: '블루', swatch: '#2C67C5' },
+  { value: 'green', label: '그린', swatch: '#48A04C' },
+  { value: 'yellow', label: '옐로', swatch: '#D9A337' },
+  { value: 'pink', label: '핑크', swatch: '#F077AF' },
+  { value: 'orange', label: '오렌지', swatch: '#D25E28' },
+  { value: 'purple', label: '퍼플', swatch: '#7849D1' },
 ];
 
 const isThemePreference = (value: string | null): value is ThemePreference =>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daily-check-v1';
+const CACHE_NAME = 'daily-check-v2-accent';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

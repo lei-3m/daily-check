@@ -94,6 +94,8 @@ const WeekPanel = React.memo(function WeekPanel({
             className={`flex flex-col items-center justify-center py-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative ${
               isSelected
                 ? 'calendar-day-selected bg-slate-900 text-white font-bold shadow-xs'
+                : isToday
+                ? 'calendar-day-today text-slate-800 font-bold'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
             }`}
           >

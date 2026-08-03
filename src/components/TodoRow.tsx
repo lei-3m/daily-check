@@ -112,7 +112,7 @@ export function TodoRow({
               e.stopPropagation();
               onToggleSelect?.(id);
             }}
-            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-lg"
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded-lg"
             title={isSelected ? '선택 해제' : '선택'}
           >
             <span
