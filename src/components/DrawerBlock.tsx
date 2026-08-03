@@ -404,7 +404,7 @@ export function DrawerBlock({
             <span>▤</span>
             <span>서랍</span>
           </span>
-          <span className="text-xs font-medium text-slate-500">날짜 없는 목록</span>
+          <span className="text-xs font-medium text-slate-500">살 것, 읽을 것처럼 날짜와 무관한 목록</span>
         </span>
         <span className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-slate-500">
           <ChevronDown size={20} strokeWidth={2} aria-hidden="true" />
