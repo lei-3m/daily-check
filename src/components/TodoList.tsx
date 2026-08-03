@@ -20,6 +20,12 @@ import { Todo } from '../lib/types';
 import { moveIncompleteTodo } from '../lib/todoOrder';
 import { TodoRow } from './TodoRow';
 
+const TODO_SWIPE_START_PX = 60;
+const TODO_SWIPE_AXIS_RATIO = 3;
+const TODO_SWIPE_VERTICAL_ABORT_PX = 20;
+const TODO_SWIPE_COMMIT_RATIO = 0.28;
+const TODO_SWIPE_SETTLE_MS = 180;
+
 const restrictTodoDragToList: Modifier = ({ transform, activeNodeRect, containerNodeRect }) => {
   const nextTransform = { ...transform, x: 0 };
 
@@ -36,6 +42,23 @@ const restrictTodoDragToList: Modifier = ({ transform, activeNodeRect, container
   };
 };
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function shouldIgnoreSwipeStart(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return true;
+  return Boolean(
+    target.closest(
+      'button,input,textarea,select,[contenteditable="true"],[data-todo-swipe-ignore="true"]'
+    )
+  );
+}
+
 interface TodoListProps {
   todos: Todo[];
   isSelectMode?: boolean;
@@ -46,6 +69,7 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   onAddMany: (texts: string[]) => void;
   onReorderTodos?: (newTodos: Todo[]) => void;
+  onSwipeDate?: (direction: -1 | 1) => void;
 }
 
 export function cleanTodoPrefix(line: string): string {
@@ -80,11 +104,23 @@ export function TodoList({
   onDelete,
   onAddMany,
   onReorderTodos,
+  onSwipeDate,
 }: TodoListProps) {
   const [inputValue, setInputValue] = useState('');
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputValueRef = useRef('');
+  const swipeRailRef = useRef<HTMLDivElement>(null);
+  const isDndDraggingRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const swipeResetTimerRef = useRef<number | null>(null);
+  const swipeRef = useRef<{
+    startX: number;
+    startY: number;
+    pointerId: number;
+    decided: boolean;
+    active: boolean;
+  } | null>(null);
   inputValueRef.current = inputValue;
   const incompleteTodos = todos.filter((todo) => !todo.done);
   const completedTodos = todos.filter((todo) => todo.done);
@@ -93,6 +129,14 @@ export function TodoList({
   useEffect(() => {
     setIsCompletedExpanded(false);
   }, [todoIdsKey]);
+
+  useEffect(() => {
+    return () => {
+      if (swipeResetTimerRef.current !== null) {
+        window.clearTimeout(swipeResetTimerRef.current);
+      }
+    };
+  }, []);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -112,6 +156,7 @@ export function TodoList({
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    isDndDraggingRef.current = false;
     const { active, over } = event;
     if (over && active.id !== over.id) {
       if (onReorderTodos) {
@@ -120,6 +165,113 @@ export function TodoList({
         onReorderTodos(newTodos);
       }
     }
+  };
+
+  const applySwipeTransform = (dx: number, animate: boolean) => {
+    const rail = swipeRailRef.current;
+    if (!rail) return;
+    rail.style.transition =
+      animate && !prefersReducedMotion()
+        ? `transform ${TODO_SWIPE_SETTLE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)`
+        : 'none';
+    rail.style.transform = `translateX(${dx}px)`;
+  };
+
+  const resetSwipeTransform = (animate: boolean) => {
+    applySwipeTransform(0, animate);
+  };
+
+  const handleSwipePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!onSwipeDate || isSelectMode || isDndDraggingRef.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (shouldIgnoreSwipeStart(e.target)) return;
+
+    suppressClickRef.current = false;
+    swipeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      pointerId: e.pointerId,
+      decided: false,
+      active: false,
+    };
+  };
+
+  const handleSwipePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = swipeRef.current;
+    if (!state || state.pointerId !== e.pointerId || isSelectMode || isDndDraggingRef.current) {
+      return;
+    }
+
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    if (!state.decided) {
+      if (absDy > TODO_SWIPE_VERTICAL_ABORT_PX && absDy >= absDx) {
+        swipeRef.current = null;
+        return;
+      }
+      if (absDx <= TODO_SWIPE_START_PX || absDx <= absDy * TODO_SWIPE_AXIS_RATIO) return;
+
+      state.decided = true;
+      state.active = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Pointer capture can fail if browser already released pointer.
+      }
+    }
+
+    applySwipeTransform(dx, false);
+  };
+
+  const handleSwipePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = swipeRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    swipeRef.current = null;
+    if (!state.active || !onSwipeDate) return;
+
+    suppressClickRef.current = true;
+
+    const dx = e.clientX - state.startX;
+    const width = e.currentTarget.clientWidth || 300;
+    const shouldCommit = Math.abs(dx) >= Math.max(TODO_SWIPE_START_PX, width * TODO_SWIPE_COMMIT_RATIO);
+
+    if (!shouldCommit) {
+      resetSwipeTransform(true);
+      return;
+    }
+
+    const direction = dx < 0 ? 1 : -1;
+    if (prefersReducedMotion()) {
+      onSwipeDate(direction);
+      resetSwipeTransform(false);
+      return;
+    }
+
+    applySwipeTransform(direction === 1 ? -width : width, true);
+    swipeResetTimerRef.current = window.setTimeout(() => {
+      onSwipeDate(direction);
+      resetSwipeTransform(false);
+      swipeResetTimerRef.current = null;
+    }, TODO_SWIPE_SETTLE_MS);
+  };
+
+  const handleSwipePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    const state = swipeRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    swipeRef.current = null;
+    if (!state.active) return;
+    suppressClickRef.current = true;
+    resetSwipeTransform(true);
+  };
+
+  const handleSwipeClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!suppressClickRef.current) return;
+    suppressClickRef.current = false;
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleAddSingle = () => {
@@ -164,12 +316,30 @@ export function TodoList({
   };
 
   return (
-    <div className="space-y-1">
+    <div
+      className="overflow-hidden touch-pan-y"
+      onPointerDown={handleSwipePointerDown}
+      onPointerMove={handleSwipePointerMove}
+      onPointerUp={handleSwipePointerUp}
+      onPointerCancel={handleSwipePointerCancel}
+      onClickCapture={handleSwipeClickCapture}
+    >
+      <div ref={swipeRailRef} className="space-y-1" style={{ willChange: 'transform' }}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         modifiers={[restrictTodoDragToList]}
+        onDragStart={() => {
+          isDndDraggingRef.current = true;
+          swipeRef.current = null;
+          resetSwipeTransform(false);
+        }}
         onDragEnd={handleDragEnd}
+        onDragCancel={() => {
+          isDndDraggingRef.current = false;
+          swipeRef.current = null;
+          resetSwipeTransform(false);
+        }}
       >
         <SortableContext
           items={todos.map((todo) => todo.id)}
@@ -269,6 +439,7 @@ export function TodoList({
           </div>
         </form>
       )}
+      </div>
     </div>
   );
 }

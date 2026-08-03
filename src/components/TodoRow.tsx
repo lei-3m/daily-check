@@ -156,6 +156,7 @@ export function TodoRow({
             {...attributes}
             {...listeners}
             style={{ touchAction: 'pan-y' }}
+            data-todo-swipe-ignore="true"
             className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab active:cursor-grabbing text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded"
             aria-label="순서 변경"
             title="드래그하여 순서 변경"
@@ -228,6 +229,7 @@ export function TodoRow({
           <span
             onClick={isSelectMode ? undefined : handleStartEdit}
             title={isSelectMode ? '선택' : '클릭하여 수정'}
+            data-todo-swipe-ignore="true"
             className={`text-sm truncate font-medium ${
               isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'
             } ${done ? 'line-through text-slate-400' : 'text-slate-800'}`}

@@ -722,6 +722,12 @@ export default function App() {
     setAppState((prev) => (prev ? { ...prev, active: key } : prev));
   };
 
+  const handleSwipeTodoDate = (direction: -1 | 1) => {
+    const targetKey = addDays(activeKeyRef.current, direction);
+    handleSelectDate(targetKey);
+    setView({ kind: 'week', anchor: targetKey });
+  };
+
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -1279,6 +1285,7 @@ export default function App() {
               onDelete={handleDelete}
               onAddMany={handleAddMany}
               onReorderTodos={(newTodos) => updateCurrentDay(newTodos)}
+              onSwipeDate={handleSwipeTodoDate}
             />
 
             {!isSelectMode && (
