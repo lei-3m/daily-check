@@ -92,12 +92,12 @@ const DayCell = React.memo(function DayCell({
       className={`h-12 flex flex-col items-center justify-between p-1 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 relative select-auto ${
         isSelected
           ? 'calendar-day-selected bg-slate-900 text-white font-bold shadow-xs'
+          : isToday
+          ? 'calendar-day-today text-slate-800 border'
           : isSameMonth
           ? 'calendar-cell-surface hover:bg-slate-100 text-slate-800 border border-slate-100'
           : 'bg-slate-50/50 hover:bg-slate-100 text-slate-300 opacity-60 border border-transparent'
-      } ${
-        isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''
-      }`}
+      } ${isToday && !isSelected ? 'ring-1.5 ring-slate-800 font-bold' : ''}`}
     >
       {/* Day Number and Schedule Dot indicator */}
       <div className="w-full flex items-center justify-between px-0.5">

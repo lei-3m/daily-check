@@ -9,6 +9,11 @@
   --surface-hover: #e2e8f0;
   --surface-strong: #0f172a;
   --surface-strong-hover: #1e293b;
+  --surface-selected: #475569;
+  --surface-selected-hover: #334155;
+  --surface-today: #e2e8f0;
+  --surface-today-hover: #cbd5e1;
+  --on-selected: #ffffff;
   --text: #0f172a;
   --text-strong: #020617;
   --text-muted: #475569;
@@ -19,12 +24,12 @@
   --border: #e2e8f0;
   --border-soft: #f1f5f9;
   --border-strong: #cbd5e1;
-  --focus-ring: #64748b;
+  --focus-ring: #9b9b9b;
   --overlay: rgb(15 23 42 / 0.4);
-  --accent: #64748b;
-  --accent-hover: #475569;
-  --accent-soft: #f1f5f9;
-  --accent-border: #cbd5e1;
+  --accent: #9b9b9b;
+  --accent-hover: #adadad;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
   --on-accent: #ffffff;
   --danger: #dc2626;
@@ -48,6 +53,11 @@ html.dark {
   --surface-hover: #303744;
   --surface-strong: #39414e;
   --surface-strong-hover: #485365;
+  --surface-selected: #4b5563;
+  --surface-selected-hover: #5b6472;
+  --surface-today: #2f3642;
+  --surface-today-hover: #3a4350;
+  --on-selected: #ffffff;
   --text: #d8dce3;
   --text-strong: #eef1f5;
   --text-muted: #bcc3ce;
@@ -58,12 +68,12 @@ html.dark {
   --border: #343b47;
   --border-soft: #2a303a;
   --border-strong: #596373;
-  --focus-ring: #94a3b8;
+  --focus-ring: #9b9b9b;
   --overlay: rgb(4 6 10 / 0.68);
-  --accent: #94a3b8;
-  --accent-hover: #cbd5e1;
-  --accent-soft: #2a303a;
-  --accent-border: #64748b;
+  --accent: #9b9b9b;
+  --accent-hover: #858585;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
   --on-accent: #ffffff;
   --danger: #fb7185;
@@ -78,112 +88,130 @@ html.dark {
   --calendar-todo-dot: #74d1ff;
 }
 
-html[data-accent='blue'] {
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-soft: #dbeafe;
-  --accent-border: #93c5fd;
+html[data-accent='default'] {
+  --accent: #9b9b9b;
+  --accent-hover: #adadad;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #2563eb;
+  --focus-ring: #9b9b9b;
+}
+
+html.dark[data-accent='default'] {
+  --accent: #9b9b9b;
+  --accent-hover: #858585;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
+  --accent-text: #ffffff;
+  --focus-ring: #9b9b9b;
+}
+
+html[data-accent='blue'] {
+  --accent: #2c67c5;
+  --accent-hover: #3f7adc;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
+  --accent-text: #ffffff;
+  --focus-ring: #2c67c5;
 }
 
 html.dark[data-accent='blue'] {
-  --accent: #60a5fa;
-  --accent-hover: #93c5fd;
-  --accent-soft: #172d4f;
-  --accent-border: #2563eb;
+  --accent: #2c67c5;
+  --accent-hover: #2456a6;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #60a5fa;
+  --focus-ring: #2c67c5;
 }
 
 html[data-accent='green'] {
-  --accent: #16a34a;
-  --accent-hover: #15803d;
-  --accent-soft: #dcfce7;
-  --accent-border: #86efac;
+  --accent: #48a04c;
+  --accent-hover: #5ab95e;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #16a34a;
+  --focus-ring: #48a04c;
 }
 
 html.dark[data-accent='green'] {
-  --accent: #4ade80;
-  --accent-hover: #86efac;
-  --accent-soft: #173b26;
-  --accent-border: #16a34a;
+  --accent: #48a04c;
+  --accent-hover: #3d8740;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #4ade80;
+  --focus-ring: #48a04c;
 }
 
 html[data-accent='yellow'] {
-  --accent: #ca8a04;
-  --accent-hover: #a16207;
-  --accent-soft: #fef9c3;
-  --accent-border: #fde047;
+  --accent: #d9a337;
+  --accent-hover: #e7b956;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #ca8a04;
+  --focus-ring: #d9a337;
 }
 
 html.dark[data-accent='yellow'] {
-  --accent: #facc15;
-  --accent-hover: #fde047;
-  --accent-soft: #3c3212;
-  --accent-border: #ca8a04;
+  --accent: #d9a337;
+  --accent-hover: #b98a2c;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #facc15;
+  --focus-ring: #d9a337;
 }
 
 html[data-accent='pink'] {
-  --accent: #db2777;
-  --accent-hover: #be185d;
-  --accent-soft: #fce7f3;
-  --accent-border: #f9a8d4;
+  --accent: #f077af;
+  --accent-hover: #f594c1;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #db2777;
+  --focus-ring: #f077af;
 }
 
 html.dark[data-accent='pink'] {
-  --accent: #f472b6;
-  --accent-hover: #f9a8d4;
-  --accent-soft: #442239;
-  --accent-border: #db2777;
+  --accent: #f077af;
+  --accent-hover: #d85f99;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #f472b6;
+  --focus-ring: #f077af;
 }
 
 html[data-accent='orange'] {
-  --accent: #ea580c;
-  --accent-hover: #c2410c;
-  --accent-soft: #ffedd5;
-  --accent-border: #fdba74;
+  --accent: #d25e28;
+  --accent-hover: #e2733e;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #ea580c;
+  --focus-ring: #d25e28;
 }
 
 html.dark[data-accent='orange'] {
-  --accent: #fb923c;
-  --accent-hover: #fdba74;
-  --accent-soft: #452816;
-  --accent-border: #ea580c;
+  --accent: #d25e28;
+  --accent-hover: #b34e20;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #fb923c;
+  --focus-ring: #d25e28;
 }
 
 html[data-accent='purple'] {
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft: #ede9fe;
-  --accent-border: #c4b5fd;
+  --accent: #7849d1;
+  --accent-hover: #8c60df;
+  --accent-soft: color-mix(in srgb, var(--surface) 86%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #7c3aed;
+  --focus-ring: #7849d1;
 }
 
 html.dark[data-accent='purple'] {
-  --accent: #a78bfa;
-  --accent-hover: #c4b5fd;
-  --accent-soft: #302449;
-  --accent-border: #7c3aed;
+  --accent: #7849d1;
+  --accent-hover: #6639b8;
+  --accent-soft: color-mix(in srgb, var(--surface) 78%, var(--accent));
+  --accent-border: var(--accent);
   --accent-text: #ffffff;
-  --focus-ring: #a78bfa;
+  --focus-ring: #7849d1;
 }
 
 html,
@@ -253,16 +281,6 @@ html.theme-switching *::after {
 .hover\:bg-slate-200\/70:hover,
 .focus-within\:bg-white:focus-within {
   background-color: var(--surface-hover) !important;
-}
-
-.bg-indigo-50\/60 {
-  background-color: var(--accent-soft) !important;
-}
-
-.bg-indigo-600,
-.hover\:bg-indigo-500:hover,
-.active\:bg-indigo-700:active {
-  background-color: var(--accent) !important;
 }
 
 .accent-fill {
@@ -386,11 +404,26 @@ html.theme-switching *::after {
   color: var(--on-accent) !important;
 }
 
-.text-indigo-600 {
-  color: var(--accent) !important;
+.calendar-day-selected {
+  background-color: var(--surface-selected) !important;
+  border-color: var(--surface-selected) !important;
+  color: var(--on-selected) !important;
 }
 
-.text-indigo-200,
+.calendar-day-selected:hover {
+  background-color: var(--surface-selected-hover) !important;
+  border-color: var(--surface-selected-hover) !important;
+}
+
+.calendar-day-today {
+  background-color: var(--surface-today) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.calendar-day-today:hover {
+  background-color: var(--surface-today-hover) !important;
+}
+
 .text-sky-300 {
   color: var(--accent-text) !important;
 }
@@ -436,7 +469,6 @@ html.theme-switching *::after {
 
 .border-slate-200,
 .border-slate-200\/80,
-.border-indigo-200,
 .ring-slate-200 {
   border-color: var(--border) !important;
 }
@@ -448,18 +480,12 @@ html.theme-switching *::after {
   border-color: var(--border-strong) !important;
 }
 
-.border-indigo-200 {
-  border-color: var(--accent-border) !important;
-}
-
 .ring-slate-800,
 .ring-1\.5,
 .focus\:ring-slate-300:focus,
 .focus\:ring-slate-400:focus,
 .focus-visible\:ring-slate-300:focus-visible,
 .focus-visible\:ring-slate-400:focus-visible,
-.focus\:ring-indigo-400:focus,
-.focus-visible\:ring-indigo-400:focus-visible,
 .focus\:ring-slate-900:focus,
 .focus-visible\:ring-slate-900:focus-visible,
 .focus\:ring-slate-500:focus,

@@ -37,7 +37,7 @@ export function PrioritySuggestionModal({
         ) : suggestion ? (
           <>
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 text-indigo-600 font-bold text-xs bg-indigo-50/60 px-2 py-0.5 rounded-md mb-1">
+          <div className="inline-flex items-center gap-1.5 accent-text font-bold text-xs accent-soft px-2 py-0.5 rounded-md mb-1">
             <span>✨</span> 우선순위 제안
           </div>
           <h3 className="text-base font-bold text-slate-900">
