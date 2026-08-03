@@ -16,7 +16,7 @@ export function ActionBar({
       <button
         type="button"
         onClick={onCopy}
-        className="min-h-11 min-w-0 flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-2 rounded-xl accent-fill accent-fill-hover-media text-white font-semibold text-xs sm:text-base whitespace-nowrap transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+        className="min-h-11 min-w-0 flex-1 flex items-center justify-center gap-0 sm:gap-0.5 px-1 sm:px-2 py-2 rounded-xl accent-fill accent-fill-hover-media text-white font-semibold text-sm sm:text-lg whitespace-nowrap transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
       >
         <span>📋</span>
         <span>남은 일 복사</span>
@@ -25,7 +25,7 @@ export function ActionBar({
       <button
         type="button"
         onClick={onStartMoveMode}
-        className="min-h-11 min-w-0 flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-2 rounded-xl bg-slate-100 surface-hover-media text-slate-800 font-semibold text-xs sm:text-base whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        className="min-h-11 min-w-0 flex-1 flex items-center justify-center gap-0 sm:gap-0.5 px-1 sm:px-2 py-2 rounded-xl bg-slate-100 surface-hover-media text-slate-800 font-semibold text-sm sm:text-lg whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
       >
         <span>📅</span>
         <span className="whitespace-nowrap">선택해 옮기기</span>
@@ -35,7 +35,7 @@ export function ActionBar({
         type="button"
         onClick={onPrioritize}
         disabled={isPrioritizing}
-        className="min-h-11 min-w-0 flex-1 flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-2 rounded-xl bg-slate-100 surface-hover-media text-slate-800 font-semibold text-xs sm:text-base whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:text-slate-400 disabled:cursor-wait disabled:opacity-70 select-none"
+        className="min-h-11 min-w-0 flex-1 flex items-center justify-center gap-0 sm:gap-0.5 px-1 sm:px-2 py-2 rounded-xl bg-slate-100 surface-hover-media text-slate-800 font-semibold text-sm sm:text-lg whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:text-slate-400 disabled:cursor-wait disabled:opacity-70 select-none"
         aria-busy={isPrioritizing}
       >
         <span>✨</span>
