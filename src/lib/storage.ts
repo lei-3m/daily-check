@@ -1,4 +1,4 @@
-import { AppState, DrawerList, Todo } from './types';
+import { AppState, DrawerList, ScheduleItem, Todo } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isAccentPreference } from './theme';
 
@@ -29,7 +29,8 @@ export interface ConflictDetailItem {
     | 'drawer_added'
     | 'drawer_deleted'
     | 'drawer_updated'
-    | 'accent_changed';
+    | 'accent_changed'
+    | 'active_changed';
   date: string;
   text?: string;
   label: string;
@@ -43,8 +44,13 @@ export interface ConflictDetails {
 export type RealtimePullResult =
   | { type: 'ignored' }
   | { type: 'applied'; state: AppState }
-  | { type: 'conflict'; details: ConflictDetails }
+  | { type: 'conflict'; state: AppState; details: ConflictDetails }
   | { type: 'offline' };
+
+type MergeResult = {
+  state: AppState;
+  details: ConflictDetails;
+};
 
 interface LocalCacheEnvelope {
   userId?: string;
@@ -382,6 +388,14 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
     });
   }
 
+  if (normalizedLocal.active !== normalizedServer.active) {
+    items.push({
+      type: 'active_changed',
+      date: normalizedLocal.active,
+      label: `선택 날짜 변경: ${normalizedLocal.active}`,
+    });
+  }
+
   return { items, otherItems: [] };
 }
 
@@ -393,6 +407,552 @@ function getBidirectionalConflictDetails(
   return {
     items: getConflictDetails(localState, baseServerState).items,
     otherItems: getConflictDetails(latestServerState, baseServerState).items,
+  };
+}
+
+function todoEquals(a: Todo, b: Todo): boolean {
+  return a.text === b.text && a.done === b.done;
+}
+
+function scheduleEquals(a: ScheduleItem, b: ScheduleItem): boolean {
+  return (
+    a.date === b.date &&
+    a.text === b.text &&
+    a.repeat === b.repeat &&
+    a.repeatUntil === b.repeatUntil
+  );
+}
+
+function todoListEquals(a: Todo[], b: Todo[]): boolean {
+  if (a.length !== b.length) return false;
+  const bById = new Map(b.map((todo) => [todo.id, todo]));
+  return a.every((todo) => {
+    const other = bById.get(todo.id);
+    return other ? todoEquals(todo, other) : false;
+  });
+}
+
+function mergeOrder(...idLists: string[][]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const ids of idLists) {
+    for (const id of ids) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      result.push(id);
+    }
+  }
+  return result;
+}
+
+function todoConflictItem(
+  type: 'todo_deleted' | 'todo_updated' | 'todo_added',
+  date: string,
+  todo?: Todo
+): ConflictDetailItem {
+  const text = todo?.text || '삭제된 할 일';
+  return {
+    type,
+    date,
+    text,
+    label:
+      type === 'todo_deleted'
+        ? `${summarizeTodo(text, date)} 삭제`
+        : summarizeTodo(text, date),
+  };
+}
+
+function scheduleConflictItem(
+  type: 'schedule_deleted' | 'schedule_updated' | 'schedule_added',
+  item?: ScheduleItem
+): ConflictDetailItem {
+  const date = item?.date || '';
+  const text = item?.text || '삭제된 일정';
+  return {
+    type,
+    date,
+    text,
+    label:
+      type === 'schedule_deleted'
+        ? `${summarizeSchedule(text, date)} 삭제`
+        : summarizeSchedule(text, date),
+  };
+}
+
+function drawerListConflictItem(
+  type: 'drawer_deleted' | 'drawer_updated' | 'drawer_added',
+  list?: DrawerList
+): ConflictDetailItem {
+  const action = type === 'drawer_deleted' ? '삭제' : type === 'drawer_added' ? '추가' : '수정';
+  const name = list?.name || '목록 이름';
+  return {
+    type,
+    date: listDisplayName(name),
+    label: summarizeDrawerList(name, action),
+  };
+}
+
+function drawerTodoConflictItem(
+  type: 'drawer_deleted' | 'drawer_updated' | 'drawer_added',
+  listName: string,
+  todo?: Todo
+): ConflictDetailItem {
+  const action = type === 'drawer_deleted' ? '삭제' : type === 'drawer_added' ? '추가' : '수정';
+  const text = todo?.text || '삭제된 할 일';
+  return {
+    type,
+    date: listDisplayName(listName),
+    text,
+    label: summarizeDrawerTodo(listName, text, action),
+  };
+}
+
+function mergeTodos(
+  date: string,
+  baseTodos: Todo[],
+  localTodos: Todo[],
+  remoteTodos: Todo[],
+  localConflicts: ConflictDetailItem[],
+  remoteConflicts: ConflictDetailItem[]
+): Todo[] {
+  const baseById = new Map(baseTodos.map((todo) => [todo.id, todo]));
+  const localById = new Map(localTodos.map((todo) => [todo.id, todo]));
+  const remoteById = new Map(remoteTodos.map((todo) => [todo.id, todo]));
+  const merged = new Map<string, Todo>();
+
+  for (const id of mergeOrder(
+    localTodos.map((todo) => todo.id),
+    remoteTodos.map((todo) => todo.id),
+    baseTodos.map((todo) => todo.id)
+  )) {
+    const base = baseById.get(id);
+    const local = localById.get(id);
+    const remote = remoteById.get(id);
+
+    if (!base) {
+      if (local && remote && !todoEquals(local, remote)) {
+        localConflicts.push(todoConflictItem('todo_added', date, local));
+        remoteConflicts.push(todoConflictItem('todo_added', date, remote));
+        merged.set(id, local);
+      } else if (local) {
+        merged.set(id, local);
+      } else if (remote) {
+        merged.set(id, remote);
+      }
+      continue;
+    }
+
+    const localChanged = !local || !todoEquals(local, base);
+    const remoteChanged = !remote || !todoEquals(remote, base);
+
+    if (localChanged && remoteChanged) {
+      if (!local && !remote) continue;
+      if (local && remote && todoEquals(local, remote)) {
+        merged.set(id, local);
+        continue;
+      }
+
+      localConflicts.push(
+        local
+          ? todoConflictItem('todo_updated', date, local)
+          : todoConflictItem('todo_deleted', date, base)
+      );
+      remoteConflicts.push(
+        remote
+          ? todoConflictItem('todo_updated', date, remote)
+          : todoConflictItem('todo_deleted', date, base)
+      );
+      if (local) merged.set(id, local);
+    } else if (localChanged) {
+      if (local) merged.set(id, local);
+    } else if (remoteChanged) {
+      if (remote) merged.set(id, remote);
+    } else {
+      merged.set(id, base);
+    }
+  }
+
+  return [...merged.values()];
+}
+
+function mergeSchedules(
+  baseSchedules: ScheduleItem[],
+  localSchedules: ScheduleItem[],
+  remoteSchedules: ScheduleItem[],
+  localConflicts: ConflictDetailItem[],
+  remoteConflicts: ConflictDetailItem[]
+): ScheduleItem[] {
+  const baseById = new Map(baseSchedules.map((item) => [item.id, item]));
+  const localById = new Map(localSchedules.map((item) => [item.id, item]));
+  const remoteById = new Map(remoteSchedules.map((item) => [item.id, item]));
+  const merged = new Map<string, ScheduleItem>();
+
+  for (const id of mergeOrder(
+    localSchedules.map((item) => item.id),
+    remoteSchedules.map((item) => item.id),
+    baseSchedules.map((item) => item.id)
+  )) {
+    const base = baseById.get(id);
+    const local = localById.get(id);
+    const remote = remoteById.get(id);
+
+    if (!base) {
+      if (local && remote && !scheduleEquals(local, remote)) {
+        localConflicts.push(scheduleConflictItem('schedule_added', local));
+        remoteConflicts.push(scheduleConflictItem('schedule_added', remote));
+        merged.set(id, local);
+      } else if (local) {
+        merged.set(id, local);
+      } else if (remote) {
+        merged.set(id, remote);
+      }
+      continue;
+    }
+
+    const localChanged = !local || !scheduleEquals(local, base);
+    const remoteChanged = !remote || !scheduleEquals(remote, base);
+
+    if (localChanged && remoteChanged) {
+      if (!local && !remote) continue;
+      if (local && remote && scheduleEquals(local, remote)) {
+        merged.set(id, local);
+        continue;
+      }
+      localConflicts.push(
+        local
+          ? scheduleConflictItem('schedule_updated', local)
+          : scheduleConflictItem('schedule_deleted', base)
+      );
+      remoteConflicts.push(
+        remote
+          ? scheduleConflictItem('schedule_updated', remote)
+          : scheduleConflictItem('schedule_deleted', base)
+      );
+      if (local) merged.set(id, local);
+    } else if (localChanged) {
+      if (local) merged.set(id, local);
+    } else if (remoteChanged) {
+      if (remote) merged.set(id, remote);
+    } else {
+      merged.set(id, base);
+    }
+  }
+
+  return [...merged.values()];
+}
+
+function mergeDrawerTodos(
+  listName: string,
+  baseItems: Todo[],
+  localItems: Todo[],
+  remoteItems: Todo[],
+  localConflicts: ConflictDetailItem[],
+  remoteConflicts: ConflictDetailItem[]
+): Todo[] {
+  const baseById = new Map(baseItems.map((todo) => [todo.id, todo]));
+  const localById = new Map(localItems.map((todo) => [todo.id, todo]));
+  const remoteById = new Map(remoteItems.map((todo) => [todo.id, todo]));
+  const merged = new Map<string, Todo>();
+
+  for (const id of mergeOrder(
+    localItems.map((todo) => todo.id),
+    remoteItems.map((todo) => todo.id),
+    baseItems.map((todo) => todo.id)
+  )) {
+    const base = baseById.get(id);
+    const local = localById.get(id);
+    const remote = remoteById.get(id);
+
+    if (!base) {
+      if (local && remote && !todoEquals(local, remote)) {
+        localConflicts.push(drawerTodoConflictItem('drawer_added', listName, local));
+        remoteConflicts.push(drawerTodoConflictItem('drawer_added', listName, remote));
+        merged.set(id, local);
+      } else if (local) {
+        merged.set(id, local);
+      } else if (remote) {
+        merged.set(id, remote);
+      }
+      continue;
+    }
+
+    const localChanged = !local || !todoEquals(local, base);
+    const remoteChanged = !remote || !todoEquals(remote, base);
+
+    if (localChanged && remoteChanged) {
+      if (!local && !remote) continue;
+      if (local && remote && todoEquals(local, remote)) {
+        merged.set(id, local);
+        continue;
+      }
+      localConflicts.push(
+        local
+          ? drawerTodoConflictItem('drawer_updated', listName, local)
+          : drawerTodoConflictItem('drawer_deleted', listName, base)
+      );
+      remoteConflicts.push(
+        remote
+          ? drawerTodoConflictItem('drawer_updated', listName, remote)
+          : drawerTodoConflictItem('drawer_deleted', listName, base)
+      );
+      if (local) merged.set(id, local);
+    } else if (localChanged) {
+      if (local) merged.set(id, local);
+    } else if (remoteChanged) {
+      if (remote) merged.set(id, remote);
+    } else {
+      merged.set(id, base);
+    }
+  }
+
+  return [...merged.values()];
+}
+
+function mergeDrawerLists(
+  baseLists: DrawerList[],
+  localLists: DrawerList[],
+  remoteLists: DrawerList[],
+  localConflicts: ConflictDetailItem[],
+  remoteConflicts: ConflictDetailItem[]
+): DrawerList[] {
+  const baseById = new Map(baseLists.map((list) => [list.id, list]));
+  const localById = new Map(localLists.map((list) => [list.id, list]));
+  const remoteById = new Map(remoteLists.map((list) => [list.id, list]));
+  const merged: DrawerList[] = [];
+
+  for (const id of mergeOrder(
+    localLists.map((list) => list.id),
+    remoteLists.map((list) => list.id),
+    baseLists.map((list) => list.id)
+  )) {
+    const base = baseById.get(id);
+    const local = localById.get(id);
+    const remote = remoteById.get(id);
+
+    if (!base) {
+      if (local && remote && local.name !== remote.name) {
+        localConflicts.push(drawerListConflictItem('drawer_added', local));
+        remoteConflicts.push(drawerListConflictItem('drawer_added', remote));
+      }
+      if (local && remote) {
+        merged.push({
+          ...local,
+          items: mergeDrawerTodos(
+            local.name,
+            [],
+            local.items || [],
+            remote.items || [],
+            localConflicts,
+            remoteConflicts
+          ),
+        });
+      } else if (local) {
+        merged.push(local);
+      } else if (remote) {
+        merged.push(remote);
+      }
+      continue;
+    }
+
+    const localDeleted = !local;
+    const remoteDeleted = !remote;
+    const localNameChanged = Boolean(local && local.name !== base.name);
+    const remoteNameChanged = Boolean(remote && remote.name !== base.name);
+    const localItems = local?.items || [];
+    const remoteItems = remote?.items || [];
+
+    if (localDeleted && remoteDeleted) continue;
+    if (localDeleted) {
+      const remoteChanged = remoteNameChanged || !todoListEquals(remoteItems, base.items || []);
+      if (remoteChanged) {
+        localConflicts.push(drawerListConflictItem('drawer_deleted', base));
+        remoteConflicts.push(drawerListConflictItem('drawer_updated', remote));
+        if (remote) merged.push(remote);
+      }
+      continue;
+    }
+    if (remoteDeleted) {
+      const localChanged = localNameChanged || !todoListEquals(localItems, base.items || []);
+      if (localChanged) {
+        localConflicts.push(drawerListConflictItem('drawer_updated', local));
+        remoteConflicts.push(drawerListConflictItem('drawer_deleted', base));
+        merged.push(local);
+      }
+      continue;
+    }
+
+    if (!local || !remote) continue;
+    let name = base.name;
+    if (localNameChanged && remoteNameChanged) {
+      if (local.name === remote.name) {
+        name = local.name;
+      } else {
+        localConflicts.push(drawerListConflictItem('drawer_updated', local));
+        remoteConflicts.push(drawerListConflictItem('drawer_updated', remote));
+        name = local.name;
+      }
+    } else if (localNameChanged) {
+      name = local.name;
+    } else if (remoteNameChanged) {
+      name = remote.name;
+    }
+
+    merged.push({
+      ...local,
+      name,
+      items: mergeDrawerTodos(
+        name,
+        base.items || [],
+        local.items || [],
+        remote.items || [],
+        localConflicts,
+        remoteConflicts
+      ),
+    });
+  }
+
+  return merged;
+}
+
+function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: AppState): MergeResult {
+  const local = normalizeStoredState(localState);
+  const base = normalizeStoredState(baseState);
+  const remote = normalizeStoredState(remoteState);
+  const localConflicts: ConflictDetailItem[] = [];
+  const remoteConflicts: ConflictDetailItem[] = [];
+  const days: AppState['days'] = {};
+
+  const dayKeys = new Set([
+    ...Object.keys(base.days || {}),
+    ...Object.keys(local.days || {}),
+    ...Object.keys(remote.days || {}),
+  ]);
+
+  for (const dayKey of [...dayKeys].sort()) {
+    const baseDay = base.days?.[dayKey] || { todos: [], memo: '' };
+    const localDay = local.days?.[dayKey] || { todos: [], memo: '' };
+    const remoteDay = remote.days?.[dayKey] || { todos: [], memo: '' };
+    const todos = mergeTodos(
+      dayKey,
+      baseDay.todos || [],
+      localDay.todos || [],
+      remoteDay.todos || [],
+      localConflicts,
+      remoteConflicts
+    );
+
+    const localMemoChanged = (localDay.memo || '') !== (baseDay.memo || '');
+    const remoteMemoChanged = (remoteDay.memo || '') !== (baseDay.memo || '');
+    let memo = baseDay.memo || '';
+    if (localMemoChanged && remoteMemoChanged) {
+      if ((localDay.memo || '') === (remoteDay.memo || '')) {
+        memo = localDay.memo || '';
+      } else {
+        localConflicts.push({
+          type: 'memo_changed',
+          date: dayKey,
+          label: (localDay.memo || '').trim()
+            ? `${dayKey} 메모: ${(localDay.memo || '').trim().split(/\s+/).slice(0, 8).join(' ')}`
+            : `${dayKey} 메모 비우기`,
+        });
+        remoteConflicts.push({
+          type: 'memo_changed',
+          date: dayKey,
+          label: (remoteDay.memo || '').trim()
+            ? `${dayKey} 메모: ${(remoteDay.memo || '').trim().split(/\s+/).slice(0, 8).join(' ')}`
+            : `${dayKey} 메모 비우기`,
+        });
+        memo = localDay.memo || '';
+      }
+    } else if (localMemoChanged) {
+      memo = localDay.memo || '';
+    } else if (remoteMemoChanged) {
+      memo = remoteDay.memo || '';
+    }
+
+    if (todos.length > 0 || memo.trim()) {
+      days[dayKey] = { todos, memo };
+    }
+  }
+
+  const schedule = mergeSchedules(
+    base.schedule || [],
+    local.schedule || [],
+    remote.schedule || [],
+    localConflicts,
+    remoteConflicts
+  );
+
+  const drawer = mergeDrawerLists(
+    base.drawer || [],
+    local.drawer || [],
+    remote.drawer || [],
+    localConflicts,
+    remoteConflicts
+  );
+
+  let accentColor = base.accentColor;
+  const localAccentChanged = local.accentColor !== base.accentColor;
+  const remoteAccentChanged = remote.accentColor !== base.accentColor;
+  if (localAccentChanged && remoteAccentChanged) {
+    if (local.accentColor === remote.accentColor) {
+      accentColor = local.accentColor;
+    } else {
+      localConflicts.push({
+        type: 'accent_changed',
+        date: local.active,
+        label: '강조 색상 변경',
+      });
+      remoteConflicts.push({
+        type: 'accent_changed',
+        date: remote.active,
+        label: '강조 색상 변경',
+      });
+      accentColor = local.accentColor;
+    }
+  } else if (localAccentChanged) {
+    accentColor = local.accentColor;
+  } else if (remoteAccentChanged) {
+    accentColor = remote.accentColor;
+  }
+
+  let active = base.active;
+  const localActiveChanged = local.active !== base.active;
+  const remoteActiveChanged = remote.active !== base.active;
+  if (localActiveChanged && remoteActiveChanged) {
+    if (local.active === remote.active) {
+      active = local.active;
+    } else {
+      localConflicts.push({
+        type: 'active_changed',
+        date: local.active,
+        label: `선택 날짜 변경: ${local.active}`,
+      });
+      remoteConflicts.push({
+        type: 'active_changed',
+        date: remote.active,
+        label: `선택 날짜 변경: ${remote.active}`,
+      });
+      active = local.active;
+    }
+  } else if (localActiveChanged) {
+    active = local.active;
+  } else if (remoteActiveChanged) {
+    active = remote.active;
+  }
+
+  return {
+    state: {
+      days,
+      schedule,
+      drawer,
+      active,
+      accentColor,
+    },
+    details: {
+      items: localConflicts,
+      otherItems: remoteConflicts,
+    },
   };
 }
 
@@ -597,11 +1157,19 @@ export async function pullRealtimeServerState(
 
     if (hasUnsavedLocalChanges || hasLocalWriteRisk(userId)) {
       const baseServerState = getServerSnapshot() || serverState;
-      const details = getBidirectionalConflictDetails(localState, baseServerState, serverState);
-      if (details.items.length > 0 || details.otherItems.length > 0) {
+      const mergeResult = mergeThreeWay(localState, baseServerState, serverState);
+      if (mergeResult.details.items.length > 0 || mergeResult.details.otherItems.length > 0) {
+        setLocalCache(mergeResult.state, userId);
+        setPendingSync(true, userId);
         updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
-        return { type: 'conflict', details };
+        return { type: 'conflict', state: mergeResult.state, details: mergeResult.details };
       }
+
+      const uploadedAt = await uploadStateToServer(userId, mergeResult.state);
+      if (uploadedAt) return { type: 'applied', state: mergeResult.state };
+      setLocalCache(mergeResult.state, userId);
+      setPendingSync(true, userId);
+      return { type: 'offline' };
     }
 
     lastLoadedUpdatedAt = row.updated_at || null;
@@ -711,23 +1279,31 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
       if (pendingSync && localData) {
         if (serverTime > localTime) {
           const baseServerState = getServerSnapshot() || serverState;
-          const conflictDetails = getBidirectionalConflictDetails(
+          const mergeResult = mergeThreeWay(
             localData,
             baseServerState,
             serverState
           );
-          if (conflictDetails.items.length === 0) {
-            setPendingSync(false, user.id);
-            lastLoadedUpdatedAt = row.updated_at || null;
-            setLocalCache(serverState, user.id, row.updated_at || null);
-            setServerSnapshot(serverState);
-            updateSyncStatus({ type: 'synced' });
-            return serverState;
+          if (
+            mergeResult.details.items.length === 0 &&
+            mergeResult.details.otherItems.length === 0
+          ) {
+            const uploadedAt = await uploadStateToServer(user.id, mergeResult.state);
+            if (uploadedAt) {
+              return mergeResult.state;
+            }
+
+            setLocalCache(mergeResult.state, user.id);
+            setPendingSync(true, user.id);
+            updateSyncStatus({ type: 'offline', message: '오프라인' });
+            return mergeResult.state;
           }
 
+          setLocalCache(mergeResult.state, user.id);
+          setPendingSync(true, user.id);
           updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
-          conflictListeners.forEach((cb) => cb(conflictDetails));
-          return localData;
+          conflictListeners.forEach((cb) => cb(mergeResult.details));
+          return mergeResult.state;
         }
 
         const uploadedAt = await uploadStateToServer(user.id, localData);
@@ -780,7 +1356,7 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
   }
 }
 
-export async function saveState(state: AppState): Promise<void> {
+export async function saveState(state: AppState): Promise<AppState | null> {
   let userId: string | undefined;
 
   if (isSupabaseConfigured()) {
@@ -798,7 +1374,7 @@ export async function saveState(state: AppState): Promise<void> {
 
   if (!isSupabaseConfigured() || !userId) {
     updateSyncStatus({ type: 'local_only' });
-    return;
+    return null;
   }
 
   try {
@@ -815,7 +1391,7 @@ export async function saveState(state: AppState): Promise<void> {
       console.warn('Network issue checking server updated_at:', fetchErr.message);
       setPendingSync(true, userId);
       updateSyncStatus({ type: 'offline', message: '오프라인' });
-      return;
+      return null;
     }
 
     if (serverRow && serverRow.updated_at) {
@@ -832,24 +1408,29 @@ export async function saveState(state: AppState): Promise<void> {
           accentColor: state.accentColor,
         }) as AppState);
         const baseServerState = getServerSnapshot() || serverState;
-        const conflictDetails = getBidirectionalConflictDetails(
+        const mergeResult = mergeThreeWay(
           state,
           baseServerState,
           serverState
         );
-        if (conflictDetails.items.length === 0) {
-          setPendingSync(false, userId);
-          lastLoadedUpdatedAt = serverRow.updated_at || null;
-          setLocalCache(serverState, userId, serverRow.updated_at || null);
-          setServerSnapshot(serverState);
-          updateSyncStatus({ type: 'synced' });
-          return;
+        if (
+          mergeResult.details.items.length === 0 &&
+          mergeResult.details.otherItems.length === 0
+        ) {
+          const uploadedAt = await uploadStateToServer(userId, mergeResult.state);
+          if (!uploadedAt) {
+            setLocalCache(mergeResult.state, userId);
+            setPendingSync(true, userId);
+            updateSyncStatus({ type: 'offline', message: '오프라인' });
+          }
+          return mergeResult.state;
         }
 
+        setLocalCache(mergeResult.state, userId);
         setPendingSync(true, userId);
         updateSyncStatus({ type: 'conflict', message: '다른 기기에서 수정됨' });
-        conflictListeners.forEach((cb) => cb(conflictDetails));
-        return;
+        conflictListeners.forEach((cb) => cb(mergeResult.details));
+        return mergeResult.state;
       }
 
       // Save previous server version snapshot before overwriting
@@ -863,10 +1444,12 @@ export async function saveState(state: AppState): Promise<void> {
       setPendingSync(true, userId);
       updateSyncStatus({ type: 'offline', message: '오프라인' });
     }
+    return null;
   } catch (err) {
     console.error('Save state error:', err);
     setPendingSync(true, userId);
     updateSyncStatus({ type: 'offline', message: '오프라인' });
+    return null;
   }
 }
 

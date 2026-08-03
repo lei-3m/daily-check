@@ -280,7 +280,12 @@ export default function App() {
     }
 
     const timer = setTimeout(() => {
-      saveState(appState);
+      saveState(appState).then((mergedState) => {
+        if (!mergedState) return;
+        suppressNextSaveRef.current = true;
+        setAppState(mergedState);
+        setAccentPreference(mergedState.accentColor || 'default');
+      });
     }, 350);
 
     return () => clearTimeout(timer);
@@ -337,6 +342,9 @@ export default function App() {
           setAppState(result.state);
           setAccentPreference(result.state.accentColor || 'default');
         } else if (result.type === 'conflict') {
+          suppressNextSaveRef.current = true;
+          setAppState(result.state);
+          setAccentPreference(result.state.accentColor || 'default');
           setConflictDetails(result.details);
           setShowConflictModal(true);
         }
