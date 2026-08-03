@@ -35,6 +35,11 @@ import {
   PrioritySuggestion,
 } from './lib/priority';
 import { expandScheduleInRange } from './lib/schedule';
+import {
+  appendIncompleteTodos,
+  normalizeTodoOrder,
+  toggleTodoDoneAndMove,
+} from './lib/todoOrder';
 import { Header } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
 import { ScheduleEditView } from './components/ScheduleEditView';
@@ -328,8 +333,11 @@ export default function App() {
 
   const activeKey = appState.active;
   const currentDay = appState.days[activeKey] || { todos: [], memo: '' };
-  const todos = currentDay.todos || [];
-  const drawerLists = normalizeDrawer(appState.drawer);
+  const todos = normalizeTodoOrder(currentDay.todos || []);
+  const drawerLists = normalizeDrawer(appState.drawer).map((list) => ({
+    ...list,
+    items: normalizeTodoOrder(list.items),
+  }));
   const editingSchedule =
     view.kind === 'scheduleEdit' && view.id
       ? appState.schedule.find((item) => item.id === view.id)
@@ -350,15 +358,16 @@ export default function App() {
   const updateCurrentDay = (newTodos: Todo[], newMemo?: string) => {
     setAppState((prev) => {
       if (!prev) return prev;
+      const orderedTodos = normalizeTodoOrder(newTodos);
       const memoValue =
         newMemo !== undefined ? newMemo : prev.days[activeKey]?.memo || '';
       const newDays = { ...prev.days };
 
-      if (newTodos.length === 0 && (!memoValue || memoValue.trim() === '')) {
+      if (orderedTodos.length === 0 && (!memoValue || memoValue.trim() === '')) {
         delete newDays[activeKey];
       } else {
         newDays[activeKey] = {
-          todos: newTodos,
+          todos: orderedTodos,
           memo: memoValue,
         };
       }
@@ -371,11 +380,7 @@ export default function App() {
   };
 
   const handleToggle = (id: string) => {
-    updateCurrentDay(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, done: !todo.done } : todo
-      )
-    );
+    updateCurrentDay(toggleTodoDoneAndMove(todos, id));
   };
 
   const handleEdit = (id: string, newText: string) => {
@@ -392,7 +397,7 @@ export default function App() {
 
   const handleAddMany = (texts: string[]) => {
     const newItems: Todo[] = texts.map(createTodo);
-    updateCurrentDay([...todos, ...newItems]);
+    updateCurrentDay(appendIncompleteTodos(todos, newItems));
   };
 
   const updateDrawers = (
@@ -400,7 +405,10 @@ export default function App() {
   ) => {
     setAppState((prev) => {
       if (!prev) return prev;
-      const normalized = normalizeDrawer(prev.drawer);
+      const normalized = normalizeDrawer(prev.drawer).map((list) => ({
+        ...list,
+        items: normalizeTodoOrder(list.items),
+      }));
       return {
         ...prev,
         drawer: updater(normalized),
@@ -496,7 +504,7 @@ export default function App() {
     updateDrawers((current) =>
       current.map((drawer) =>
         drawer.id === listId
-          ? { ...drawer, items: [...drawer.items, ...newItems] }
+          ? { ...drawer, items: appendIncompleteTodos(drawer.items, newItems) }
           : drawer
       )
     );
@@ -508,9 +516,7 @@ export default function App() {
         drawer.id === listId
           ? {
               ...drawer,
-              items: drawer.items.map((item) =>
-                item.id === todoId ? { ...item, done: !item.done } : item
-              ),
+              items: toggleTodoDoneAndMove(drawer.items, todoId),
             }
           : drawer
       )
@@ -608,7 +614,7 @@ export default function App() {
       const targetDay = newDays[targetDateKey] || { todos: [], memo: '' };
       newDays[targetDateKey] = {
         ...targetDay,
-        todos: [...(targetDay.todos || []), ...movingTodos],
+        todos: normalizeTodoOrder([...(targetDay.todos || []), ...movingTodos]),
       };
 
       return {

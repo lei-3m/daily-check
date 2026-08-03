@@ -207,7 +207,7 @@ function DrawerTodoRow({
   };
 
   return (
-    <div className="group flex items-center justify-between py-2 px-2.5 rounded-lg transition-colors border border-transparent hover:bg-slate-50 hover:border-slate-100">
+    <div className="group flex items-center justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,opacity] motion-safe:duration-150 motion-reduce:transition-none border border-transparent hover:bg-slate-50 hover:border-slate-100">
       <div className="flex items-center min-w-0 flex-1 mr-1">
         <button
           type="button"
