@@ -151,6 +151,7 @@ export function TodoRow({
         )}
 
         {/* Task Done Status Checkbox */}
+        {!isSelectMode && (
         <button
           type="button"
           role="checkbox"
@@ -196,6 +197,7 @@ export function TodoRow({
             </svg>
           </span>
         </button>
+        )}
 
         {/* Task Text or Edit Input */}
         {!isSelectMode && isEditing ? (
@@ -210,7 +212,7 @@ export function TodoRow({
           />
         ) : (
           <span
-            onClick={handleStartEdit}
+            onClick={isSelectMode ? undefined : handleStartEdit}
             title={isSelectMode ? '선택' : '클릭하여 수정'}
             className={`text-sm truncate font-medium ${
               isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'

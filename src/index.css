@@ -309,6 +309,69 @@ html.theme-switching *::after {
   background-color: var(--accent) !important;
 }
 
+.move-date-button {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.move-date-button-date {
+  color: #475569 !important;
+}
+
+.move-date-button:active:not(:disabled) {
+  background-color: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+}
+
+.move-date-button:disabled {
+  background-color: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+.move-date-button:disabled .move-date-button-date {
+  color: #475569 !important;
+}
+
+html.dark .move-date-button {
+  background-color: #252a33 !important;
+  border-color: #596373 !important;
+  color: #eef1f5 !important;
+}
+
+html.dark .move-date-button-date {
+  color: #bcc3ce !important;
+}
+
+html.dark .move-date-button:active:not(:disabled) {
+  background-color: #343b47 !important;
+  border-color: #7f8998 !important;
+}
+
+html.dark .move-date-button:disabled {
+  background-color: #2a303a !important;
+  border-color: #596373 !important;
+  color: #bcc3ce !important;
+}
+
+html.dark .move-date-button:disabled .move-date-button-date {
+  color: #9da6b4 !important;
+}
+
+@media (hover: hover) {
+  .move-date-button:hover:not(:disabled) {
+    background-color: #ffffff !important;
+    border-color: #94a3b8 !important;
+  }
+
+  html.dark .move-date-button:hover:not(:disabled) {
+    background-color: #303744 !important;
+    border-color: #7f8998 !important;
+  }
+}
+
 .calendar-today-dot {
   background-color: var(--calendar-today-dot) !important;
   border-color: var(--surface) !important;
