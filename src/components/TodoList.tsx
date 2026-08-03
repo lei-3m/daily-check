@@ -11,12 +11,12 @@ import {
 } from '@dnd-kit/core';
 import type { Modifier } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Todo } from '../lib/types';
+import { moveIncompleteTodo } from '../lib/todoOrder';
 import { TodoRow } from './TodoRow';
 
 const restrictTodoDragToList: Modifier = ({ transform, activeNodeRect, containerNodeRect }) => {
@@ -105,10 +105,9 @@ export function TodoList({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = todos.findIndex((item) => item.id === active.id);
-      const newIndex = todos.findIndex((item) => item.id === over.id);
-      if (oldIndex !== -1 && newIndex !== -1 && onReorderTodos) {
-        const newTodos = arrayMove(todos, oldIndex, newIndex);
+      if (onReorderTodos) {
+        const newTodos = moveIncompleteTodo(todos, String(active.id), String(over.id));
+        if (newTodos === todos) return;
         onReorderTodos(newTodos);
       }
     }
@@ -179,6 +178,7 @@ export function TodoList({
                   todo={todo}
                   isSelectMode={isSelectMode}
                   isSelected={selectedIds?.has(todo.id)}
+                  isDragDisabled={todo.done}
                   onToggleSelect={onToggleSelect}
                   onToggle={onToggle}
                   onEdit={onEdit}

@@ -8,6 +8,7 @@ interface TodoRowProps {
   todo: Todo;
   isSelectMode?: boolean;
   isSelected?: boolean;
+  isDragDisabled?: boolean;
   onToggleSelect?: (id: string) => void;
   onToggle: (id: string) => void;
   onEdit: (id: string, text: string) => void;
@@ -18,6 +19,7 @@ export function TodoRow({
   todo,
   isSelectMode = false,
   isSelected = false,
+  isDragDisabled = false,
   onToggleSelect,
   onToggle,
   onEdit,
@@ -38,12 +40,17 @@ export function TodoRow({
     isDragging,
   } = useSortable({
     id,
-    disabled: isSelectMode,
+    disabled: isSelectMode || isDragDisabled,
   });
+
+  const shouldReduceMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: shouldReduceMotion ? undefined : transition ?? 'transform 150ms ease',
     zIndex: isDragging ? 50 : undefined,
     position: 'relative',
   };
@@ -93,7 +100,7 @@ export function TodoRow({
       ref={setNodeRef}
       style={style}
       onClick={isSelectMode ? () => onToggleSelect?.(id) : undefined}
-      className={`group flex items-center justify-between py-2 px-2.5 rounded-lg transition-colors border ${
+      className={`group flex items-center justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
         isDragging
           ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : isSelectMode
@@ -136,6 +143,13 @@ export function TodoRow({
               </svg>
             </span>
           </button>
+        ) : isDragDisabled ? (
+          <span
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-200 select-none text-base"
+            aria-hidden="true"
+          >
+            ⠿
+          </span>
         ) : (
           /* Drag handle */
           <span
