@@ -187,7 +187,7 @@ export function TodoList({
                     type="button"
                     onClick={() => setIsCompletedExpanded((prev) => !prev)}
                     aria-expanded={isCompletedExpanded}
-                    className="min-h-11 w-full flex items-center justify-between gap-2 px-2.5 py-2 text-left text-xs font-semibold text-slate-500 [@media(hover:hover)]:hover:text-slate-800 [@media(hover:hover)]:hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
+                    className="min-h-11 w-full flex items-center justify-between gap-2 px-2.5 py-2 text-left text-xs font-semibold text-slate-500 border border-transparent [@media(hover:hover)]:hover:text-slate-700 [@media(hover:hover)]:hover:bg-slate-50 [@media(hover:hover)]:hover:border-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
                   >
                     <span>완료한 일 {completedTodos.length}개</span>
                     {isCompletedExpanded ? (
