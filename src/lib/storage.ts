@@ -7,6 +7,7 @@ const SNAPSHOT_KEY = 'daily-check:snapshot';
 const PENDING_SYNC_KEY = 'daily-check:pending-sync';
 const SCHEDULE_COLLAPSED_KEY = 'daily-check:schedule-collapsed';
 const PRIORITY_INCLUDE_MEMO_KEY = 'daily-check:priority-include-memo';
+const YESTERDAY_CARRYOVER_DISMISSED_PREFIX = 'daily-check:yesterday-carryover-dismissed:';
 
 export type SyncStatusType = 'synced' | 'saving' | 'pending' | 'offline' | 'conflict' | 'local_only';
 
@@ -490,6 +491,22 @@ export function setPriorityIncludeMemoPreference(includeMemo: boolean): void {
     localStorage.setItem(PRIORITY_INCLUDE_MEMO_KEY, String(includeMemo));
   } catch (error) {
     console.error('Failed to save priority memo preference:', error);
+  }
+}
+
+export function isYesterdayCarryoverDismissed(dateKey: string): boolean {
+  try {
+    return localStorage.getItem(`${YESTERDAY_CARRYOVER_DISMISSED_PREFIX}${dateKey}`) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function dismissYesterdayCarryover(dateKey: string): void {
+  try {
+    localStorage.setItem(`${YESTERDAY_CARRYOVER_DISMISSED_PREFIX}${dateKey}`, 'true');
+  } catch (error) {
+    console.error('Failed to save yesterday carryover dismissed state:', error);
   }
 }
 
