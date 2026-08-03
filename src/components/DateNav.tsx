@@ -18,6 +18,7 @@ interface DateNavProps {
   schedule: ScheduleItem[];
   onChangeView: (newView: View) => void;
   onSelectDate: (key: string) => void;
+  onOpenScheduleEdit: (id: string) => void;
 }
 
 export function DateNav({
@@ -27,6 +28,7 @@ export function DateNav({
   schedule,
   onChangeView,
   onSelectDate,
+  onOpenScheduleEdit,
 }: DateNavProps) {
   const today = todayKey();
 
@@ -78,6 +80,7 @@ export function DateNav({
       onNextMonth={() =>
         onChangeView({ kind: 'month', anchor: addMonths(view.anchor, 1) })
       }
+      onOpenScheduleEdit={onOpenScheduleEdit}
     />
     );
   }

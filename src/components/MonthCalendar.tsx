@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, monthGrid, parseKey, startOfWeek, addDays } from '../lib/date';
 import { expandScheduleInRange, hasRepeat } from '../lib/schedule';
@@ -12,6 +13,7 @@ interface MonthCalendarProps {
   onBackToWeek: () => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onOpenScheduleEdit: (id: string) => void;
 }
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
@@ -150,6 +152,7 @@ export function MonthCalendar({
   onBackToWeek,
   onPrevMonth,
   onNextMonth,
+  onOpenScheduleEdit,
 }: MonthCalendarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -439,9 +442,9 @@ export function MonthCalendar({
           type="button"
           onClick={onBackToWeek}
           aria-label="뒤로"
-          className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
+          className="min-h-11 min-w-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
         >
-          <span className="text-[32px] leading-none">‹</span>
+          <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
         </button>
 
         <div className="flex items-center gap-2">
@@ -449,18 +452,18 @@ export function MonthCalendar({
             type="button"
             onClick={handleGoPrev}
             aria-label="이전 달"
-            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
+            className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
-            ‹
+            <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
           </button>
           <span className="font-bold text-slate-900">{monthTitle}</span>
           <button
             type="button"
             onClick={handleGoNext}
             aria-label="다음 달"
-            className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
+            className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
-            ›
+            <ChevronRight size={20} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -503,7 +506,7 @@ export function MonthCalendar({
                 {thisWeekSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onSelectDate(item.norm.key)}
+                    onClick={() => onOpenScheduleEdit(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
@@ -530,7 +533,7 @@ export function MonthCalendar({
                 {nextWeekSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onSelectDate(item.norm.key)}
+                    onClick={() => onOpenScheduleEdit(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
@@ -557,7 +560,7 @@ export function MonthCalendar({
                 {afterNextWeekSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onSelectDate(item.norm.key)}
+                    onClick={() => onOpenScheduleEdit(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
@@ -584,7 +587,7 @@ export function MonthCalendar({
                 {pastSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onSelectDate(item.norm.key)}
+                    onClick={() => onOpenScheduleEdit(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-500 calendar-schedule-row-past border border-slate-100"
                   >
                     <span className="text-slate-300 text-[10px]">●</span>

@@ -1,4 +1,4 @@
-import { AppState, Drawer, Todo } from './types';
+import { AppState, DrawerList, Todo } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isAccentPreference } from './theme';
 
@@ -86,31 +86,31 @@ function summarizeSchedule(text: string, date: string): string {
   return `${date} 일정: ${text}`;
 }
 
-function drawerDisplayName(name: string): string {
+function listDisplayName(name: string): string {
   return name.trim() || '목록 이름';
 }
 
 function summarizeDrawerList(name: string, action: '추가' | '삭제' | '수정'): string {
-  return `서랍 목록 ${action}: ${drawerDisplayName(name)}`;
+  return `서랍 목록 ${action}: ${listDisplayName(name)}`;
 }
 
-function summarizeDrawerItem(
-  drawerName: string,
+function summarizeDrawerTodo(
+  listName: string,
   text: string,
   action: '추가' | '삭제' | '수정'
 ): string {
-  return `서랍 항목 ${action}: ${drawerDisplayName(drawerName)} - ${text}`;
+  return `서랍 할 일 ${action}: ${listDisplayName(listName)} - ${text}`;
 }
 
-function createDefaultDrawer(): Drawer[] {
+function createDefaultDrawer(): DrawerList[] {
   return [];
 }
 
-export function normalizeDrawer(drawer?: Drawer[]): Drawer[] {
+export function normalizeDrawer(drawer?: DrawerList[]): DrawerList[] {
   if (!drawer || drawer.length === 0) return createDefaultDrawer();
   return drawer.map((item, index) => ({
     id: item.id || `drawer-${index}`,
-    name: typeof item.name === 'string' ? item.name : '서랍',
+    name: typeof item.name === 'string' ? item.name : '목록 이름',
     items: item.items || [],
   }));
 }
@@ -147,8 +147,8 @@ function getServerSnapshot(): AppState | null {
   }
 }
 
-function collectDrawerItemConflictItems(
-  drawerName: string,
+function collectDrawerTodoConflictItems(
+  listName: string,
   localItems: Todo[],
   serverItems: Todo[],
   items: ConflictDetailItem[]
@@ -160,9 +160,9 @@ function collectDrawerItemConflictItems(
     if (!serverTodoIds.has(todo.id)) {
       items.push({
         type: 'drawer_added',
-        date: drawerDisplayName(drawerName),
+        date: listDisplayName(listName),
         text: todo.text,
-        label: summarizeDrawerItem(drawerName, todo.text, '추가'),
+        label: summarizeDrawerTodo(listName, todo.text, '추가'),
       });
     }
   }
@@ -171,9 +171,9 @@ function collectDrawerItemConflictItems(
     if (!localTodoIds.has(todo.id)) {
       items.push({
         type: 'drawer_deleted',
-        date: drawerDisplayName(drawerName),
+        date: listDisplayName(listName),
         text: todo.text,
-        label: summarizeDrawerItem(drawerName, todo.text, '삭제'),
+        label: summarizeDrawerTodo(listName, todo.text, '삭제'),
       });
     }
   }
@@ -183,74 +183,74 @@ function collectDrawerItemConflictItems(
     if (serverTodo && (serverTodo.text !== todo.text || serverTodo.done !== todo.done)) {
       items.push({
         type: 'drawer_updated',
-        date: drawerDisplayName(drawerName),
+        date: listDisplayName(listName),
         text: todo.text,
-        label: summarizeDrawerItem(drawerName, todo.text, '수정'),
+        label: summarizeDrawerTodo(listName, todo.text, '수정'),
       });
     }
   }
 }
 
 function collectDrawerConflictItems(
-  localDrawers: Drawer[],
-  serverDrawers: Drawer[],
+  localLists: DrawerList[],
+  serverLists: DrawerList[],
   items: ConflictDetailItem[]
 ): void {
-  const serverIds = new Set(serverDrawers.map((drawer) => drawer.id));
-  const localIds = new Set(localDrawers.map((drawer) => drawer.id));
+  const serverIds = new Set(serverLists.map((list) => list.id));
+  const localIds = new Set(localLists.map((list) => list.id));
 
-  for (const drawer of localDrawers) {
-    if (!serverIds.has(drawer.id)) {
+  for (const list of localLists) {
+    if (!serverIds.has(list.id)) {
       items.push({
         type: 'drawer_added',
-        date: drawerDisplayName(drawer.name),
-        label: summarizeDrawerList(drawer.name, '추가'),
+        date: listDisplayName(list.name),
+        label: summarizeDrawerList(list.name, '추가'),
       });
-      for (const todo of drawer.items || []) {
+      for (const todo of list.items || []) {
         items.push({
           type: 'drawer_added',
-          date: drawerDisplayName(drawer.name),
+          date: listDisplayName(list.name),
           text: todo.text,
-          label: summarizeDrawerItem(drawer.name, todo.text, '추가'),
+          label: summarizeDrawerTodo(list.name, todo.text, '추가'),
         });
       }
     }
   }
 
-  for (const drawer of serverDrawers) {
-    if (!localIds.has(drawer.id)) {
+  for (const list of serverLists) {
+    if (!localIds.has(list.id)) {
       items.push({
         type: 'drawer_deleted',
-        date: drawerDisplayName(drawer.name),
-        label: summarizeDrawerList(drawer.name, '삭제'),
+        date: listDisplayName(list.name),
+        label: summarizeDrawerList(list.name, '삭제'),
       });
-      for (const todo of drawer.items || []) {
+      for (const todo of list.items || []) {
         items.push({
           type: 'drawer_deleted',
-          date: drawerDisplayName(drawer.name),
+          date: listDisplayName(list.name),
           text: todo.text,
-          label: summarizeDrawerItem(drawer.name, todo.text, '삭제'),
+          label: summarizeDrawerTodo(list.name, todo.text, '삭제'),
         });
       }
     }
   }
 
-  for (const drawer of localDrawers) {
-    const serverDrawer = serverDrawers.find((item) => item.id === drawer.id);
-    if (!serverDrawer) continue;
+  for (const list of localLists) {
+    const serverList = serverLists.find((item) => item.id === list.id);
+    if (!serverList) continue;
 
-    if (serverDrawer.name !== drawer.name) {
+    if (serverList.name !== list.name) {
       items.push({
         type: 'drawer_updated',
-        date: drawerDisplayName(drawer.name),
-        label: summarizeDrawerList(drawer.name, '수정'),
+        date: listDisplayName(list.name),
+        label: summarizeDrawerList(list.name, '수정'),
       });
     }
 
-    collectDrawerItemConflictItems(
-      drawer.name,
-      drawer.items || [],
-      serverDrawer.items || [],
+    collectDrawerTodoConflictItems(
+      list.name,
+      list.items || [],
+      serverList.items || [],
       items
     );
   }

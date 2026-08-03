@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { ScheduleItem } from '../lib/types';
 import { shortLabel, todayKey } from '../lib/date';
 
@@ -71,9 +72,9 @@ export function ScheduleEditView({
           type="button"
           onClick={onBack}
           aria-label="뒤로"
-          className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
+          className="min-h-11 min-w-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
         >
-          <span className="text-[32px] leading-none">‹</span>
+          <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
         </button>
         <h2 className="text-sm font-semibold text-slate-900">일정 편집</h2>
       </div>

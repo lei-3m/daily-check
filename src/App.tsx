@@ -329,7 +329,7 @@ export default function App() {
   const activeKey = appState.active;
   const currentDay = appState.days[activeKey] || { todos: [], memo: '' };
   const todos = currentDay.todos || [];
-  const drawers = normalizeDrawer(appState.drawer);
+  const drawerLists = normalizeDrawer(appState.drawer);
   const editingSchedule =
     view.kind === 'scheduleEdit' && view.id
       ? appState.schedule.find((item) => item.id === view.id)
@@ -428,7 +428,7 @@ export default function App() {
     pushView({ kind: 'drawerList', id });
   };
 
-  const handleBackToDrawerDocuments = () => {
+  const handleBackToDrawerLists = () => {
     if (viewRef.current.kind === 'drawerList') {
       finalizeUntitledDrawer(viewRef.current.id);
     }
@@ -440,13 +440,13 @@ export default function App() {
   };
 
   const handleCreateDrawer = () => {
-    const newDrawer = {
+    const newList = {
       id: createId(),
       name: '',
       items: [],
     };
-    updateDrawers((current) => [...current, newDrawer]);
-    pushView({ kind: 'drawerList', id: newDrawer.id });
+    updateDrawers((current) => [...current, newList]);
+    pushView({ kind: 'drawerList', id: newList.id });
   };
 
   const handleChangeView = (nextView: View) => {
@@ -476,11 +476,11 @@ export default function App() {
   };
 
   const handleDeleteDrawer = (id: string) => {
-    const drawer = drawers.find((item) => item.id === id);
-    if (!drawer) return;
+    const list = drawerLists.find((item) => item.id === id);
+    if (!list) return;
     if (
-      drawer.items.length > 0 &&
-      !window.confirm('목록 안의 항목도 함께 삭제됩니다. 계속할까요?')
+      list.items.length > 0 &&
+      !window.confirm('목록 안의 할 일도 함께 삭제됩니다. 계속할까요?')
     ) {
       return;
     }
@@ -491,25 +491,25 @@ export default function App() {
     }
   };
 
-  const handleAddDrawerItems = (drawerId: string, texts: string[]) => {
+  const handleAddDrawerTodos = (listId: string, texts: string[]) => {
     const newItems = texts.map(createTodo);
     updateDrawers((current) =>
       current.map((drawer) =>
-        drawer.id === drawerId
+        drawer.id === listId
           ? { ...drawer, items: [...drawer.items, ...newItems] }
           : drawer
       )
     );
   };
 
-  const handleToggleDrawerItem = (drawerId: string, itemId: string) => {
+  const handleToggleDrawerTodo = (listId: string, todoId: string) => {
     updateDrawers((current) =>
       current.map((drawer) =>
-        drawer.id === drawerId
+        drawer.id === listId
           ? {
               ...drawer,
               items: drawer.items.map((item) =>
-                item.id === itemId ? { ...item, done: !item.done } : item
+                item.id === todoId ? { ...item, done: !item.done } : item
               ),
             }
           : drawer
@@ -517,14 +517,14 @@ export default function App() {
     );
   };
 
-  const handleEditDrawerItem = (drawerId: string, itemId: string, text: string) => {
+  const handleEditDrawerTodo = (listId: string, todoId: string, text: string) => {
     updateDrawers((current) =>
       current.map((drawer) =>
-        drawer.id === drawerId
+        drawer.id === listId
           ? {
               ...drawer,
               items: drawer.items.map((item) =>
-                item.id === itemId ? { ...item, text } : item
+                item.id === todoId ? { ...item, text } : item
               ),
             }
           : drawer
@@ -532,13 +532,13 @@ export default function App() {
     );
   };
 
-  const handleDeleteDrawerItem = (drawerId: string, itemId: string) => {
+  const handleDeleteDrawerTodo = (listId: string, todoId: string) => {
     updateDrawers((current) =>
       current.map((drawer) =>
-        drawer.id === drawerId
+        drawer.id === listId
           ? {
               ...drawer,
-              items: drawer.items.filter((item) => item.id !== itemId),
+              items: drawer.items.filter((item) => item.id !== todoId),
             }
           : drawer
       )
@@ -620,7 +620,7 @@ export default function App() {
 
     setIsSelectMode(false);
     setSelectedIds(new Set());
-    showToast(`${movingTodos.length}개 할 일이 이동함`);
+    showToast(`할 일 ${movingTodos.length}개를 다른 날짜로 이동했어요`);
   };
 
   const handleAddSchedule = (
@@ -957,26 +957,26 @@ export default function App() {
 
         {view.kind !== 'month' && view.kind !== 'scheduleEdit' && (
           <DrawerBlock
-            drawers={drawers}
+            lists={drawerLists}
             mode={
               view.kind === 'drawer'
-                ? 'documents'
+                ? 'lists'
                 : view.kind === 'drawerList'
                 ? 'list'
                 : 'collapsed'
             }
-            activeDrawerId={view.kind === 'drawerList' ? view.id : undefined}
+            activeListId={view.kind === 'drawerList' ? view.id : undefined}
             onOpenDrawer={handleOpenDrawer}
             onCloseDrawer={handleCloseDrawer}
             onOpenList={handleOpenDrawerList}
-            onBackToDocuments={handleBackToDrawerDocuments}
+            onBackToLists={handleBackToDrawerLists}
             onCreateDrawer={handleCreateDrawer}
             onRenameDrawer={handleRenameDrawer}
             onDeleteDrawer={handleDeleteDrawer}
-            onAddItems={handleAddDrawerItems}
-            onToggleItem={handleToggleDrawerItem}
-            onEditItem={handleEditDrawerItem}
-            onDeleteItem={handleDeleteDrawerItem}
+            onAddTodos={handleAddDrawerTodos}
+            onToggleTodo={handleToggleDrawerTodo}
+            onEditTodo={handleEditDrawerTodo}
+            onDeleteTodo={handleDeleteDrawerTodo}
           />
         )}
 
@@ -999,6 +999,7 @@ export default function App() {
             schedule={appState.schedule}
             onChangeView={handleChangeView}
             onSelectDate={handleSelectDate}
+            onOpenScheduleEdit={openScheduleEdit}
           />
         )}
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, weekDays, weekMonthLabel, parseKey, startOfWeek, addDays } from '../lib/date';
 import { expandScheduleInRange } from '../lib/schedule';
@@ -367,9 +368,9 @@ export function WeekStrip({
           type="button"
           onClick={goPrev}
           aria-label="이전 주"
-          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
-          ‹
+          <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
         </button>
 
         <div className="flex items-center gap-2">
@@ -379,7 +380,7 @@ export function WeekStrip({
             className="flex items-center gap-1 font-bold text-slate-900 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5"
           >
             <span>{monthTitle}</span>
-            <span className="text-xs text-slate-400">›</span>
+            <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="text-slate-500" />
           </button>
 
           {showTodayButton && (
@@ -397,9 +398,9 @@ export function WeekStrip({
           type="button"
           onClick={goNext}
           aria-label="다음 주"
-          className="p-1 rounded hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          className="min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-500 hover:text-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
-          ›
+          <ChevronRight size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
 
