@@ -1059,6 +1059,7 @@ export default function App() {
 
     const { error } = await supabase.auth.updateUser({ data: nextMetadata });
     if (error) {
+      console.error('Profile update failed:', error);
       showToast('프로필 저장에 실패했습니다');
       return false;
     }
