@@ -2,7 +2,8 @@ import { Todo } from './types';
 
 export function formatTodosToMarkdown(todos: Todo[]): string {
   return todos
-    .map((todo) => `${todo.done ? '- [x]' : '- [ ]'} ${todo.text}`)
+    .filter((todo) => !todo.done)
+    .map((todo) => `- [ ] ${todo.text}`)
     .join('\n');
 }
 
