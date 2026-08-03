@@ -52,8 +52,6 @@ type MergeResult = {
   details: ConflictDetails;
 };
 
-type MergeScope = 'load' | 'save' | 'realtime';
-
 interface LocalCacheEnvelope {
   userId?: string;
   updatedAt?: string | null;
@@ -958,51 +956,6 @@ function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: A
   };
 }
 
-function getTodoIdsByDay(state: AppState): Record<string, string[]> {
-  const normalized = normalizeStoredState(state);
-  return Object.fromEntries(
-    Object.entries(normalized.days || {}).map(([date, day]) => [
-      date,
-      (day.todos || []).map((todo) => todo.id),
-    ])
-  );
-}
-
-function logMergeAttempt(
-  scope: MergeScope,
-  baseState: AppState,
-  localState: AppState,
-  remoteState: AppState,
-  mergeResult: MergeResult
-): void {
-  console.log('[daily-check merge]', scope, {
-    todoIds: {
-      base: getTodoIdsByDay(baseState),
-      local: getTodoIdsByDay(localState),
-      remote: getTodoIdsByDay(remoteState),
-      merged: getTodoIdsByDay(mergeResult.state),
-    },
-    conflicts: mergeResult.details,
-  });
-}
-
-function fallbackConflict(
-  scope: MergeScope,
-  localState: AppState,
-  remoteState: AppState
-): ConflictDetails {
-  const details = getConflictDetails(localState, remoteState);
-  console.log('[daily-check merge]', scope, {
-    skipped: 'missing base snapshot',
-    todoIds: {
-      local: getTodoIdsByDay(localState),
-      remote: getTodoIdsByDay(remoteState),
-    },
-    conflicts: details,
-  });
-  return details;
-}
-
 function updateSyncStatus(status: SyncStatus) {
   if (
     currentSyncStatus.type === status.type &&
@@ -1205,14 +1158,13 @@ export async function pullRealtimeServerState(
     if (hasUnsavedLocalChanges || hasLocalWriteRisk(userId)) {
       const baseServerState = getServerSnapshot();
       if (!baseServerState) {
-        const details = fallbackConflict('realtime', localState, serverState);
+        const details = getConflictDetails(localState, serverState);
         setLocalCache(localState, userId);
         setPendingSync(true, userId);
         updateSyncStatus({ type: 'conflict', message: 'Conflict detected' });
         return { type: 'conflict', state: localState, details };
       }
       const mergeResult = mergeThreeWay(localState, baseServerState, serverState);
-      logMergeAttempt('realtime', baseServerState, localState, serverState, mergeResult);
       if (mergeResult.details.items.length > 0 || mergeResult.details.otherItems.length > 0) {
         setLocalCache(mergeResult.state, userId);
         setPendingSync(true, userId);
@@ -1335,7 +1287,7 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
         if (serverTime > localTime) {
           const baseServerState = getServerSnapshot();
           if (!baseServerState) {
-            const details = fallbackConflict('load', localData, serverState);
+            const details = getConflictDetails(localData, serverState);
             setLocalCache(localData, user.id);
             setPendingSync(true, user.id);
             updateSyncStatus({ type: 'conflict', message: 'Conflict detected' });
@@ -1347,7 +1299,6 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
             baseServerState,
             serverState
           );
-          logMergeAttempt('load', baseServerState, localData, serverState, mergeResult);
           if (
             mergeResult.details.items.length === 0 &&
             mergeResult.details.otherItems.length === 0
@@ -1475,7 +1426,7 @@ export async function saveState(state: AppState): Promise<AppState | null> {
         }) as AppState);
         const baseServerState = getServerSnapshot();
         if (!baseServerState) {
-          const details = fallbackConflict('save', state, serverState);
+          const details = getConflictDetails(state, serverState);
           setLocalCache(state, userId, localBaseUpdatedAt);
           setPendingSync(true, userId);
           updateSyncStatus({ type: 'conflict', message: 'Conflict detected' });
@@ -1487,7 +1438,6 @@ export async function saveState(state: AppState): Promise<AppState | null> {
           baseServerState,
           serverState
         );
-        logMergeAttempt('save', baseServerState, state, serverState, mergeResult);
         if (
           mergeResult.details.items.length === 0 &&
           mergeResult.details.otherItems.length === 0
