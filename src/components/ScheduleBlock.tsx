@@ -263,6 +263,9 @@ export function ScheduleBlock({
                   <span className="font-mono font-semibold text-slate-600 group-hover:text-slate-900">
                     +{after7Days.length}개
                   </span>
+                  <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-500">
+                    · 7일 이후
+                  </span>
                   <ChevronDown
                     size={20}
                     strokeWidth={2}
