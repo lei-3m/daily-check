@@ -124,10 +124,9 @@ export function ConflictModal({ details, onRefresh, onDismiss }: ConflictModalPr
               <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
-                className="min-h-11 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg px-2"
+                className="text-xs font-semibold text-slate-500 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1 py-0.5"
               >
-                <span>외 {hiddenCount}개</span>
-                <span className="text-[22px] leading-none font-bold">⌄</span>
+                외 {hiddenCount}개 ▾
               </button>
             )}
           </div>

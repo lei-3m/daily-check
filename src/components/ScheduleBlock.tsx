@@ -177,9 +177,9 @@ export function ScheduleBlock({
             toggleCollapsed();
           }}
           aria-label={isCollapsed ? '일정 펼치기' : '일정 접기'}
-          className="min-h-11 min-w-11 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg leading-none"
+          className="text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5 text-xs font-semibold leading-none"
         >
-          <span className="text-[28px] font-bold leading-none">{isCollapsed ? '⌄' : '−'}</span>
+          {isCollapsed ? '펼치기 ▾' : '접기 −'}
         </button>
       </div>
 
@@ -253,12 +253,12 @@ export function ScheduleBlock({
                 <button
                   type="button"
                   onClick={toggleExpanded}
-                  className="min-h-11 w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded-lg hover:bg-slate-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 group"
+                  className="w-full flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 group"
                 >
                   <span className="font-mono font-semibold text-slate-600 group-hover:text-slate-900">
                     +{after7Days.length}개
                   </span>
-                  <span className="text-[24px] leading-none text-slate-600 group-hover:text-slate-900 font-bold">⌄</span>
+                  <span className="text-slate-400 group-hover:text-slate-700 font-bold">▾</span>
                 </button>
               )}
 
@@ -266,10 +266,10 @@ export function ScheduleBlock({
                 <button
                   type="button"
                   onClick={toggleExpanded}
-                  className="min-h-11 w-full flex items-center justify-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded-lg hover:bg-slate-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 group"
+                  className="w-full flex items-center justify-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors py-1 px-1.5 rounded hover:bg-slate-100/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 group"
                 >
                   <span>접기</span>
-                  <span className="text-[24px] leading-none font-bold">−</span>
+                  <span className="font-bold">▴</span>
                 </button>
               )}
             </div>

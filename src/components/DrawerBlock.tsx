@@ -402,9 +402,7 @@ export function DrawerBlock({
           <span>▤</span>
           <span>서랍</span>
         </span>
-        <span className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-slate-600">
-          <span className="text-[28px] font-bold leading-none">⌄</span>
-        </span>
+        <span className="text-xs font-semibold text-slate-400">펼치기 ▾</span>
       </button>
     );
   }
@@ -419,7 +417,7 @@ export function DrawerBlock({
             aria-label="뒤로"
             className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
           >
-            <span className="text-[34px] leading-none">〈</span>
+            <span className="text-[32px] leading-none">‹</span>
           </button>
           <div className="min-w-0 flex-1">
             <EditableDrawerName
@@ -462,7 +460,7 @@ export function DrawerBlock({
           aria-label="뒤로"
           className="min-h-11 min-w-11 flex items-center justify-center font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg select-auto"
         >
-          <span className="text-[34px] leading-none">〈</span>
+          <span className="text-[32px] leading-none">‹</span>
         </button>
       </div>
 
