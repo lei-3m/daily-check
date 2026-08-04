@@ -292,9 +292,10 @@ function DrawerTodoRow({
 interface DrawerTodoAddFormProps {
   listId: string;
   onAddTodos: (listId: string, texts: string[]) => void;
+  onAdded: () => void;
 }
 
-function DrawerTodoAddForm({ listId, onAddTodos }: DrawerTodoAddFormProps) {
+function DrawerTodoAddForm({ listId, onAddTodos, onAdded }: DrawerTodoAddFormProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const inputValueRef = useRef('');
@@ -303,11 +304,12 @@ function DrawerTodoAddForm({ listId, onAddTodos }: DrawerTodoAddFormProps) {
   const addSingle = () => {
     const cleaned = cleanTodoPrefix(inputValueRef.current || inputValue);
     if (cleaned) {
+      onAdded();
       onAddTodos(listId, [cleaned]);
       setInputValue('');
       inputValueRef.current = '';
     }
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -321,10 +323,11 @@ function DrawerTodoAddForm({ listId, onAddTodos }: DrawerTodoAddFormProps) {
       .filter((line) => line.length > 0);
 
     if (lines.length > 0) {
+      onAdded();
       onAddTodos(listId, lines);
       setInputValue('');
       inputValueRef.current = '';
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -391,6 +394,27 @@ export function DrawerBlock({
   onDeleteTodo,
 }: DrawerBlockProps) {
   const activeList = lists.find((list) => list.id === activeListId);
+  const itemsScrollRef = useRef<HTMLDivElement>(null);
+  const pendingAddScrollRef = useRef(false);
+  const itemCount = activeList?.items.length ?? 0;
+
+  // 새 항목은 목록 맨 아래에 붙는데, 목록이 박스 높이를 넘으면 잘려서 보이지 않는다.
+  // 추가 직후 스크롤 컨테이너를 끝까지 내려 방금 넣은 항목을 보여준다.
+  useEffect(() => {
+    if (!pendingAddScrollRef.current) return;
+    pendingAddScrollRef.current = false;
+    const container = itemsScrollRef.current;
+    if (!container) return;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior:
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+    });
+  }, [itemCount]);
 
   if (mode === 'collapsed') {
     return (
@@ -433,7 +457,10 @@ export function DrawerBlock({
           </div>
         </div>
 
-        <div className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60">
+        <div
+          ref={itemsScrollRef}
+          className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60"
+        >
           {activeList.items.length === 0 ? (
             <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
               이 목록에는 할 일이 없어요.<br />
@@ -453,7 +480,13 @@ export function DrawerBlock({
           )}
         </div>
 
-        <DrawerTodoAddForm listId={activeList.id} onAddTodos={onAddTodos} />
+        <DrawerTodoAddForm
+          listId={activeList.id}
+          onAddTodos={onAddTodos}
+          onAdded={() => {
+            pendingAddScrollRef.current = true;
+          }}
+        />
       </section>
     );
   }
