@@ -111,6 +111,8 @@ export function TodoList({
   const inputRef = useRef<HTMLInputElement>(null);
   const inputValueRef = useRef('');
   const swipeRailRef = useRef<HTMLDivElement>(null);
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const pendingAddScrollRef = useRef(false);
   const isDndDraggingRef = useRef(false);
   const suppressClickRef = useRef(false);
   const swipeResetTimerRef = useRef<number | null>(null);
@@ -137,6 +139,19 @@ export function TodoList({
       }
     };
   }, []);
+
+  // 새로 추가한 할 일은 목록 맨 아래에 붙는다. 화면 밖으로 밀려나면
+  // 사용자가 직접 스크롤해야 하므로, 추가 직후 보이는 위치까지 끌어온다.
+  useEffect(() => {
+    if (!pendingAddScrollRef.current) return;
+    pendingAddScrollRef.current = false;
+    const lastRow = rowsRef.current?.lastElementChild;
+    lastRow?.scrollIntoView({
+      block: 'nearest',
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
+    inputRef.current?.focus({ preventScroll: true });
+  }, [todos.length]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -278,11 +293,12 @@ export function TodoList({
     const currentVal = inputValueRef.current || inputValue;
     const cleaned = cleanTodoPrefix(currentVal);
     if (cleaned) {
+      pendingAddScrollRef.current = true;
       onAddMany([cleaned]);
       setInputValue('');
       inputValueRef.current = '';
     }
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -307,10 +323,11 @@ export function TodoList({
         .filter((line) => line.length > 0);
 
       if (cleanedLines.length > 0) {
+        pendingAddScrollRef.current = true;
         onAddMany(cleanedLines);
         setInputValue('');
         inputValueRef.current = '';
-        inputRef.current?.focus();
+        inputRef.current?.focus({ preventScroll: true });
       }
     }
   };
@@ -345,7 +362,7 @@ export function TodoList({
           items={todos.map((todo) => todo.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="min-h-[128px] divide-y divide-slate-100/60">
+          <div ref={rowsRef} className="min-h-[128px] divide-y divide-slate-100/60">
             {todos.length === 0 ? (
               <div className="min-h-[128px] flex items-center justify-center text-xs text-slate-400 py-3 text-center">
                 오늘 할 일이 없어요. 아래 입력칸에 할 일을 추가하세요.
