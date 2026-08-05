@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react';
+import type { AccentPreference, ThemePreference } from './types';
+import {
+  getStoredAccentPreference,
+  getStoredThemePreference,
+  setStoredAccentPreference,
+  setStoredThemePreference,
+} from './storage';
 
-export type ThemePreference = 'light' | 'dark' | 'system';
-export type AccentPreference =
-  | 'default'
-  | 'blue'
-  | 'green'
-  | 'yellow'
-  | 'pink'
-  | 'orange'
-  | 'purple';
-
-export const THEME_STORAGE_KEY = 'daily-check:theme';
-export const ACCENT_STORAGE_KEY = 'daily-check:accent';
+export type { AccentPreference, ThemePreference };
+export { isAccentPreference } from './types';
 
 export const ACCENT_OPTIONS: Array<{
   value: AccentPreference;
@@ -27,29 +24,7 @@ export const ACCENT_OPTIONS: Array<{
   { value: 'purple', label: '퍼플', swatch: '#7849D1' },
 ];
 
-const isThemePreference = (value: string | null): value is ThemePreference =>
-  value === 'light' || value === 'dark' || value === 'system';
-
-export const isAccentPreference = (value: string | null | undefined): value is AccentPreference =>
-  value === 'default' ||
-  value === 'blue' ||
-  value === 'green' ||
-  value === 'yellow' ||
-  value === 'pink' ||
-  value === 'orange' ||
-  value === 'purple';
-
-export const getStoredThemePreference = (): ThemePreference => {
-  if (typeof window === 'undefined') return 'system';
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return isThemePreference(stored) ? stored : 'system';
-};
-
-export const getStoredAccentPreference = (): AccentPreference => {
-  if (typeof window === 'undefined') return 'default';
-  const stored = window.localStorage.getItem(ACCENT_STORAGE_KEY);
-  return isAccentPreference(stored) ? stored : 'default';
-};
+export { getStoredThemePreference, getStoredAccentPreference };
 
 const prefersDark = () =>
   typeof window !== 'undefined' &&
@@ -81,12 +56,12 @@ export function useThemePreference() {
 
   useEffect(() => {
     applyThemePreference(preference);
-    window.localStorage.setItem(THEME_STORAGE_KEY, preference);
+    setStoredThemePreference(preference);
   }, [preference]);
 
   useEffect(() => {
     applyAccentPreference(accentPreference);
-    window.localStorage.setItem(ACCENT_STORAGE_KEY, accentPreference);
+    setStoredAccentPreference(accentPreference);
   }, [accentPreference]);
 
   useEffect(() => {

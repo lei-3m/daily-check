@@ -1,6 +1,14 @@
-import { AppState, DrawerList, ScheduleItem, Todo } from './types';
+import {
+  AccentPreference,
+  AppState,
+  DrawerList,
+  ScheduleItem,
+  ThemePreference,
+  Todo,
+  isAccentPreference,
+  isThemePreference,
+} from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
-import { isAccentPreference } from './theme';
 
 const STORAGE_KEY = 'daily-check:v1';
 const SNAPSHOT_KEY = 'daily-check:snapshot';
@@ -8,6 +16,8 @@ const PENDING_SYNC_KEY = 'daily-check:pending-sync';
 const SCHEDULE_COLLAPSED_KEY = 'daily-check:schedule-collapsed';
 const PRIORITY_INCLUDE_MEMO_KEY = 'daily-check:priority-include-memo';
 const YESTERDAY_CARRYOVER_DISMISSED_PREFIX = 'daily-check:yesterday-carryover-dismissed:';
+const THEME_KEY = 'daily-check:theme';
+const ACCENT_KEY = 'daily-check:accent';
 
 export type SyncStatusType = 'synced' | 'saving' | 'pending' | 'offline' | 'conflict' | 'local_only';
 
@@ -1085,6 +1095,40 @@ export function dismissYesterdayCarryover(dateKey: string): void {
     localStorage.setItem(`${YESTERDAY_CARRYOVER_DISMISSED_PREFIX}${dateKey}`, 'true');
   } catch (error) {
     console.error('Failed to save yesterday carryover dismissed state:', error);
+  }
+}
+
+export function getStoredThemePreference(): ThemePreference {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    return isThemePreference(stored) ? stored : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export function setStoredThemePreference(preference: ThemePreference): void {
+  try {
+    localStorage.setItem(THEME_KEY, preference);
+  } catch (error) {
+    console.error('Failed to save theme preference:', error);
+  }
+}
+
+export function getStoredAccentPreference(): AccentPreference {
+  try {
+    const stored = localStorage.getItem(ACCENT_KEY);
+    return isAccentPreference(stored) ? stored : 'default';
+  } catch {
+    return 'default';
+  }
+}
+
+export function setStoredAccentPreference(preference: AccentPreference): void {
+  try {
+    localStorage.setItem(ACCENT_KEY, preference);
+  } catch (error) {
+    console.error('Failed to save accent preference:', error);
   }
 }
 
