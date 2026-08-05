@@ -1,4 +1,24 @@
-import type { AccentPreference } from './theme';
+export type ThemePreference = 'light' | 'dark' | 'system';
+export type AccentPreference =
+  | 'default'
+  | 'blue'
+  | 'green'
+  | 'yellow'
+  | 'pink'
+  | 'orange'
+  | 'purple';
+
+export const isThemePreference = (value: string | null): value is ThemePreference =>
+  value === 'light' || value === 'dark' || value === 'system';
+
+export const isAccentPreference = (value: string | null | undefined): value is AccentPreference =>
+  value === 'default' ||
+  value === 'blue' ||
+  value === 'green' ||
+  value === 'yellow' ||
+  value === 'pink' ||
+  value === 'orange' ||
+  value === 'purple';
 
 export type Todo = {
   id: string;

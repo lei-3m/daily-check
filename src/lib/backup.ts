@@ -1,5 +1,4 @@
-import { AppState, Day, DrawerList, ScheduleItem, Todo } from './types';
-import { isAccentPreference } from './theme';
+import { AppState, Day, DrawerList, ScheduleItem, Todo, isAccentPreference } from './types';
 
 type ValidationResult =
   | { ok: true; state: AppState }
