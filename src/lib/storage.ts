@@ -9,6 +9,7 @@ import {
   isThemePreference,
 } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { NETWORK_TIMEOUT_MS, withTimeout } from './async';
 
 const LOCAL_KEY_PREFIX = 'daily-check:';
 const STORAGE_KEY = 'daily-check:v1';
@@ -77,6 +78,12 @@ interface PendingSyncEnvelope {
   userId?: string;
   pending: boolean;
 }
+
+// 타임아웃돼도 요청 자체는 취소되지 않습니다. 뒤늦게 성공해도 이어지는 코드를
+// 실행하지 않으므로 상태는 건드리지 않고, 다음 기회에 다시 올립니다.
+// upsert는 멱등이라 중복 업로드가 되어도 안전합니다.
+const withSyncTimeout = <T,>(operation: PromiseLike<T>, label: string): Promise<T> =>
+  withTimeout(operation, NETWORK_TIMEOUT_MS, label);
 
 // In-memory state for conflict tracking
 let lastLoadedUpdatedAt: string | null = null;
@@ -1228,11 +1235,14 @@ export async function pullRealtimeServerState(
   if (!isSupabaseConfigured()) return { type: 'ignored' };
 
   try {
-    const { data: row, error } = await supabase
-      .from('user_state')
-      .select('data, updated_at')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { data: row, error } = await withSyncTimeout(
+      supabase
+        .from('user_state')
+        .select('data, updated_at')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      'user_state realtime pull'
+    );
 
     if (error) {
       console.warn('Failed to load realtime server state:', error.message);
@@ -1292,11 +1302,22 @@ export async function pullRealtimeServerState(
 async function uploadStateToServer(userId: string, state: AppState): Promise<string | null> {
   const normalizedState = normalizeStoredState(state);
   const newUpdatedAt = new Date().toISOString();
-  const { error } = await supabase.from('user_state').upsert({
-    user_id: userId,
-    data: normalizedState,
-    updated_at: newUpdatedAt,
-  });
+
+  let error: { message: string } | null = null;
+  try {
+    ({ error } = await withSyncTimeout(
+      supabase.from('user_state').upsert({
+        user_id: userId,
+        data: normalizedState,
+        updated_at: newUpdatedAt,
+      }),
+      'user_state upload'
+    ));
+  } catch (e) {
+    // 시간을 넘긴 경우. 오프라인과 똑같이 실패로 다룹니다.
+    console.warn('Upload to user_state did not finish:', e);
+    return null;
+  }
 
   if (error) {
     console.warn('Failed to upsert to user_state:', error.message);
@@ -1355,11 +1376,14 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
     }
 
     // Try fetching from server
-    const { data: row, error } = await supabase
-      .from('user_state')
-      .select('data, updated_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data: row, error } = await withSyncTimeout(
+      supabase
+        .from('user_state')
+        .select('data, updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      'user_state load'
+    );
 
     if (error) {
       console.warn('Failed to load server state:', error.message);
@@ -1487,11 +1511,14 @@ export async function saveState(state: AppState): Promise<AppState | null> {
     updateSyncStatus({ type: 'saving' });
 
     // Check server's updated_at for conflicts
-    const { data: serverRow, error: fetchErr } = await supabase
-      .from('user_state')
-      .select('data, updated_at')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { data: serverRow, error: fetchErr } = await withSyncTimeout(
+      supabase
+        .from('user_state')
+        .select('data, updated_at')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      'user_state conflict check'
+    );
 
     if (fetchErr) {
       console.warn('Network issue checking server updated_at:', fetchErr.message);
