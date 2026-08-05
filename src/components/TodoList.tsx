@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, KeyboardEvent, ClipboardEvent } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -422,7 +422,8 @@ export function TodoList({
 
       {!isSelectMode && (
         <form onSubmit={handleSubmit} className="pt-2" data-todo-swipe-ignore="true">
-          <div className="flex items-center gap-2 px-2 py-1 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
+          {/* 할 일 항목과 헷갈리지 않도록 점선 테두리와 강조색 배경으로 구분합니다. */}
+          <div className="flex items-center gap-2 px-2 py-1 rounded-xl text-sm border-2 border-dashed border-slate-300 accent-soft focus-within:border-solid focus-within:accent-border focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-300 transition-all">
             <button
               type="button"
               onPointerDown={(e) => {
@@ -436,9 +437,9 @@ export function TodoList({
                 handleAddSingle();
               }}
               aria-label="할 일 추가"
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center accent-text hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
             >
-              +
+              <Plus className="w-6 h-6" strokeWidth={2.5} aria-hidden="true" />
             </button>
             <input
               ref={inputRef}
@@ -451,7 +452,7 @@ export function TodoList({
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               enterKeyHint="done"
-              placeholder="할 일 추가 (여러 줄 붙여넣기 가능)"
+              placeholder="할 일 적기"
               className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
             />
           </div>
