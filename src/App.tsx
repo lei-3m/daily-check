@@ -1331,31 +1331,6 @@ export default function App() {
           />
         )}
 
-        {view.kind !== 'month' && view.kind !== 'scheduleEdit' && (
-          <DrawerBlock
-            lists={drawerLists}
-            mode={
-              view.kind === 'drawer'
-                ? 'lists'
-                : view.kind === 'drawerList'
-                ? 'list'
-                : 'collapsed'
-            }
-            activeListId={view.kind === 'drawerList' ? view.id : undefined}
-            onOpenDrawer={handleOpenDrawer}
-            onCloseDrawer={handleCloseDrawer}
-            onOpenList={handleOpenDrawerList}
-            onBackToLists={handleBackToDrawerLists}
-            onCreateDrawer={handleCreateDrawer}
-            onRenameDrawer={handleRenameDrawer}
-            onDeleteDrawer={handleDeleteDrawer}
-            onAddTodos={handleAddDrawerTodos}
-            onToggleTodo={handleToggleDrawerTodo}
-            onEditTodo={handleEditDrawerTodo}
-            onDeleteTodo={handleDeleteDrawerTodo}
-          />
-        )}
-
         {view.kind === 'scheduleEdit' && (
           <ScheduleEditView
             item={editingSchedule}
@@ -1410,6 +1385,33 @@ export default function App() {
               />
             )}
           </>
+        )}
+
+        {/* 서랍은 매일 보는 것이 아니므로 메모 아래에 둡니다.
+            위에 있으면 오늘 할 일을 여기에 적는 오해가 생깁니다. */}
+        {view.kind !== 'month' && view.kind !== 'scheduleEdit' && (
+          <DrawerBlock
+            lists={drawerLists}
+            mode={
+              view.kind === 'drawer'
+                ? 'lists'
+                : view.kind === 'drawerList'
+                ? 'list'
+                : 'collapsed'
+            }
+            activeListId={view.kind === 'drawerList' ? view.id : undefined}
+            onOpenDrawer={handleOpenDrawer}
+            onCloseDrawer={handleCloseDrawer}
+            onOpenList={handleOpenDrawerList}
+            onBackToLists={handleBackToDrawerLists}
+            onCreateDrawer={handleCreateDrawer}
+            onRenameDrawer={handleRenameDrawer}
+            onDeleteDrawer={handleDeleteDrawer}
+            onAddTodos={handleAddDrawerTodos}
+            onToggleTodo={handleToggleDrawerTodo}
+            onEditTodo={handleEditDrawerTodo}
+            onDeleteTodo={handleDeleteDrawerTodo}
+          />
         )}
 
         {view.kind === 'week' && (
