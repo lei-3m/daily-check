@@ -10,14 +10,19 @@ import {
 } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
 
+const LOCAL_KEY_PREFIX = 'daily-check:';
 const STORAGE_KEY = 'daily-check:v1';
 const SNAPSHOT_KEY = 'daily-check:snapshot';
 const PENDING_SYNC_KEY = 'daily-check:pending-sync';
 const SCHEDULE_COLLAPSED_KEY = 'daily-check:schedule-collapsed';
 const PRIORITY_INCLUDE_MEMO_KEY = 'daily-check:priority-include-memo';
 const YESTERDAY_CARRYOVER_DISMISSED_PREFIX = 'daily-check:yesterday-carryover-dismissed:';
+const MIGRATION_PROMPTED_PREFIX = 'daily-check:migration-prompted:';
 const THEME_KEY = 'daily-check:theme';
 const ACCENT_KEY = 'daily-check:accent';
+
+// 기기 설정. 계정 데이터가 아니므로 로그아웃해도 지우지 않습니다.
+const DEVICE_KEYS: readonly string[] = [THEME_KEY, ACCENT_KEY];
 
 export type SyncStatusType = 'synced' | 'saving' | 'pending' | 'offline' | 'conflict' | 'local_only';
 
@@ -1132,11 +1137,34 @@ export function setStoredAccentPreference(preference: AccentPreference): void {
   }
 }
 
+// 삭제 중 인덱스가 밀리지 않도록 키를 먼저 모두 수집합니다.
+function listLocalKeys(): string[] {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(LOCAL_KEY_PREFIX)) keys.push(key);
+  }
+  return keys;
+}
+
+/** 앱 시작 시 호출. 오늘 것을 뺀 지난 날짜의 carryover 키를 지웁니다. */
+export function pruneStaleLocalKeys(currentDateKey: string): void {
+  try {
+    const keepKey = `${YESTERDAY_CARRYOVER_DISMISSED_PREFIX}${currentDateKey}`;
+    listLocalKeys()
+      .filter((key) => key.startsWith(YESTERDAY_CARRYOVER_DISMISSED_PREFIX) && key !== keepKey)
+      .forEach((key) => localStorage.removeItem(key));
+  } catch (e) {
+    console.error('Failed to prune stale local keys:', e);
+  }
+}
+
+/** 로그아웃/세션 없음. 기기 설정(테마·강조색)만 남기고 전부 지웁니다. */
 export function clearUserCache(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SNAPSHOT_KEY);
-    localStorage.removeItem(PENDING_SYNC_KEY);
+    listLocalKeys()
+      .filter((key) => !DEVICE_KEYS.includes(key))
+      .forEach((key) => localStorage.removeItem(key));
     lastLoadedUpdatedAt = null;
   } catch (e) {
     console.error('Failed to clear user cache:', e);
@@ -1524,7 +1552,7 @@ export async function saveState(state: AppState): Promise<AppState | null> {
 
 // Migration check helper
 export async function checkMigrationNeeded(userId: string): Promise<boolean> {
-  const promptKey = `daily-check:migration-prompted:${userId}`;
+  const promptKey = `${MIGRATION_PROMPTED_PREFIX}${userId}`;
   if (localStorage.getItem(promptKey) === 'true') {
     return false;
   }
@@ -1552,7 +1580,7 @@ export async function checkMigrationNeeded(userId: string): Promise<boolean> {
 }
 
 export function markMigrationPrompted(userId: string) {
-  localStorage.setItem(`daily-check:migration-prompted:${userId}`, 'true');
+  localStorage.setItem(`${MIGRATION_PROMPTED_PREFIX}${userId}`, 'true');
 }
 
 export async function uploadLocalToAccount(userId: string, state: AppState): Promise<boolean> {
