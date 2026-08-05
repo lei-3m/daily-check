@@ -7,6 +7,7 @@ import {
   saveState,
   clearUserCache,
   clearPendingSync,
+  hasPendingSync,
   getPriorityIncludeMemoPreference,
   getScheduleCollapsedPreference,
   dismissYesterdayCarryover,
@@ -58,6 +59,7 @@ import { Toast, useToast } from './components/Toast';
 import { LoginScreen } from './components/LoginScreen';
 import { MigrationModal } from './components/MigrationModal';
 import { ConflictModal } from './components/ConflictModal';
+import { SignOutWarningModal } from './components/SignOutWarningModal';
 import { PrioritySuggestionModal } from './components/PrioritySuggestionModal';
 
 function LoadingScreen() {
@@ -98,6 +100,7 @@ export default function App() {
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [conflictDetails, setConflictDetails] = useState<ConflictDetails | null>(null);
+  const [showSignOutWarning, setShowSignOutWarning] = useState(false);
 
   const [view, setView] = useState<View>(() => ({
     kind: 'week',
@@ -1040,12 +1043,33 @@ export default function App() {
     showToast('AI가 제안한 순서를 적용했어요');
   };
 
-  const handleSignOut = async () => {
+  const performSignOut = async () => {
+    setShowSignOutWarning(false);
     clearUserCache();
     setAppState(null);
     setIsLoaded(false);
     await supabase.auth.signOut();
     setSession(null);
+  };
+
+  const handleSignOut = async () => {
+    const userId = session?.user?.id;
+
+    // 올리지 못한 변경이 없으면 그대로 로그아웃합니다.
+    if (!userId || !appState || !hasPendingSync(userId)) {
+      await performSignOut();
+      return;
+    }
+
+    // 마지막으로 한 번 업로드를 시도합니다. saveState가 충돌까지 처리합니다.
+    await saveState(appState);
+    if (!hasPendingSync(userId)) {
+      await performSignOut();
+      return;
+    }
+
+    // 업로드 실패(오프라인·충돌). 사라진다는 것을 알리고 확인을 받습니다.
+    setShowSignOutWarning(true);
   };
 
   const handleUpdateProfile = async (update: AccountProfileUpdate): Promise<boolean> => {
@@ -1327,12 +1351,19 @@ export default function App() {
         />
       )}
 
-      {/* Conflict Modal */}
-      {showConflictModal && (
+      {/* Conflict Modal — 로그아웃 경고가 떠 있는 동안에는 겹치지 않게 숨깁니다. */}
+      {showConflictModal && !showSignOutWarning && (
         <ConflictModal
           details={conflictDetails}
           onRefresh={handleRefreshConflict}
           onDismiss={handleDismissConflict}
+        />
+      )}
+
+      {showSignOutWarning && (
+        <SignOutWarningModal
+          onConfirm={performSignOut}
+          onCancel={() => setShowSignOutWarning(false)}
         />
       )}
 
