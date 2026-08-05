@@ -23,6 +23,7 @@ interface HeaderProps {
   profile: AccountProfile;
   syncStatus: SyncStatus;
   onSignOut: () => void;
+  isSigningOut: boolean;
   onUpdateProfile: (update: AccountProfileUpdate) => Promise<boolean>;
   themePreference: ThemePreference;
   onThemePreferenceChange: (preference: ThemePreference) => void;
@@ -81,6 +82,7 @@ export function Header({
   profile,
   syncStatus,
   onSignOut,
+  isSigningOut,
   onUpdateProfile,
   themePreference,
   onThemePreferenceChange,
@@ -98,9 +100,12 @@ export function Header({
   const menuRef = useRef<HTMLDivElement>(null);
   const profileNameInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const isSigningOutRef = useRef(isSigningOut);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
+      // 동기화 중에는 메뉴를 열어 두어야 진행 상태가 보입니다.
+      if (isSigningOutRef.current) return;
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setIsMenuOpen(false);
         setMenuView('main');
@@ -109,6 +114,16 @@ export function Header({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const wasSigningOut = isSigningOutRef.current;
+    isSigningOutRef.current = isSigningOut;
+    // 시도가 끝나면 메뉴를 닫습니다. 실패하면 경고 모달이 이어받습니다.
+    if (wasSigningOut && !isSigningOut) {
+      setIsMenuOpen(false);
+      setMenuView('main');
+    }
+  }, [isSigningOut]);
 
   useEffect(() => {
     setDraftName(profile.displayName);
@@ -466,13 +481,12 @@ export function Header({
       <div className="pt-2 border-t border-slate-100">
         <button
           type="button"
-          onClick={() => {
-            setIsMenuOpen(false);
-            onSignOut();
-          }}
-          className="w-full min-h-11 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors"
+          onClick={onSignOut}
+          disabled={isSigningOut}
+          aria-busy={isSigningOut}
+          className="w-full min-h-11 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors disabled:pointer-events-none disabled:text-slate-500"
         >
-          로그아웃
+          {isSigningOut ? '동기화 중…' : '로그아웃'}
         </button>
       </div>
     </>

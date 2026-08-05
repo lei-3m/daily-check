@@ -101,6 +101,9 @@ export default function App() {
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [conflictDetails, setConflictDetails] = useState<ConflictDetails | null>(null);
   const [showSignOutWarning, setShowSignOutWarning] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  // disabled는 리렌더 뒤에야 적용되므로 같은 틱의 연타는 ref로 막습니다.
+  const signOutInFlightRef = useRef(false);
 
   const [view, setView] = useState<View>(() => ({
     kind: 'week',
@@ -1053,23 +1056,52 @@ export default function App() {
   };
 
   const handleSignOut = async () => {
-    const userId = session?.user?.id;
+    if (signOutInFlightRef.current) return;
+    signOutInFlightRef.current = true;
 
-    // 올리지 못한 변경이 없으면 그대로 로그아웃합니다.
-    if (!userId || !appState || !hasPendingSync(userId)) {
-      await performSignOut();
-      return;
+    try {
+      const userId = session?.user?.id;
+
+      // 올리지 못한 변경이 없으면 그대로 로그아웃합니다.
+      if (!userId || !appState || !hasPendingSync(userId)) {
+        await performSignOut();
+        return;
+      }
+
+      // 오프라인이 확실하면 요청 타임아웃을 기다리지 않고 바로 알립니다.
+      if (!navigator.onLine) {
+        setShowSignOutWarning(true);
+        return;
+      }
+
+      // 마지막으로 한 번 업로드를 시도합니다. saveState가 충돌까지 처리합니다.
+      setIsSigningOut(true);
+      try {
+        await saveState(appState);
+      } finally {
+        setIsSigningOut(false);
+      }
+
+      if (!hasPendingSync(userId)) {
+        await performSignOut();
+        return;
+      }
+
+      // 업로드 실패(오프라인·충돌). 사라진다는 것을 알리고 확인을 받습니다.
+      setShowSignOutWarning(true);
+    } finally {
+      signOutInFlightRef.current = false;
     }
+  };
 
-    // 마지막으로 한 번 업로드를 시도합니다. saveState가 충돌까지 처리합니다.
-    await saveState(appState);
-    if (!hasPendingSync(userId)) {
+  const handleConfirmSignOutWarning = async () => {
+    if (signOutInFlightRef.current) return;
+    signOutInFlightRef.current = true;
+    try {
       await performSignOut();
-      return;
+    } finally {
+      signOutInFlightRef.current = false;
     }
-
-    // 업로드 실패(오프라인·충돌). 사라진다는 것을 알리고 확인을 받습니다.
-    setShowSignOutWarning(true);
   };
 
   const handleUpdateProfile = async (update: AccountProfileUpdate): Promise<boolean> => {
@@ -1205,6 +1237,7 @@ export default function App() {
           profile={profile}
           syncStatus={syncStatus}
           onSignOut={handleSignOut}
+          isSigningOut={isSigningOut}
           onUpdateProfile={handleUpdateProfile}
           themePreference={themePreference}
           onThemePreferenceChange={setThemePreference}
@@ -1362,7 +1395,7 @@ export default function App() {
 
       {showSignOutWarning && (
         <SignOutWarningModal
-          onConfirm={performSignOut}
+          onConfirm={handleConfirmSignOutWarning}
           onCancel={() => setShowSignOutWarning(false)}
         />
       )}
