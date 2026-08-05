@@ -422,8 +422,9 @@ export function TodoList({
 
       {!isSelectMode && (
         <form onSubmit={handleSubmit} className="pt-2" data-todo-swipe-ignore="true">
-          {/* 할 일 항목과 헷갈리지 않도록 점선 테두리와 강조색 배경으로 구분합니다. */}
-          <div className="flex items-center gap-2 px-2 py-1 rounded-xl text-sm border-2 border-dashed border-slate-300 accent-soft focus-within:border-solid focus-within:accent-border focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-300 transition-all">
+          {/* 할 일 항목과 헷갈리지 않게 테두리와 옅은 배경으로 구분합니다.
+              입력창임을 알리는 정도면 충분하므로 주목을 끌지는 않습니다. */}
+          <div className="flex items-center gap-2 px-2 py-1 rounded-xl text-sm border-2 border-slate-200 bg-slate-50 focus-within:accent-border focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-300 transition-all">
             <button
               type="button"
               onPointerDown={(e) => {
