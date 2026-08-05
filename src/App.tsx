@@ -6,6 +6,7 @@ import {
   loadState,
   saveState,
   clearUserCache,
+  clearSupabaseAuthTokens,
   clearPendingSync,
   hasPendingSync,
   getPriorityIncludeMemoPreference,
@@ -29,6 +30,7 @@ import {
 } from './lib/storage';
 import type { ConflictDetails } from './lib/storage';
 import { supabase } from './lib/supabase';
+import { NETWORK_TIMEOUT_MS, withTimeout } from './lib/async';
 import { formatTodosToMarkdown, copyToClipboard } from './lib/clipboard';
 import { validateBackupState } from './lib/backup';
 import { AccentPreference, useThemePreference } from './lib/theme';
@@ -104,6 +106,10 @@ export default function App() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   // disabled는 리렌더 뒤에야 적용되므로 같은 틱의 연타는 ref로 막습니다.
   const signOutInFlightRef = useRef(false);
+  // 로그아웃했다는 표시. 로그인은 OAuth 리디렉트로 페이지가 새로 뜨므로
+  // 이 페이지가 사는 동안 다시 false가 될 일은 없습니다.
+  const signedOutRef = useRef(false);
+  const authEventSeenRef = useRef(false);
 
   const [view, setView] = useState<View>(() => ({
     kind: 'week',
@@ -205,27 +211,39 @@ export default function App() {
 
   // 1. Session Auth listener
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+    let isDisposed = false;
+
+    const applySession = (nextSession: Session | null) => {
+      if (isDisposed) return;
+      // 로그아웃을 시작한 뒤 도착하는 세션은 받지 않습니다. signOut 시점에
+      // 이미 진행 중이던 토큰 갱신이 뒤늦게 끝나면 세션이 되살아납니다.
+      if (signedOutRef.current && nextSession) return;
+
+      setSession(nextSession);
       setAuthChecking(false);
-      if (!newSession) {
+      if (!nextSession) {
         clearUserCache();
         setAppState(null);
         setIsLoaded(false);
       }
+    };
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      authEventSeenRef.current = true;
+      applySession(newSession);
     });
 
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setAuthChecking(false);
-      if (!data.session) {
-        clearUserCache();
-        setAppState(null);
-        setIsLoaded(false);
+      // 이미 인증 이벤트를 처리했다면 먼저 뜬 결과로 덮지 않습니다.
+      if (authEventSeenRef.current) {
+        setAuthChecking(false);
+        return;
       }
+      applySession(data.session);
     });
 
     return () => {
+      isDisposed = true;
       authListener.subscription.unsubscribe();
     };
   }, []);
@@ -1047,11 +1065,32 @@ export default function App() {
   };
 
   const performSignOut = async () => {
+    // 먼저 표시해야 signOut을 기다리는 사이에 도착하는 세션 이벤트를 막습니다.
+    signedOutRef.current = true;
     setShowSignOutWarning(false);
+    setIsSigningOut(true);
+
+    try {
+      // 죽은 네트워크에서 signOut이 끝나지 않으면 화면이 멈춥니다. 상한을 둡니다.
+      const { error } = await withTimeout(
+        supabase.auth.signOut(),
+        NETWORK_TIMEOUT_MS,
+        'signOut'
+      );
+      if (error) {
+        console.warn('Sign-out request failed:', error.message);
+      }
+    } catch (e) {
+      console.warn('Sign-out did not finish, clearing session locally:', e);
+    } finally {
+      setIsSigningOut(false);
+    }
+
+    // signOut이 실패하거나 시간을 넘겼어도 토큰이 남아서는 안 됩니다.
+    clearSupabaseAuthTokens();
     clearUserCache();
     setAppState(null);
     setIsLoaded(false);
-    await supabase.auth.signOut();
     setSession(null);
   };
 

@@ -1159,6 +1159,23 @@ export function pruneStaleLocalKeys(currentDateKey: string): void {
   }
 }
 
+/**
+ * supabase-js가 저장한 세션 토큰을 지웁니다. 키 형식은 `sb-<project-ref>-auth-token`.
+ * signOut이 네트워크 때문에 끝나지 않을 때 세션이 남지 않도록 하는 최후 수단입니다.
+ */
+export function clearSupabaseAuthTokens(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && /^sb-.*-auth-token/.test(key)) keys.push(key);
+    }
+    keys.forEach((key) => localStorage.removeItem(key));
+  } catch (e) {
+    console.error('Failed to clear supabase auth tokens:', e);
+  }
+}
+
 /** 로그아웃/세션 없음. 기기 설정(테마·강조색)만 남기고 전부 지웁니다. */
 export function clearUserCache(): void {
   try {
