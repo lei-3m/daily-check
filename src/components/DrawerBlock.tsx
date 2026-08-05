@@ -1,7 +1,7 @@
 import React, { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { DrawerList, Todo } from '../lib/types';
-import { cleanTodoPrefix } from './TodoList';
+import { TodoAddForm } from './TodoAddForm';
 
 type DrawerMode = 'collapsed' | 'lists' | 'list';
 
@@ -289,93 +289,6 @@ function DrawerTodoRow({
   );
 }
 
-interface DrawerTodoAddFormProps {
-  listId: string;
-  onAddTodos: (listId: string, texts: string[]) => void;
-  onAdded: () => void;
-}
-
-function DrawerTodoAddForm({ listId, onAddTodos, onAdded }: DrawerTodoAddFormProps) {
-  const [inputValue, setInputValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const inputValueRef = useRef('');
-  inputValueRef.current = inputValue;
-
-  const addSingle = () => {
-    const cleaned = cleanTodoPrefix(inputValueRef.current || inputValue);
-    if (cleaned) {
-      onAdded();
-      onAddTodos(listId, [cleaned]);
-      setInputValue('');
-      inputValueRef.current = '';
-    }
-    inputRef.current?.focus({ preventScroll: true });
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const pastedText = e.clipboardData.getData('text');
-    if (!pastedText.includes('\n') && !pastedText.includes('\r')) return;
-
-    e.preventDefault();
-    const lines = pastedText
-      .split(/\r?\n/)
-      .map((line) => cleanTodoPrefix(line))
-      .filter((line) => line.length > 0);
-
-    if (lines.length > 0) {
-      onAdded();
-      onAddTodos(listId, lines);
-      setInputValue('');
-      inputValueRef.current = '';
-      inputRef.current?.focus({ preventScroll: true });
-    }
-  };
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        addSingle();
-      }}
-      className="pt-1"
-    >
-      <div className="flex items-center gap-2 px-2 py-1 border border-slate-200 rounded-lg text-sm bg-slate-50/50 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-300 transition-all">
-        <button
-          type="button"
-          onPointerDown={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => {
-            e.preventDefault();
-            addSingle();
-          }}
-          aria-label="할 일 추가"
-          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
-        >
-          ＋
-        </button>
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            inputValueRef.current = e.target.value;
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addSingle();
-            }
-          }}
-          onPaste={handlePaste}
-          enterKeyHint="done"
-          placeholder="할 일 추가"
-          className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
-        />
-      </div>
-    </form>
-  );
-}
 
 export function DrawerBlock({
   lists,
@@ -480,10 +393,12 @@ export function DrawerBlock({
           )}
         </div>
 
-        <DrawerTodoAddForm
-          listId={activeList.id}
-          onAddTodos={onAddTodos}
-          onAdded={() => {
+        <TodoAddForm
+          placeholder="항목 적기"
+          addLabel="항목 추가"
+          className="pt-1"
+          onAddMany={(texts) => onAddTodos(activeList.id, texts)}
+          onBeforeAdd={() => {
             pendingAddScrollRef.current = true;
           }}
         />

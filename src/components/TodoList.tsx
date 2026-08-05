@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef, KeyboardEvent, ClipboardEvent } from 'react';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -19,6 +19,7 @@ import {
 import { Todo } from '../lib/types';
 import { moveIncompleteTodo } from '../lib/todoOrder';
 import { TodoRow } from './TodoRow';
+import { TodoAddForm, TodoAddFormHandle } from './TodoAddForm';
 
 const TODO_SWIPE_START_PX = 60;
 const TODO_SWIPE_AXIS_RATIO = 3;
@@ -74,28 +75,6 @@ interface TodoListProps {
   onSwipeDate?: (direction: -1 | 1) => void;
 }
 
-export function cleanTodoPrefix(line: string): string {
-  let cleaned = line.trim();
-  if (cleaned.startsWith('- [ ] ')) {
-    cleaned = cleaned.slice(6);
-  } else if (cleaned.startsWith('- [x] ') || cleaned.startsWith('- [X] ')) {
-    cleaned = cleaned.slice(6);
-  } else if (cleaned.startsWith('- [ ]')) {
-    cleaned = cleaned.slice(5);
-  } else if (cleaned.startsWith('- [x]') || cleaned.startsWith('- [X]')) {
-    cleaned = cleaned.slice(5);
-  } else if (cleaned.startsWith('- ')) {
-    cleaned = cleaned.slice(2);
-  } else if (cleaned.startsWith('* ')) {
-    cleaned = cleaned.slice(2);
-  } else if (cleaned.startsWith('-')) {
-    cleaned = cleaned.slice(1);
-  } else if (cleaned.startsWith('*')) {
-    cleaned = cleaned.slice(1);
-  }
-  return cleaned.trim();
-}
-
 export function TodoList({
   todos,
   isSelectMode = false,
@@ -108,10 +87,8 @@ export function TodoList({
   onReorderTodos,
   onSwipeDate,
 }: TodoListProps) {
-  const [inputValue, setInputValue] = useState('');
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const inputValueRef = useRef('');
+  const addFormRef = useRef<TodoAddFormHandle>(null);
   const swipeRailRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
   const pendingAddScrollRef = useRef(false);
@@ -125,7 +102,6 @@ export function TodoList({
     decided: boolean;
     active: boolean;
   } | null>(null);
-  inputValueRef.current = inputValue;
   const incompleteTodos = todos.filter((todo) => !todo.done);
   const completedTodos = todos.filter((todo) => todo.done);
   const todoIdsKey = todos.map((todo) => todo.id).join('|');
@@ -152,7 +128,7 @@ export function TodoList({
       block: 'nearest',
       behavior: prefersReducedMotion() ? 'auto' : 'smooth',
     });
-    inputRef.current?.focus({ preventScroll: true });
+    addFormRef.current?.focus();
   }, [todos.length]);
 
   const sensors = useSensors(
@@ -297,49 +273,6 @@ export function TodoList({
     e.stopPropagation();
   };
 
-  const handleAddSingle = () => {
-    const currentVal = inputValueRef.current || inputValue;
-    const cleaned = cleanTodoPrefix(currentVal);
-    if (cleaned) {
-      pendingAddScrollRef.current = true;
-      onAddMany([cleaned]);
-      setInputValue('');
-      inputValueRef.current = '';
-    }
-    inputRef.current?.focus({ preventScroll: true });
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddSingle();
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleAddSingle();
-  };
-
-  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
-    const pastedText = e.clipboardData.getData('text');
-    if (pastedText.includes('\n') || pastedText.includes('\r')) {
-      e.preventDefault();
-      const lines = pastedText.split(/\r?\n/);
-      const cleanedLines = lines
-        .map((line) => cleanTodoPrefix(line))
-        .filter((line) => line.length > 0);
-
-      if (cleanedLines.length > 0) {
-        pendingAddScrollRef.current = true;
-        onAddMany(cleanedLines);
-        setInputValue('');
-        inputValueRef.current = '';
-        inputRef.current?.focus({ preventScroll: true });
-      }
-    }
-  };
-
   return (
     <div
       className="min-h-[128px] overflow-hidden touch-pan-y"
@@ -429,43 +362,15 @@ export function TodoList({
       </div>
 
       {!isSelectMode && (
-        <form onSubmit={handleSubmit} className="pt-2" data-todo-swipe-ignore="true">
-          {/* 할 일 항목과 헷갈리지 않게 테두리와 옅은 배경으로 구분합니다.
-              입력창임을 알리는 정도면 충분하므로 주목을 끌지는 않습니다. */}
-          <div className="flex items-center gap-2 px-2 py-1 rounded-xl text-sm border-2 border-slate-200 bg-slate-50 focus-within:accent-border focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-300 transition-all">
-            <button
-              type="button"
-              onPointerDown={(e) => {
-                e.preventDefault();
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                handleAddSingle();
-              }}
-              aria-label="할 일 추가"
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center accent-text hover:bg-slate-200/70 rounded-md transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-none"
-            >
-              <Plus className="w-6 h-6" strokeWidth={2.5} aria-hidden="true" />
-            </button>
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => {
-                setInputValue(e.target.value);
-                inputValueRef.current = e.target.value;
-              }}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              enterKeyHint="done"
-              placeholder="할 일 적기"
-              className="w-full bg-transparent border-none text-slate-800 placeholder-slate-400 focus:outline-none text-sm font-medium py-1"
-            />
-          </div>
-        </form>
+        <TodoAddForm
+          ref={addFormRef}
+          placeholder="할 일 적기"
+          addLabel="할 일 추가"
+          onAddMany={onAddMany}
+          onBeforeAdd={() => {
+            pendingAddScrollRef.current = true;
+          }}
+        />
       )}
     </div>
   );
