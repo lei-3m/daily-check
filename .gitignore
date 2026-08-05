@@ -10,3 +10,7 @@ coverage/
 .idea/
 docs/
 .omc/
+
+# npm을 사용합니다. bun 락파일은 만들지 마세요.
+bun.lock
+bun.lockb
