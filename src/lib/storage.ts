@@ -89,6 +89,27 @@ const withSyncTimeout = <T,>(operation: PromiseLike<T>, label: string): Promise<
 let lastLoadedUpdatedAt: string | null = null;
 let currentSyncStatus: SyncStatus = { type: 'synced' };
 
+// 서버를 오가는 작업이 겹쳐 돌면, 먼저 뜬 쪽이 붙잡은 오래된 스냅샷으로
+// 나중 변경을 덮어씁니다. 한 번에 하나만 돌게 직렬화합니다.
+let syncInFlight: Promise<unknown> | null = null;
+
+export function isSyncInFlight(): boolean {
+  return syncInFlight !== null;
+}
+
+async function runExclusive<T>(task: () => Promise<T>): Promise<T> {
+  while (syncInFlight) {
+    await syncInFlight.catch(() => undefined);
+  }
+  const run = task();
+  syncInFlight = run;
+  try {
+    return await run;
+  } finally {
+    if (syncInFlight === run) syncInFlight = null;
+  }
+}
+
 type StatusListener = (status: SyncStatus) => void;
 type ConflictListener = (details: ConflictDetails) => void;
 
@@ -169,6 +190,28 @@ function setServerSnapshot(state: AppState): void {
 
 export function saveStateSnapshot(state: AppState): void {
   setServerSnapshot(state);
+}
+
+/**
+ * 동기화 결과를 적용하는 사이에 생긴 로컬 변경을 되살립니다.
+ *
+ * 서버를 다녀오는 동안 화면에서 항목을 지우면, 작업을 시작할 때 붙잡은
+ * 스냅샷에는 그 삭제가 없습니다. 결과를 그대로 적용하면 지운 항목이
+ * 되살아납니다.
+ *
+ * base   = 작업을 시작할 때의 상태
+ * latest = 지금 화면 상태 (그 사이의 변경 포함)
+ * incoming = 서버 반영 결과
+ *
+ * 3-way 병합이 그대로 들어맞습니다. base 대비 latest의 변경과 base 대비
+ * incoming의 변경을 합치면 양쪽 모두 남습니다.
+ */
+export function reapplyLocalChanges(
+  base: AppState,
+  latest: AppState,
+  incoming: AppState
+): AppState {
+  return mergeThreeWay(latest, base, incoming).state;
 }
 
 function getServerSnapshot(): AppState | null {
@@ -1227,7 +1270,17 @@ function hasLocalWriteRisk(userId?: string): boolean {
   );
 }
 
-export async function pullRealtimeServerState(
+export function pullRealtimeServerState(
+  userId: string,
+  localState: AppState,
+  hasUnsavedLocalChanges: boolean
+): Promise<RealtimePullResult> {
+  return runExclusive(() =>
+    pullRealtimeServerStateInternal(userId, localState, hasUnsavedLocalChanges)
+  );
+}
+
+async function pullRealtimeServerStateInternal(
   userId: string,
   localState: AppState,
   hasUnsavedLocalChanges: boolean
@@ -1339,7 +1392,11 @@ async function uploadStateToServer(userId: string, state: AppState): Promise<str
   return newUpdatedAt;
 }
 
-export async function loadState(expectedUserId?: string): Promise<AppState | null> {
+export function loadState(expectedUserId?: string): Promise<AppState | null> {
+  return runExclusive(() => loadStateInternal(expectedUserId));
+}
+
+async function loadStateInternal(expectedUserId?: string): Promise<AppState | null> {
   let userId = expectedUserId;
 
   if (isSupabaseConfigured() && !userId) {
@@ -1484,7 +1541,11 @@ export async function loadState(expectedUserId?: string): Promise<AppState | nul
   }
 }
 
-export async function saveState(state: AppState): Promise<AppState | null> {
+export function saveState(state: AppState): Promise<AppState | null> {
+  return runExclusive(() => saveStateInternal(state));
+}
+
+async function saveStateInternal(state: AppState): Promise<AppState | null> {
   let userId: string | undefined;
 
   if (isSupabaseConfigured()) {

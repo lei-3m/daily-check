@@ -13,6 +13,7 @@ import {
   getScheduleCollapsedPreference,
   dismissYesterdayCarryover,
   isYesterdayCarryoverDismissed,
+  reapplyLocalChanges,
   resolvePendingSync,
   saveImportedState,
   savePendingLocalState,
@@ -326,6 +327,30 @@ export default function App() {
     };
   }, [session, authChecking, setAccentPreference]);
 
+  /**
+   * 동기화 결과를 화면에 적용합니다.
+   *
+   * 서버를 다녀오는 동안 사용자가 항목을 지우면, 작업을 시작할 때 붙잡은
+   * 스냅샷에는 그 삭제가 없습니다. 결과를 그대로 setAppState하면 지운 항목이
+   * 되살아납니다. 그 사이 변경이 있었으면 3-way 병합으로 되살립니다.
+   *
+   * 반환값은 되살린 로컬 변경이 있었는지 여부입니다.
+   */
+  const applySyncedState = (baseState: AppState | null, incoming: AppState): boolean => {
+    const latest = appStateRef.current;
+    const hasLocalEdits = Boolean(baseState && latest && latest !== baseState);
+    const next =
+      hasLocalEdits && baseState && latest
+        ? reapplyLocalChanges(baseState, latest, incoming)
+        : incoming;
+
+    // 되살린 변경은 아직 서버에 없습니다. 저장을 막으면 그대로 사라집니다.
+    suppressNextSaveRef.current = !hasLocalEdits;
+    setAppState(next);
+    setAccentPreference(next.accentColor || 'default');
+    return hasLocalEdits;
+  };
+
   // 4. Auto save state with debounce
   useEffect(() => {
     if (!isLoaded || !appState || !session) return;
@@ -346,9 +371,7 @@ export default function App() {
     const timer = setTimeout(() => {
       saveState(appState).then((mergedState) => {
         if (!mergedState) return;
-        suppressNextSaveRef.current = true;
-        setAppState(mergedState);
-        setAccentPreference(mergedState.accentColor || 'default');
+        applySyncedState(appState, mergedState);
       });
     }, 350);
 
@@ -359,11 +382,11 @@ export default function App() {
     if (!session) return;
 
     const handleOnline = () => {
+      // 자동 업로드를 기다리는 사이의 변경을 잃지 않도록 시작 시점을 기억합니다.
+      const baseState = appStateRef.current;
       resolvePendingSync(session.user.id).then((state) => {
-        if (state) {
-          setAppState(state);
-          setAccentPreference(state.accentColor || 'default');
-        }
+        if (!state) return;
+        applySyncedState(baseState, state);
       });
     };
 
@@ -401,14 +424,10 @@ export default function App() {
         if (isDisposed) return;
 
         if (result.type === 'applied') {
-          suppressNextSaveRef.current = true;
-          hasUnsavedLocalChangesRef.current = false;
-          setAppState(result.state);
-          setAccentPreference(result.state.accentColor || 'default');
+          // 되살린 변경이 있으면 아직 서버에 없으므로 미저장 표시를 유지합니다.
+          hasUnsavedLocalChangesRef.current = applySyncedState(currentState, result.state);
         } else if (result.type === 'conflict') {
-          suppressNextSaveRef.current = true;
-          setAppState(result.state);
-          setAccentPreference(result.state.accentColor || 'default');
+          applySyncedState(currentState, result.state);
           setConflictDetails(result.details);
           setShowConflictModal(true);
         }
