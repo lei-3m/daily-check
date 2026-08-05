@@ -229,7 +229,6 @@ export function TodoRow({
           <span
             onClick={isSelectMode ? undefined : handleStartEdit}
             title={isSelectMode ? '선택' : '클릭하여 수정'}
-            data-todo-swipe-ignore="true"
             className={`text-sm truncate font-medium ${
               isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'
             } ${done ? 'line-through text-slate-400' : 'text-slate-800'}`}

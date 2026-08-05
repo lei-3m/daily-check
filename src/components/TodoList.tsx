@@ -25,6 +25,8 @@ const TODO_SWIPE_AXIS_RATIO = 3;
 const TODO_SWIPE_VERTICAL_ABORT_PX = 20;
 const TODO_SWIPE_COMMIT_RATIO = 0.28;
 const TODO_SWIPE_SETTLE_MS = 180;
+// 이만큼이라도 움직였으면 탭이 아니다. 인라인 편집을 열지 않는다.
+const TODO_TAP_SLOP_PX = 5;
 
 const restrictTodoDragToList: Modifier = ({ transform, activeNodeRect, containerNodeRect }) => {
   const nextTransform = { ...transform, x: 0 };
@@ -221,6 +223,12 @@ export function TodoList({
     const dy = e.clientY - state.startY;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
+
+    // 손가락이 움직였으면 뒤따르는 click을 막는다. 스와이프 판정에 이르지
+    // 못한 짧은 움직임이나 세로 스크롤에서도 편집이 열리면 안 된다.
+    if (absDx >= TODO_TAP_SLOP_PX || absDy >= TODO_TAP_SLOP_PX) {
+      suppressClickRef.current = true;
+    }
 
     if (!state.decided) {
       if (absDy > TODO_SWIPE_VERTICAL_ABORT_PX && absDy >= absDx) {
