@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Day, ScheduleItem } from '../lib/types';
 import { todayKey, weekDays, weekMonthLabel, parseKey, startOfWeek, addDays } from '../lib/date';
 import { expandScheduleInRange } from '../lib/schedule';
@@ -377,10 +377,13 @@ export function WeekStrip({
           <button
             type="button"
             onClick={onOpenMonthView}
-            className="flex items-center gap-1 font-bold text-slate-900 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5"
+            aria-label={`${monthTitle} 월 달력 열기`}
+            // 〉는 좌우 이동 화살표와 같은 모양이라 "다음 달"로 읽힌다.
+            // 달력 아이콘이면 무엇이 열리는지 바로 드러난다.
+            className="min-h-11 flex items-center gap-1.5 font-bold text-slate-900 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded px-1.5 py-0.5"
           >
             <span>{monthTitle}</span>
-            <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="text-slate-500" />
+            <CalendarDays size={16} strokeWidth={2} aria-hidden="true" className="text-slate-500" />
           </button>
 
           {showTodayButton && (
