@@ -59,6 +59,8 @@ import { MemoBlock } from './components/MemoBlock';
 import { ActionBar } from './components/ActionBar';
 import { MoveBar } from './components/MoveBar';
 import { Toast, useToast } from './components/Toast';
+import { UpdateToast } from './components/UpdateToast';
+import { useServiceWorkerUpdate } from './lib/swUpdate';
 import { LoginScreen } from './components/LoginScreen';
 import { MigrationModal } from './components/MigrationModal';
 import { ConflictModal } from './components/ConflictModal';
@@ -138,6 +140,7 @@ export default function App() {
   });
 
   const { toast, showToast, hideToast } = useToast();
+  const { isUpdateReady, applyUpdate } = useServiceWorkerUpdate();
 
   const getMetadataString = (key: string): string => {
     const value = session?.user.user_metadata?.[key];
@@ -1480,6 +1483,9 @@ export default function App() {
 
       {/* Reusable Toast Notification */}
       <Toast toast={toast} onClose={hideToast} />
+
+      {/* 배포된 새 버전이 준비되면 알린다. 새로고침은 사용자가 누를 때만. */}
+      <UpdateToast isVisible={isUpdateReady} onReload={applyUpdate} />
     </div>
   );
 }
