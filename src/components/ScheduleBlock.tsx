@@ -52,17 +52,19 @@ function ScheduleItemRow({
   const repeat = item.repeat;
 
   return (
-    <li className="flex items-center justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0 gap-2">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+    // 긴 일정도 잘리지 않고 다음 줄로 넘어간다. 날짜 배지와 ✕는 첫 줄 옆에 남는다.
+    // 첫 줄 중심은 내용 위에서 12px이라, 높이가 다른 컨트롤을 그 값에 맞춘다.
+    <li className="flex items-start justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0 gap-2">
+      <div className="flex items-start gap-2 min-w-0 flex-1">
+        <span className="mt-0.5 font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
           {formatDisplayDate(occurrenceDate)}
         </span>
 
-        {repeat ? <span className="text-slate-400 shrink-0">↻</span> : null}
+        {repeat ? <span className="mt-0.5 text-slate-400 shrink-0">↻</span> : null}
         <button
           type="button"
           onClick={() => onOpenScheduleEdit(item.id)}
-          className="font-medium text-slate-800 truncate min-w-0 flex-1 cursor-pointer text-left hover:bg-slate-200/60 rounded px-1 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+          className="font-medium text-slate-800 break-words min-w-0 flex-1 cursor-pointer text-left hover:bg-slate-200/60 rounded px-1 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
         >
           {item.text}
         </button>
@@ -72,7 +74,7 @@ function ScheduleItemRow({
         type="button"
         onClick={() => onDeleteSchedule(item.id)}
         aria-label="일정 삭제"
-        className="w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus-visible:text-red-500 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+        className="-mt-1 w-8 h-8 flex items-center justify-center shrink-0 text-slate-400 [@media(hover:hover)]:hover:text-red-500 [@media(hover:hover)]:hover:bg-red-50 focus-visible:text-red-500 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
       >
         ✕
       </button>

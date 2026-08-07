@@ -100,7 +100,9 @@ export function TodoRow({
       ref={setNodeRef}
       style={style}
       onClick={isSelectMode ? () => onToggleSelect?.(id) : undefined}
-      className={`group flex items-center justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
+      // 긴 할 일은 여러 줄로 늘어난다. items-start라야 손잡이·체크박스·✕가
+      // 가운데로 떠내려가지 않고 첫 줄 옆에 남는다.
+      className={`group flex items-start justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
         isDragging
           ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : isSelectMode
@@ -110,7 +112,7 @@ export function TodoRow({
           : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
       }`}
     >
-      <div className="flex items-center min-w-0 flex-1 mr-1">
+      <div className="flex items-start min-w-0 flex-1 mr-1">
         {/* Selection Checkbox (in place of Drag handle when in Select Mode) */}
         {isSelectMode ? (
           <button
@@ -223,13 +225,15 @@ export function TodoRow({
             onChange={(e) => setEditText(e.target.value)}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
-            className="flex-1 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="flex-1 min-h-10 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         ) : (
           <span
             onClick={isSelectMode ? undefined : handleStartEdit}
             title={isSelectMode ? '선택' : '클릭하여 수정'}
-            className={`text-sm truncate font-medium ${
+            // py-2.5로 첫 줄 중심을 40px 컨트롤의 중심(20px)에 맞춘다.
+            // 줄 수 제한은 두지 않는다. 긴 항목은 그만큼 높아진다.
+            className={`min-w-0 py-2.5 text-sm font-medium break-words ${
               isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'
             } ${done ? 'line-through text-slate-400' : 'text-slate-800'}`}
           >

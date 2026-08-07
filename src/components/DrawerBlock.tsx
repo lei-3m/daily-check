@@ -235,13 +235,14 @@ function DrawerTodoRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
+      // 할 일 목록과 같다. 긴 항목이 여러 줄이 되어도 컨트롤은 첫 줄 옆에 남는다.
+      className={`group flex items-start justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
         isDragging
           ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : 'border-transparent hover:bg-slate-50 hover:border-slate-100'
       }`}
     >
-      <div className="flex items-center min-w-0 flex-1 mr-1">
+      <div className="flex items-start min-w-0 flex-1 mr-1">
         {isDragDisabled ? (
           <span
             className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-200 select-none text-base"
@@ -312,7 +313,7 @@ function DrawerTodoRow({
             onBlur={save}
             onKeyDown={handleKeyDown}
             enterKeyHint="done"
-            className="flex-1 min-w-0 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="flex-1 min-w-0 min-h-10 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         ) : (
           <span
@@ -320,7 +321,8 @@ function DrawerTodoRow({
               isCancelledRef.current = false;
               setIsEditing(true);
             }}
-            className={`text-sm truncate font-medium cursor-pointer hover:text-slate-900 ${
+            // py-2.5로 첫 줄 중심을 40px 컨트롤의 중심(20px)에 맞춘다.
+            className={`min-w-0 py-2.5 text-sm font-medium break-words cursor-pointer hover:text-slate-900 ${
               item.done ? 'line-through text-slate-400' : 'text-slate-800'
             }`}
             title="클릭하여 수정"

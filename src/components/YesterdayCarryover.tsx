@@ -85,14 +85,16 @@ export function YesterdayCarryover({
           <ul className="space-y-1">
             {todos.map((todo) => (
               <li key={todo.id}>
-                <label className="min-h-11 flex items-center gap-2 text-sm text-slate-700 cursor-pointer rounded-lg px-1 [@media(hover:hover)]:hover:bg-slate-100">
+                {/* 가져올 항목을 고르는 목록이다. 잘리면 무엇을 고르는지 알 수 없다.
+                    체크박스는 mt-0.5로 첫 줄 중심(10px)에 맞춘다. */}
+                <label className="min-h-11 flex items-start gap-2 py-2.5 text-sm text-slate-700 cursor-pointer rounded-lg px-1 [@media(hover:hover)]:hover:bg-slate-100">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(todo.id)}
                     onChange={() => toggleSelected(todo.id)}
-                    className="accent-control h-4 w-4"
+                    className="accent-control h-4 w-4 mt-0.5 shrink-0"
                   />
-                  <span className="min-w-0 truncate">{todo.text}</span>
+                  <span className="min-w-0 break-words">{todo.text}</span>
                 </label>
               </li>
             ))}
