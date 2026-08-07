@@ -1,7 +1,12 @@
 import React, { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DrawerList, Todo } from '../lib/types';
 import { restrictDragToList, useListDragSensors } from '../lib/listDrag';
@@ -26,6 +31,8 @@ interface DrawerBlockProps {
   onEditTodo: (listId: string, todoId: string, text: string) => void;
   onDeleteTodo: (listId: string, todoId: string) => void;
   onReorderTodos?: (listId: string, items: Todo[]) => void;
+  /** 목록 일람의 순서. drawer 배열 자체의 순서를 바꾼다. */
+  onReorderLists?: (orderedIds: string[]) => void;
 }
 
 interface EditableDrawerNameProps {
@@ -137,8 +144,44 @@ function DrawerListRow({
   const totalCount = list.items.length;
   const displayName = list.name.trim();
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: list.id,
+  });
+
+  const shouldReduceMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: shouldReduceMotion ? undefined : transition ?? 'transform 150ms ease',
+    zIndex: isDragging ? 50 : undefined,
+    position: 'relative',
+  };
+
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 min-h-[44px] py-1 px-2.5 rounded-lg border border-transparent hover:bg-slate-50 hover:border-slate-100">
+    // 손잡이 칸을 따로 둔다. 제목 칸은 minmax(0,1fr) 그대로라 손잡이만큼만 좁아지고
+    // 이름과 개수 표시의 배치는 바뀌지 않는다.
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 min-h-[44px] py-1 px-2.5 rounded-lg border ${
+        isDragging
+          ? 'shadow-xl bg-white opacity-95 border-slate-300 ring-1.5 ring-slate-200'
+          : 'border-transparent hover:bg-slate-50 hover:border-slate-100'
+      }`}
+    >
+        <span
+          {...attributes}
+          {...listeners}
+          style={{ touchAction: 'pan-y' }}
+          className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1.5 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab active:cursor-grabbing text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded"
+          aria-label="순서 변경"
+          title="드래그하여 순서 변경"
+        >
+          ⠿
+        </span>
         <button
           type="button"
           onClick={() => onOpenList(list.id)}
@@ -361,6 +404,7 @@ export function DrawerBlock({
   onEditTodo,
   onDeleteTodo,
   onReorderTodos,
+  onReorderLists,
 }: DrawerBlockProps) {
   const activeList = lists.find((list) => list.id === activeListId);
   const itemsScrollRef = useRef<HTMLDivElement>(null);
@@ -374,6 +418,16 @@ export function DrawerBlock({
     const nextItems = moveIncompleteTodo(activeList.items, String(active.id), String(over.id));
     if (nextItems === activeList.items) return;
     onReorderTodos(activeList.id, nextItems);
+  };
+
+  // 목록 일람은 완료/미완료 구분이 없다. 어느 자리로든 옮길 수 있다.
+  const handleListDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!onReorderLists || !over || active.id === over.id) return;
+    const oldIndex = lists.findIndex((list) => list.id === active.id);
+    const newIndex = lists.findIndex((list) => list.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorderLists(arrayMove(lists, oldIndex, newIndex).map((list) => list.id));
   };
 
   // 새 항목은 목록 맨 아래에 붙는데, 목록이 박스 높이를 넘으면 잘려서 보이지 않는다.
@@ -504,16 +558,28 @@ export function DrawerBlock({
             아래에서 목록을 만들어 보세요.
           </div>
         ) : (
-          <ul className="space-y-1">
-            {lists.map((list) => (
-              <DrawerListRow
-                key={list.id}
-                list={list}
-                onOpenList={onOpenList}
-                onDeleteDrawer={onDeleteDrawer}
-              />
-            ))}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictDragToList]}
+            onDragEnd={handleListDragEnd}
+          >
+            <SortableContext
+              items={lists.map((list) => list.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-1">
+                {lists.map((list) => (
+                  <DrawerListRow
+                    key={list.id}
+                    list={list}
+                    onOpenList={onOpenList}
+                    onDeleteDrawer={onDeleteDrawer}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

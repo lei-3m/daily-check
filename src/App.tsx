@@ -786,6 +786,19 @@ export default function App() {
     );
   };
 
+  // 순서만 바꾼다. 목록을 새로 만들거나 지우지 않는다.
+  // 드래그 도중 다른 기기에서 목록이 추가되면 그 목록은 뒤에 남는다.
+  const handleReorderDrawers = (orderedIds: string[]) => {
+    updateDrawers((current) => {
+      const byId = new Map(current.map((list) => [list.id, list]));
+      const reordered = orderedIds
+        .map((id) => byId.get(id))
+        .filter((list): list is (typeof current)[number] => Boolean(list));
+      const rest = current.filter((list) => !orderedIds.includes(list.id));
+      return [...reordered, ...rest];
+    });
+  };
+
   const handleReorderDrawerTodos = (listId: string, items: Todo[]) => {
     updateDrawers((current) =>
       current.map((drawer) =>
@@ -1485,6 +1498,7 @@ export default function App() {
             onEditTodo={handleEditDrawerTodo}
             onDeleteTodo={handleDeleteDrawerTodo}
             onReorderTodos={handleReorderDrawerTodos}
+            onReorderLists={handleReorderDrawers}
           />
         )}
 
