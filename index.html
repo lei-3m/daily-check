@@ -9,7 +9,9 @@
     <meta name="apple-mobile-web-app-title" content="Daily Check" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- iOS는 자기 모양으로 잘라내고 투명한 곳은 검게 채운다.
+         둥근 모서리가 없는 꽉 찬 아이콘을 줘야 모서리에 검은 자국이 남지 않는다. -->
+    <link rel="apple-touch-icon" href="/icon-maskable-192.png" />
     <title>Daily Check</title>
     <script>
       (function () {
