@@ -53,8 +53,8 @@ export function DateNav({
           onSelectDate(today);
           onChangeView({ kind: 'week', anchor: today });
         }}
-        onOpenMonthView={() =>
-          onChangeView({ kind: 'month', anchor: view.anchor })
+        onOpenMonthView={(monthAnchorKey) =>
+          onChangeView({ kind: 'month', anchor: monthAnchorKey })
         }
       />
     );
