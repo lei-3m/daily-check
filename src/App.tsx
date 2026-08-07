@@ -60,7 +60,9 @@ import { ActionBar } from './components/ActionBar';
 import { MoveBar } from './components/MoveBar';
 import { Toast, useToast } from './components/Toast';
 import { UpdateToast } from './components/UpdateToast';
+import { InstallBanner } from './components/InstallBanner';
 import { useServiceWorkerUpdate } from './lib/swUpdate';
+import { useInstallBanner } from './lib/installPrompt';
 import { LoginScreen } from './components/LoginScreen';
 import { MigrationModal } from './components/MigrationModal';
 import { ConflictModal } from './components/ConflictModal';
@@ -141,6 +143,8 @@ export default function App() {
 
   const { toast, showToast, hideToast } = useToast();
   const { isUpdateReady, applyUpdate } = useServiceWorkerUpdate();
+  const { bannerMode: installBannerMode, installMode, dismiss: dismissInstallBanner, promptInstall } =
+    useInstallBanner();
 
   const getMetadataString = (key: string): string => {
     const value = session?.user.user_metadata?.[key];
@@ -1296,7 +1300,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans app-container sm:py-10 sm:px-4">
+    // 배너는 화면에 고정이고 액션 버튼은 문서 흐름 안에 있다.
+    // 끝까지 스크롤했을 때 버튼이 배너에 가리지 않도록 아래를 비워 둔다.
+    <div
+      className={`min-h-screen bg-slate-50 text-slate-900 font-sans app-container sm:py-10 sm:px-4 ${
+        installBannerMode === 'none' ? '' : 'pb-24'
+      }`}
+    >
       <main className="max-w-[620px] mx-auto bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 sm:p-6 space-y-5">
         {/* Header Section */}
         <Header
@@ -1316,6 +1326,8 @@ export default function App() {
           onImportData={handleImportData}
           includeMemoInPriority={includeMemoInPriority}
           onIncludeMemoInPriorityChange={handleIncludeMemoInPriorityChange}
+          installMode={installMode}
+          onInstall={promptInstall}
         />
 
         {/* Fixed Schedule Block - Hidden in Month View */}
@@ -1486,6 +1498,13 @@ export default function App() {
 
       {/* 배포된 새 버전이 준비되면 알린다. 새로고침은 사용자가 누를 때만. */}
       <UpdateToast isVisible={isUpdateReady} onReload={applyUpdate} />
+
+      {/* 홈 화면 추가 안내. 로그인 화면에서는 이 트리에 닿지 않는다. */}
+      <InstallBanner
+        mode={installBannerMode}
+        onInstall={promptInstall}
+        onDismiss={dismissInstallBanner}
+      />
     </div>
   );
 }
