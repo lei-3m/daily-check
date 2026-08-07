@@ -1,6 +1,11 @@
 import React, { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronLeft } from 'lucide-react';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { DrawerList, Todo } from '../lib/types';
+import { restrictDragToList, useListDragSensors } from '../lib/listDrag';
+import { moveIncompleteTodo } from '../lib/todoOrder';
 import { TodoAddForm } from './TodoAddForm';
 
 type DrawerMode = 'collapsed' | 'lists' | 'list';
@@ -20,6 +25,7 @@ interface DrawerBlockProps {
   onToggleTodo: (listId: string, todoId: string) => void;
   onEditTodo: (listId: string, todoId: string, text: string) => void;
   onDeleteTodo: (listId: string, todoId: string) => void;
+  onReorderTodos?: (listId: string, items: Todo[]) => void;
 }
 
 interface EditableDrawerNameProps {
@@ -109,6 +115,7 @@ interface DrawerTodoRowProps {
   key?: string;
   listId: string;
   item: Todo;
+  isDragDisabled?: boolean;
   onToggleTodo: (listId: string, todoId: string) => void;
   onEditTodo: (listId: string, todoId: string, text: string) => void;
   onDeleteTodo: (listId: string, todoId: string) => void;
@@ -163,6 +170,7 @@ function DrawerListRow({
 function DrawerTodoRow({
   listId,
   item,
+  isDragDisabled = false,
   onToggleTodo,
   onEditTodo,
   onDeleteTodo,
@@ -171,6 +179,23 @@ function DrawerTodoRow({
   const [editText, setEditText] = useState(item.text);
   const inputRef = useRef<HTMLInputElement>(null);
   const isCancelledRef = useRef(false);
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled: isDragDisabled,
+  });
+
+  const shouldReduceMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: shouldReduceMotion ? undefined : transition ?? 'transform 150ms ease',
+    zIndex: isDragging ? 50 : undefined,
+    position: 'relative',
+  };
 
   useEffect(() => {
     setEditText(item.text);
@@ -207,8 +232,36 @@ function DrawerTodoRow({
   };
 
   return (
-    <div className="group flex items-center justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,opacity] motion-safe:duration-150 motion-reduce:transition-none border border-transparent hover:bg-slate-50 hover:border-slate-100">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group flex items-center justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
+        isDragging
+          ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
+          : 'border-transparent hover:bg-slate-50 hover:border-slate-100'
+      }`}
+    >
       <div className="flex items-center min-w-0 flex-1 mr-1">
+        {isDragDisabled ? (
+          <span
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-200 select-none text-base"
+            aria-hidden="true"
+          >
+            ⠿
+          </span>
+        ) : (
+          <span
+            {...attributes}
+            {...listeners}
+            style={{ touchAction: 'pan-y' }}
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 select-none cursor-grab active:cursor-grabbing text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded"
+            aria-label="순서 변경"
+            title="드래그하여 순서 변경"
+          >
+            ⠿
+          </span>
+        )}
+
         <button
           type="button"
           role="checkbox"
@@ -305,11 +358,21 @@ export function DrawerBlock({
   onToggleTodo,
   onEditTodo,
   onDeleteTodo,
+  onReorderTodos,
 }: DrawerBlockProps) {
   const activeList = lists.find((list) => list.id === activeListId);
   const itemsScrollRef = useRef<HTMLDivElement>(null);
   const pendingAddScrollRef = useRef(false);
   const itemCount = activeList?.items.length ?? 0;
+  const sensors = useListDragSensors();
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!activeList || !onReorderTodos || !over || active.id === over.id) return;
+    const nextItems = moveIncompleteTodo(activeList.items, String(active.id), String(over.id));
+    if (nextItems === activeList.items) return;
+    onReorderTodos(activeList.id, nextItems);
+  };
 
   // 새 항목은 목록 맨 아래에 붙는데, 목록이 박스 높이를 넘으면 잘려서 보이지 않는다.
   // 추가 직후 스크롤 컨테이너를 끝까지 내려 방금 넣은 항목을 보여준다.
@@ -370,28 +433,41 @@ export function DrawerBlock({
           </div>
         </div>
 
-        <div
-          ref={itemsScrollRef}
-          className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60"
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictDragToList]}
+          onDragEnd={handleDragEnd}
         >
-          {activeList.items.length === 0 ? (
-            <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
-              이 목록에는 할 일이 없어요.<br />
-              아래 입력칸에 추가하세요.
+          <SortableContext
+            items={activeList.items.map((item) => item.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div
+              ref={itemsScrollRef}
+              className="max-h-[42vh] overflow-y-auto pr-1 divide-y divide-slate-100/60"
+            >
+              {activeList.items.length === 0 ? (
+                <div className="text-xs text-slate-400 py-3 text-center leading-relaxed">
+                  이 목록에는 할 일이 없어요.<br />
+                  아래 입력칸에 추가하세요.
+                </div>
+              ) : (
+                activeList.items.map((item) => (
+                  <DrawerTodoRow
+                    key={item.id}
+                    listId={activeList.id}
+                    item={item}
+                    isDragDisabled={item.done}
+                    onToggleTodo={onToggleTodo}
+                    onEditTodo={onEditTodo}
+                    onDeleteTodo={onDeleteTodo}
+                  />
+                ))
+              )}
             </div>
-          ) : (
-            activeList.items.map((item) => (
-              <DrawerTodoRow
-                key={item.id}
-                listId={activeList.id}
-                item={item}
-                onToggleTodo={onToggleTodo}
-                onEditTodo={onEditTodo}
-                onDeleteTodo={onDeleteTodo}
-              />
-            ))
-          )}
-        </div>
+          </SortableContext>
+        </DndContext>
 
         <TodoAddForm
           placeholder="항목 적기"

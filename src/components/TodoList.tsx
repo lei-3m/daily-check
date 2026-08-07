@@ -1,22 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import type { Modifier } from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Todo } from '../lib/types';
+import { restrictDragToList, useListDragSensors } from '../lib/listDrag';
 import { moveIncompleteTodo } from '../lib/todoOrder';
 import { TodoRow } from './TodoRow';
 import { TodoAddForm, TodoAddFormHandle } from './TodoAddForm';
@@ -28,22 +15,6 @@ const TODO_SWIPE_COMMIT_RATIO = 0.28;
 const TODO_SWIPE_SETTLE_MS = 180;
 // 이만큼이라도 움직였으면 탭이 아니다. 인라인 편집을 열지 않는다.
 const TODO_TAP_SLOP_PX = 5;
-
-const restrictTodoDragToList: Modifier = ({ transform, activeNodeRect, containerNodeRect }) => {
-  const nextTransform = { ...transform, x: 0 };
-
-  if (!activeNodeRect || !containerNodeRect) {
-    return nextTransform;
-  }
-
-  const minY = containerNodeRect.top - activeNodeRect.top;
-  const maxY = containerNodeRect.bottom - activeNodeRect.bottom;
-
-  return {
-    ...nextTransform,
-    y: Math.min(Math.max(nextTransform.y, minY), maxY),
-  };
-};
 
 function prefersReducedMotion(): boolean {
   return (
@@ -131,22 +102,7 @@ export function TodoList({
     addFormRef.current?.focus();
   }, [todos.length]);
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const sensors = useListDragSensors();
 
   const handleDragEnd = (event: DragEndEvent) => {
     isDndDraggingRef.current = false;
@@ -286,7 +242,7 @@ export function TodoList({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        modifiers={[restrictTodoDragToList]}
+        modifiers={[restrictDragToList]}
         onDragStart={() => {
           isDndDraggingRef.current = true;
           swipeRef.current = null;
