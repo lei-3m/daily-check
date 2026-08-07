@@ -11,6 +11,8 @@ import {
   hasPendingSync,
   getPriorityIncludeMemoPreference,
   getScheduleCollapsedPreference,
+  getSessionView,
+  setSessionView,
   dismissYesterdayCarryover,
   isYesterdayCarryoverDismissed,
   reapplyLocalChanges,
@@ -121,6 +123,7 @@ export default function App() {
     anchor: todayKey(),
   }));
   const viewRef = useRef<View>(view);
+  const didRestoreViewRef = useRef(false);
   const activeKeyRef = useRef(todayKey());
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -187,6 +190,30 @@ export default function App() {
       return { kind: 'week', anchor: value.anchor };
     }
     return null;
+  };
+
+  /**
+   * 복원해도 되는 화면인지 판단합니다.
+   * id가 필요한 화면은 그 id가 아직 있어야 합니다. 삭제된 목록을 복원하면 빈 화면이 됩니다.
+   */
+  const resolveRestorableView = (candidate: View): View | null => {
+    const state = appStateRef.current;
+    if (!state) return null;
+
+    if (candidate.kind === 'drawerList') {
+      const exists = normalizeDrawer(state.drawer).some((list) => list.id === candidate.id);
+      return exists ? candidate : { kind: 'drawer' };
+    }
+
+    if (candidate.kind === 'scheduleEdit') {
+      // id가 없으면 새 일정 작성 중이었다는 뜻이다. 입력하던 내용은 새로고침으로
+      // 이미 사라졌으므로 빈 편집 화면을 다시 열지 않는다.
+      if (!candidate.id) return null;
+      const exists = state.schedule.some((item) => item.id === candidate.id);
+      return exists ? candidate : null;
+    }
+
+    return candidate;
   };
 
   const getHistoryStateForView = (nextView: View) => {
@@ -495,13 +522,36 @@ export default function App() {
     appStateRef.current = appState;
   }, [appState]);
 
+  // 새로고침해도 보고 있던 화면으로 돌아온다. 당겨서 새로고침이 잦은 폰에서
+  // 서랍을 보다가 주간 뷰로 튕기면 하던 일을 잃는다.
+  //
+  // 히스토리는 주간 뷰부터 다시 쌓는다. 새로고침 직후에는 항목이 하나뿐이라
+  // 그대로 복원하면 뒤로가기가 앱을 나가버린다.
+  useEffect(() => {
+    if (!isLoaded || didRestoreViewRef.current) return;
+    didRestoreViewRef.current = true;
+
+    const weekView: View = { kind: 'week', anchor: activeKeyRef.current };
+    window.history.replaceState(getHistoryStateForView(weekView), '');
+
+    const restored = getViewFromHistoryState(getSessionView());
+    if (!restored) return;
+
+    const target = resolveRestorableView(restored);
+    if (!target || target.kind === 'week') return;
+
+    // 서랍 체크리스트는 목록 일람을 거쳐 들어간다. 뒤로가기 순서도 그대로 둔다.
+    if (target.kind === 'drawerList') {
+      window.history.pushState(getHistoryStateForView({ kind: 'drawer' }), '');
+    }
+    window.history.pushState(getHistoryStateForView(target), '');
+    setView(target);
+  }, [isLoaded]);
+
   useEffect(() => {
     if (!isLoaded) return;
-    window.history.replaceState(
-      getHistoryStateForView({ kind: 'week', anchor: activeKeyRef.current }),
-      ''
-    );
-  }, [isLoaded]);
+    setSessionView(getHistoryStateForView(view));
+  }, [isLoaded, view]);
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {

@@ -22,6 +22,8 @@ const MIGRATION_PROMPTED_PREFIX = 'daily-check:migration-prompted:';
 const THEME_KEY = 'daily-check:theme';
 const ACCENT_KEY = 'daily-check:accent';
 const INSTALL_BANNER_DISMISSED_KEY = 'daily-check:install-banner-dismissed';
+// 이 키만 sessionStorage에 있습니다. 탭 하나의 수명 동안만 유지됩니다.
+const SESSION_VIEW_KEY = 'daily-check:session-view';
 
 // 기기 설정. 계정 데이터가 아니므로 로그아웃해도 지우지 않습니다.
 // 홈 화면 추가 안내를 닫은 기록도 기기 설정입니다. 로그아웃했다고
@@ -1132,6 +1134,38 @@ export interface InstallBannerDismissal {
 
 const NO_INSTALL_BANNER_DISMISSAL: InstallBannerDismissal = { count: 0, lastDismissedAt: 0 };
 
+/**
+ * 새로고침으로 보고 있던 화면을 잃지 않도록 현재 View를 기억합니다.
+ *
+ * sessionStorage입니다. 탭을 닫았다 새로 열면 주간 뷰에서 시작하는 것이 맞습니다.
+ * 저장하는 값은 App이 히스토리에 넣는 것과 같은 모양이고, 복원할 때 App이 검증합니다.
+ */
+export function getSessionView(): unknown | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_VIEW_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function setSessionView(value: unknown): void {
+  try {
+    sessionStorage.setItem(SESSION_VIEW_KEY, JSON.stringify(value));
+  } catch (error) {
+    console.error('Failed to save session view:', error);
+  }
+}
+
+export function clearSessionView(): void {
+  try {
+    sessionStorage.removeItem(SESSION_VIEW_KEY);
+  } catch (error) {
+    console.error('Failed to clear session view:', error);
+  }
+}
+
 export function getInstallBannerDismissal(): InstallBannerDismissal {
   try {
     const raw = localStorage.getItem(INSTALL_BANNER_DISMISSED_KEY);
@@ -1275,6 +1309,8 @@ export function clearUserCache(): void {
     listLocalKeys()
       .filter((key) => !DEVICE_KEYS.includes(key))
       .forEach((key) => localStorage.removeItem(key));
+    // 보고 있던 화면도 계정 데이터다. 다음 사람이 앞 사람의 서랍 목록으로 시작하면 안 된다.
+    clearSessionView();
     lastLoadedUpdatedAt = null;
   } catch (e) {
     console.error('Failed to clear user cache:', e);
