@@ -8,14 +8,8 @@ import { todayKey } from './lib/date';
 // 지난 날짜의 carryover 키가 쌓이지 않도록 시작할 때 한 번 정리합니다.
 pruneStaleLocalKeys(todayKey());
 
-// Register Service Worker for PWA offline support
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.log('ServiceWorker registration failed: ', err);
-    });
-  });
-}
+// 서비스 워커 등록은 App의 useServiceWorkerUpdate가 맡습니다.
+// 등록과 새 버전 감지를 한곳에서 해야 대기 중인 워커를 놓치지 않습니다.
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
