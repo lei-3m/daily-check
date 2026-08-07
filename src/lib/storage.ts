@@ -21,9 +21,12 @@ const YESTERDAY_CARRYOVER_DISMISSED_PREFIX = 'daily-check:yesterday-carryover-di
 const MIGRATION_PROMPTED_PREFIX = 'daily-check:migration-prompted:';
 const THEME_KEY = 'daily-check:theme';
 const ACCENT_KEY = 'daily-check:accent';
+const INSTALL_BANNER_DISMISSED_KEY = 'daily-check:install-banner-dismissed';
 
 // 기기 설정. 계정 데이터가 아니므로 로그아웃해도 지우지 않습니다.
-const DEVICE_KEYS: readonly string[] = [THEME_KEY, ACCENT_KEY];
+// 홈 화면 추가 안내를 닫은 기록도 기기 설정입니다. 로그아웃했다고
+// 다시 띄우면 같은 폰에서 안내를 두 번 보게 됩니다.
+const DEVICE_KEYS: readonly string[] = [THEME_KEY, ACCENT_KEY, INSTALL_BANNER_DISMISSED_KEY];
 
 export type SyncStatusType = 'synced' | 'saving' | 'pending' | 'offline' | 'conflict' | 'local_only';
 
@@ -1118,6 +1121,46 @@ export function setScheduleCollapsedPreference(isCollapsed: boolean): void {
   } catch (error) {
     console.error('Failed to save schedule collapsed preference:', error);
   }
+}
+
+export interface InstallBannerDismissal {
+  /** ✕로 닫은 횟수. 2회부터는 영구 숨김. */
+  count: number;
+  /** 마지막으로 닫은 시각(epoch ms). 날짜 키가 아니라 경과 시간 계산용입니다. */
+  lastDismissedAt: number;
+}
+
+const NO_INSTALL_BANNER_DISMISSAL: InstallBannerDismissal = { count: 0, lastDismissedAt: 0 };
+
+export function getInstallBannerDismissal(): InstallBannerDismissal {
+  try {
+    const raw = localStorage.getItem(INSTALL_BANNER_DISMISSED_KEY);
+    if (!raw) return NO_INSTALL_BANNER_DISMISSAL;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.count === 'number') {
+      return {
+        count: parsed.count,
+        lastDismissedAt: Number(parsed.lastDismissedAt) || 0,
+      };
+    }
+    // 닫음을 boolean으로 저장하던 옛 기록. 한 번 닫은 것으로 보고 시각은 비운다.
+    return { count: 1, lastDismissedAt: 0 };
+  } catch {
+    return NO_INSTALL_BANNER_DISMISSAL;
+  }
+}
+
+export function recordInstallBannerDismissal(now: number): InstallBannerDismissal {
+  const next: InstallBannerDismissal = {
+    count: getInstallBannerDismissal().count + 1,
+    lastDismissedAt: now,
+  };
+  try {
+    localStorage.setItem(INSTALL_BANNER_DISMISSED_KEY, JSON.stringify(next));
+  } catch (error) {
+    console.error('Failed to save install banner dismissal:', error);
+  }
+  return next;
 }
 
 export function getPriorityIncludeMemoPreference(): boolean {

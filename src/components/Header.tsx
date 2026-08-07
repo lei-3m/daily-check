@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { SyncStatus } from '../lib/storage';
 import { ACCENT_OPTIONS, AccentPreference, ThemePreference } from '../lib/theme';
+import { InstallBannerMode } from '../lib/installPrompt';
 
 export interface AccountProfile {
   displayName: string;
@@ -33,6 +34,9 @@ interface HeaderProps {
   onImportData: (file: File) => void;
   includeMemoInPriority: boolean;
   onIncludeMemoInPriorityChange: (includeMemo: boolean) => void;
+  /** 'none'이면 항목을 감춘다. 이미 설치했거나 설치할 수 없는 브라우저다. */
+  installMode: InstallBannerMode;
+  onInstall: () => void;
 }
 
 const AVATAR_EMOJIS = [
@@ -92,9 +96,12 @@ export function Header({
   onImportData,
   includeMemoInPriority,
   onIncludeMemoInPriorityChange,
+  installMode,
+  onInstall,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuView, setMenuView] = useState<'main' | 'profile'>('main');
+  const [isIosInstallHintOpen, setIsIosInstallHintOpen] = useState(false);
   const [draftName, setDraftName] = useState(profile.displayName);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -477,6 +484,46 @@ export function Header({
           />
         </div>
       </div>
+
+      {/* 배너를 닫았어도 여기서는 언제든 설치할 수 있다.
+          이미 설치했거나(standalone) 설치가 안 되는 브라우저면 'none'이라 항목이 없다. */}
+      {installMode !== 'none' && (
+        <div className="pt-2 border-t border-slate-100 space-y-1.5">
+          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            홈 화면
+          </div>
+          {installMode === 'prompt' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMenuOpen(false);
+                onInstall();
+              }}
+              className="w-full min-h-11 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            >
+              홈 화면에 추가
+            </button>
+          ) : (
+            <>
+              {/* iOS 사파리는 설치 프롬프트를 띄울 수 없다. 안내만 그 자리에서 펼친다. */}
+              <button
+                type="button"
+                onClick={() => setIsIosInstallHintOpen((prev) => !prev)}
+                aria-expanded={isIosInstallHintOpen}
+                className="w-full min-h-11 flex items-center justify-between gap-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+              >
+                <span>홈 화면에 추가</span>
+                <span className="text-slate-400">{isIosInstallHintOpen ? '▴' : '▾'}</span>
+              </button>
+              {isIosInstallHintOpen && (
+                <p className="px-2.5 pb-1 text-[11px] text-slate-500 leading-relaxed">
+                  공유 버튼을 누르고 '홈 화면에 추가'를 선택하세요
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <div className="pt-2 border-t border-slate-100">
         <button
