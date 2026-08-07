@@ -1,5 +1,31 @@
 import React, { useState } from 'react';
+import { CalendarDays, ClipboardCheck, RefreshCw, Inbox, Sparkles } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { AppPreview } from './AppPreview';
+
+// 매일 보는 화면부터 시작해 AI, 복사, 서랍, 동기화 순으로 넓혀 간다.
+const FEATURES = [
+  {
+    Icon: CalendarDays,
+    text: '날짜별 할 일과 메모, 다가오는 일정을 한 화면에서 봅니다',
+  },
+  {
+    Icon: Sparkles,
+    text: '할 일 순서를 AI가 제안합니다. 메모와 일정까지 참고합니다',
+  },
+  {
+    Icon: ClipboardCheck,
+    text: '남은 일을 마크다운으로 복사해 AI에 그대로 붙여넣습니다',
+  },
+  {
+    Icon: Inbox,
+    text: '살 것, 읽을 것처럼 날짜와 무관한 목록은 서랍에 둡니다',
+  },
+  {
+    Icon: RefreshCw,
+    text: 'PC와 폰에서 같은 내용을 보고, 오프라인에서도 열립니다',
+  },
+];
 
 export function LoginScreen() {
   const [loading, setLoading] = useState(false);
@@ -36,8 +62,8 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white border border-slate-200/80 rounded-2xl shadow-xs p-6 text-center space-y-6">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-8">
+      <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl shadow-xs p-6 text-center space-y-6">
         <div className="space-y-2">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl accent-fill text-white font-bold text-xl shadow-xs">
             ✓
@@ -46,9 +72,25 @@ export function LoginScreen() {
             오늘의 작업 공간
           </h1>
           <p className="text-xs text-slate-500 leading-relaxed">
-            날짜별 할 일과 메모, 일정을 간단히 정리하고 기기 간에 동기화합니다.
+            남은 일을 복사해 AI에 붙여넣는 하루 단위 체크리스트
           </p>
         </div>
+
+        <AppPreview />
+
+        <ul className="space-y-2 text-left">
+          {FEATURES.map(({ Icon, text }) => (
+            <li key={text} className="flex items-start gap-2.5">
+              <Icon
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+                className="shrink-0 mt-0.5 text-slate-400"
+              />
+              <span className="text-xs text-slate-600 leading-relaxed">{text}</span>
+            </li>
+          ))}
+        </ul>
 
         {errorMessage && (
           <div className="text-xs text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg text-left">
