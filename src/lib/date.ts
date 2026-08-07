@@ -67,23 +67,25 @@ export function weekDays(key: string): string[] {
   return days;
 }
 
-export function weekMonthLabel(key: string): string {
-  const days = weekDays(key);
-  const first = parseKey(days[0]);
-  const last = parseKey(days[6]);
+export function monthLabel(key: string): string {
+  const d = parseKey(key);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+}
 
-  const firstYear = first.getFullYear();
-  const firstMonth = first.getMonth() + 1;
-  const lastYear = last.getFullYear();
-  const lastMonth = last.getMonth() + 1;
+export function monthKey(key: string): string {
+  return key.slice(0, 7);
+}
 
-  if (firstYear === lastYear && firstMonth === lastMonth) {
-    return `${firstYear}년 ${firstMonth}월`;
-  } else if (firstYear === lastYear) {
-    return `${firstMonth}월 – ${lastMonth}월`;
-  } else {
-    return `${firstYear}년 ${firstMonth}월 – ${lastYear}년 ${lastMonth}월`;
-  }
+/**
+ * 주간 헤더가 가리키는 날짜.
+ * 한 주가 두 달에 걸쳐도 달은 하나만 표시한다.
+ * 선택된 날짜가 이 주 안에 있으면 그 날짜의 달을 쓰고,
+ * 없으면 이 주에서 더 많은 날을 차지하는 달(= 수요일이 속한 달)을 쓴다.
+ */
+export function weekHeaderKey(weekKey: string, activeKey?: string | null): string {
+  const days = weekDays(weekKey);
+  if (activeKey && days.includes(activeKey)) return activeKey;
+  return days[3];
 }
 
 export function monthGrid(key: string): string[] {

@@ -1,7 +1,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Day, ScheduleItem } from '../lib/types';
-import { todayKey, weekDays, weekMonthLabel, parseKey, startOfWeek, addDays } from '../lib/date';
+import {
+  todayKey,
+  weekDays,
+  monthLabel,
+  monthKey as toMonthKey,
+  weekHeaderKey,
+  parseKey,
+  startOfWeek,
+  addDays,
+} from '../lib/date';
 import { expandScheduleInRange } from '../lib/schedule';
 
 interface WeekStripProps {
@@ -13,7 +22,8 @@ interface WeekStripProps {
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onGoToday: () => void;
-  onOpenMonthView: () => void;
+  /** 헤더에 표시된 달을 연다. 주가 두 달에 걸칠 때 보이는 달과 열리는 달이 달라지면 안 된다. */
+  onOpenMonthView: (monthAnchorKey: string) => void;
 }
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
@@ -57,6 +67,8 @@ interface WeekPanelProps {
   weekKey: string;
   /** 현재 보이는 주 패널에만 선택 상태를 넘긴다. 레일의 인접 주 패널은 항상 null. */
   activeKey: string | null;
+  /** 이 패널의 헤더가 가리키는 달("YYYY-MM"). 여기에 속하지 않는 날짜는 흐리게 그린다. */
+  headerMonthKey: string;
   today: string;
   contentKeys: Set<string>;
   scheduleKeys: Set<string>;
@@ -66,6 +78,7 @@ interface WeekPanelProps {
 const WeekPanel = React.memo(function WeekPanel({
   weekKey,
   activeKey,
+  headerMonthKey,
   today,
   contentKeys,
   scheduleKeys,
@@ -78,6 +91,9 @@ const WeekPanel = React.memo(function WeekPanel({
         const dayNum = d.getDate();
         const isSelected = key === activeKey;
         const isToday = key === today;
+        // 헤더에 표시된 달이 아닌 날짜. 다른 달이라는 구분 표시일 뿐이라
+        // 선택·오늘 표시와 아래 점은 그대로 두고 숫자 색만 한 단계 연하게 한다.
+        const isOtherMonth = toMonthKey(key) !== headerMonthKey;
         const dayHasContent = contentKeys.has(key);
         const dayHasSchedule = scheduleKeys.has(key);
 
@@ -97,6 +113,8 @@ const WeekPanel = React.memo(function WeekPanel({
                 ? 'calendar-day-selected bg-slate-900 text-white font-bold shadow-xs'
                 : isToday
                 ? 'calendar-day-today text-slate-800 font-bold'
+                : isOtherMonth
+                ? 'hover:bg-slate-200/60 text-slate-400 font-medium'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
             }`}
           >
@@ -162,7 +180,8 @@ export function WeekStrip({
   const suppressClickRef = useRef<boolean>(false);
 
   const currentWeekKey = getWeekOffsetKey(baseWeekKey, weekOffsetIndex);
-  const monthTitle = weekMonthLabel(currentWeekKey);
+  const headerKey = weekHeaderKey(currentWeekKey, activeKey);
+  const monthTitle = monthLabel(headerKey);
   // 선택된 날짜가 오늘이 아니면 언제든 오늘로 돌아갈 수 있어야 한다.
   // (이번 주 안에서 다른 날짜를 고른 경우도 포함)
   const showTodayButton = activeKey !== today;
@@ -376,7 +395,7 @@ export function WeekStrip({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onOpenMonthView}
+            onClick={() => onOpenMonthView(headerKey)}
             aria-label={`${monthTitle} 월 달력 열기`}
             // 〉는 좌우 이동 화살표와 같은 모양이라 "다음 달"로 읽힌다.
             // 달력 아이콘이면 무엇이 열리는지 바로 드러난다.
@@ -447,6 +466,9 @@ export function WeekStrip({
                 <WeekPanel
                   weekKey={panelWeekKey}
                   activeKey={isCurrentPanel ? activeKey : null}
+                  headerMonthKey={toMonthKey(
+                    weekHeaderKey(panelWeekKey, isCurrentPanel ? activeKey : null)
+                  )}
                   today={today}
                   contentKeys={contentKeys}
                   scheduleKeys={scheduleKeys}
