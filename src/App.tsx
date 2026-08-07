@@ -729,6 +729,14 @@ export default function App() {
     );
   };
 
+  const handleReorderDrawerTodos = (listId: string, items: Todo[]) => {
+    updateDrawers((current) =>
+      current.map((drawer) =>
+        drawer.id === listId ? { ...drawer, items } : drawer
+      )
+    );
+  };
+
   const handleEditDrawerTodo = (listId: string, todoId: string, text: string) => {
     updateDrawers((current) =>
       current.map((drawer) =>
@@ -1411,6 +1419,7 @@ export default function App() {
             onToggleTodo={handleToggleDrawerTodo}
             onEditTodo={handleEditDrawerTodo}
             onDeleteTodo={handleDeleteDrawerTodo}
+            onReorderTodos={handleReorderDrawerTodos}
           />
         )}
 
