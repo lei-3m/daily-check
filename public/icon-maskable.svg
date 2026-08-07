@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- maskable: 런처가 잘라내므로 배경은 꽉 채우고 체크는 가운데 80% 원 안에 둔다 -->
+  <rect width="512" height="512" fill="#0f172a"/>
+  <path d="M140 260 L220 340 L370 170" fill="none" stroke="#ffffff" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
