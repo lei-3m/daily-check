@@ -114,7 +114,7 @@ const WeekPanel = React.memo(function WeekPanel({
                 : isToday
                 ? 'calendar-day-today text-slate-800 font-bold'
                 : isOtherMonth
-                ? 'hover:bg-slate-200/60 text-slate-400 font-medium'
+                ? 'hover:bg-slate-200/60 calendar-other-month font-medium'
                 : 'hover:bg-slate-200/60 text-slate-700 font-medium'
             }`}
           >
