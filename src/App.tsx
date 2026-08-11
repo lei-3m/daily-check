@@ -1537,8 +1537,11 @@ export default function App() {
         )}
 
         {view.kind === 'week' && (
-          isSelectMode ? (
-            <MoveBar
+          <>
+            <div className="bottom-action-spacer" aria-hidden="true" />
+            <div className="bottom-action-shell">
+              {isSelectMode ? (
+                <MoveBar
               activeKey={activeKey}
               selectedCount={selectedIds.size}
               totalCount={todos.length}
@@ -1547,14 +1550,16 @@ export default function App() {
               onEmptySelection={() => showToast('옮길 할 일을 선택해주세요')}
               onCancel={handleCancelMoveMode}
             />
-          ) : (
-            <ActionBar
+              ) : (
+                <ActionBar
               onCopy={handleCopy}
               onStartMoveMode={handleStartMoveMode}
               onPrioritize={handlePrioritize}
               isPrioritizing={isPrioritizing}
             />
-          )
+              )}
+            </div>
+          </>
         )}
       </main>
 
