@@ -1538,8 +1538,17 @@ export default function App() {
 
         {view.kind === 'week' && (
           <>
-            <div className="bottom-action-spacer" aria-hidden="true" />
-            <div className="bottom-action-shell">
+            <div
+              className={`bottom-action-spacer ${
+                isSelectMode ? 'bottom-action-spacer-move' : ''
+              }`}
+              aria-hidden="true"
+            />
+            <div
+              className={`bottom-action-shell ${
+                isSelectMode ? 'bottom-action-shell-move' : ''
+              }`}
+            >
               {isSelectMode ? (
                 <MoveBar
               activeKey={activeKey}
