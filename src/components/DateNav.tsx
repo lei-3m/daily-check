@@ -9,7 +9,7 @@ export type View =
   | { kind: 'month'; anchor: string }
   | { kind: 'drawer' }
   | { kind: 'drawerList'; id: string }
-  | { kind: 'scheduleEdit'; id: string | null };
+  | { kind: 'scheduleEdit'; id: string | null; returnMonthAnchor?: string };
 
 interface DateNavProps {
   view: View;

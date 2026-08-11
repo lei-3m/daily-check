@@ -57,7 +57,6 @@ export function ScheduleEditView({
       return;
     }
     onSave(item?.id || null, date, trimmed, repeat || undefined, repeat ? repeatUntil || undefined : undefined);
-    onBack();
   };
 
   const handleDelete = () => {

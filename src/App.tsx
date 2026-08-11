@@ -175,13 +175,23 @@ export default function App() {
 
   const getViewFromHistoryState = (state: unknown): View | null => {
     if (!state || typeof state !== 'object') return null;
-    const value = state as { view?: unknown; anchor?: unknown; id?: unknown };
+    const value = state as {
+      view?: unknown;
+      anchor?: unknown;
+      id?: unknown;
+      returnMonthAnchor?: unknown;
+    };
     if (value.view === 'drawer') return { kind: 'drawer' };
     if (value.view === 'drawerList' && typeof value.id === 'string') {
       return { kind: 'drawerList', id: value.id };
     }
     if (value.view === 'scheduleEdit') {
-      return { kind: 'scheduleEdit', id: typeof value.id === 'string' ? value.id : null };
+      return {
+        kind: 'scheduleEdit',
+        id: typeof value.id === 'string' ? value.id : null,
+        returnMonthAnchor:
+          typeof value.returnMonthAnchor === 'string' ? value.returnMonthAnchor : undefined,
+      };
     }
     if (value.view === 'month' && typeof value.anchor === 'string') {
       return { kind: 'month', anchor: value.anchor };
@@ -219,7 +229,13 @@ export default function App() {
   const getHistoryStateForView = (nextView: View) => {
     if (nextView.kind === 'drawer') return { view: 'drawer' };
     if (nextView.kind === 'drawerList') return { view: 'drawerList', id: nextView.id };
-    if (nextView.kind === 'scheduleEdit') return { view: 'scheduleEdit', id: nextView.id };
+    if (nextView.kind === 'scheduleEdit') {
+      return {
+        view: 'scheduleEdit',
+        id: nextView.id,
+        returnMonthAnchor: nextView.returnMonthAnchor,
+      };
+    }
     return { view: nextView.kind, anchor: nextView.anchor };
   };
 
@@ -726,6 +742,11 @@ export default function App() {
       pushView(nextView);
       return;
     }
+    if (currentView.kind === 'month' && nextView.kind === 'month') {
+      window.history.replaceState(getHistoryStateForView(nextView), '');
+      setView(nextView);
+      return;
+    }
     if (currentView.kind === 'month' && nextView.kind === 'week') {
       window.history.back();
       if (nextView.anchor !== activeKeyRef.current) {
@@ -1033,7 +1054,12 @@ export default function App() {
   };
 
   const openScheduleEdit = (id: string | null) => {
-    pushView({ kind: 'scheduleEdit', id });
+    const currentView = viewRef.current;
+    pushView({
+      kind: 'scheduleEdit',
+      id,
+      returnMonthAnchor: currentView.kind === 'month' ? currentView.anchor : undefined,
+    });
   };
 
   const closeScheduleEdit = () => {
@@ -1051,6 +1077,14 @@ export default function App() {
       handleEditSchedule(id, date, text, repeat, repeatUntil);
     } else {
       handleAddSchedule(date, text, repeat);
+    }
+    const currentView = viewRef.current;
+    if (currentView.kind === 'scheduleEdit' && currentView.returnMonthAnchor) {
+      const targetView: View = { kind: 'month', anchor: `${date.slice(0, 7)}-01` };
+      window.history.replaceState(getHistoryStateForView(targetView), '');
+      setView(targetView);
+    } else {
+      window.history.back();
     }
   };
 
