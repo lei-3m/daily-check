@@ -478,10 +478,9 @@ export function MonthCalendar({
             type="button"
             onClick={onBackToWeek}
             aria-label={`${monthTitle} 주간 보기로 돌아가기`}
-            className="min-h-11 flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 font-bold text-slate-900 transition-colors hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
+            className="min-h-11 flex cursor-pointer items-center rounded px-1.5 py-0.5 font-bold text-slate-900 transition-colors hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
           >
             <span>{monthTitle}</span>
-            <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" className="text-slate-500" />
           </button>
           <button
             type="button"
