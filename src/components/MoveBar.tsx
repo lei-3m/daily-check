@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { addDays, shortLabel } from '../lib/date';
+import { addDays, parseKey, shortLabel } from '../lib/date';
 
 interface MoveBarProps {
   activeKey: string;
@@ -23,7 +23,8 @@ export function MoveBar({
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const tomorrowKey = addDays(activeKey, 1);
-  const dayAfterTomorrowKey = addDays(activeKey, 2);
+  const daysUntilSaturday = (6 - parseKey(activeKey).getDay() + 7) % 7 || 7;
+  const saturdayKey = addDays(activeKey, daysUntilSaturday);
   const nextWeekKey = addDays(activeKey, 7);
 
   const handleCustomDateClick = () => {
@@ -55,8 +56,8 @@ export function MoveBar({
   const isAllSelected = selectedCount > 0 && selectedCount === totalCount;
   const hasSelection = selectedCount > 0;
   const quickMoveButtonClass =
-    'move-date-button flex flex-col items-center justify-center py-2 px-2 rounded-lg text-xs font-semibold transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400';
-  const quickMoveDateClass = 'move-date-button-date text-[10px] font-mono font-normal';
+    'move-date-button flex items-center justify-center py-2 px-2 rounded-lg text-xs font-semibold transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400';
+  const quickMoveLabelClass = 'whitespace-nowrap';
 
   return (
     <div className="bg-slate-900 text-white p-3 sm:p-4 rounded-xl shadow-lg border border-slate-800 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
@@ -90,18 +91,16 @@ export function MoveBar({
           onClick={() => handleMoveClick(tomorrowKey)}
           className={`${quickMoveButtonClass} ${hasSelection ? '' : 'opacity-70'}`}
         >
-          <span>내일</span>
-          <span className={quickMoveDateClass}>({shortLabel(tomorrowKey)})</span>
+          <span className={quickMoveLabelClass}>내일 {shortLabel(tomorrowKey)}</span>
         </button>
 
         <button
           type="button"
           aria-disabled={!hasSelection}
-          onClick={() => handleMoveClick(dayAfterTomorrowKey)}
+          onClick={() => handleMoveClick(saturdayKey)}
           className={`${quickMoveButtonClass} ${hasSelection ? '' : 'opacity-70'}`}
         >
-          <span>모레</span>
-          <span className={quickMoveDateClass}>({shortLabel(dayAfterTomorrowKey)})</span>
+          <span className={quickMoveLabelClass}>토요일 {shortLabel(saturdayKey)}</span>
         </button>
 
         <button
@@ -110,8 +109,7 @@ export function MoveBar({
           onClick={() => handleMoveClick(nextWeekKey)}
           className={`${quickMoveButtonClass} ${hasSelection ? '' : 'opacity-70'}`}
         >
-          <span>다음 주</span>
-          <span className={quickMoveDateClass}>({shortLabel(nextWeekKey)})</span>
+          <span className={quickMoveLabelClass}>일주일 뒤 {shortLabel(nextWeekKey)}</span>
         </button>
 
         <div className="relative">
@@ -123,7 +121,7 @@ export function MoveBar({
               hasSelection ? '' : 'opacity-70'
             }`}
           >
-            <span>날짜 고르기</span>
+            <span>날짜 선택</span>
             <span className="text-[10px] accent-text-soft font-normal">
               달력에서 선택
             </span>
