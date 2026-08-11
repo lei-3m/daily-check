@@ -18,6 +18,11 @@ interface MonthCalendarProps {
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 const PANEL_GAP = 20; // 20px gap between month slide panels
+const SWIPE_DECISION_PX = 8;
+const SWIPE_AXIS_RATIO = 1.5;
+const SWIPE_FLICK_SPEED = 0.3;
+const SWIPE_FLICK_DISTANCE_PX = 20;
+const SWIPE_DISTANCE_RATIO = 0.25;
 
 // Global memoization cache for month grids
 const monthGridCache = new Map<string, string[]>();
@@ -173,6 +178,7 @@ export function MonthCalendar({
     isSwiping: boolean;
     isDecided: boolean;
   } | null>(null);
+  const suppressScheduleClickRef = useRef(false);
 
   const today = todayKey();
 
@@ -280,10 +286,11 @@ export function MonthCalendar({
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
 
-      if (absDx > 8 || absDy > 8) {
+      if (absDx > SWIPE_DECISION_PX || absDy > SWIPE_DECISION_PX) {
         state.isDecided = true;
-        if (absDx > absDy * 1.5) {
+        if (absDx > absDy * SWIPE_AXIS_RATIO) {
           state.isSwiping = true;
+          suppressScheduleClickRef.current = true;
           setIsSwiping(true);
         } else {
           pointerStateRef.current = null;
@@ -309,11 +316,14 @@ export function MonthCalendar({
     const w = containerWidth || (containerRef.current ? containerRef.current.clientWidth : 300);
     const speed = Math.abs(dx) / Math.max(dt, 1);
 
-    const isFlick = speed > 0.3 && Math.abs(dx) > 20;
-    const isDistancePassed = Math.abs(dx) >= w * 0.25;
+    const isFlick = speed > SWIPE_FLICK_SPEED && Math.abs(dx) > SWIPE_FLICK_DISTANCE_PX;
+    const isDistancePassed = Math.abs(dx) >= w * SWIPE_DISTANCE_RATIO;
 
     setIsSwiping(false);
     setDragDx(0);
+    window.setTimeout(() => {
+      suppressScheduleClickRef.current = false;
+    }, 300);
 
     if (isDistancePassed || isFlick) {
       if (dx < 0) {
@@ -322,6 +332,14 @@ export function MonthCalendar({
         handleGoPrev();
       }
     }
+  };
+
+  const handleScheduleClick = (id: string) => {
+    if (suppressScheduleClickRef.current) {
+      suppressScheduleClickRef.current = false;
+      return;
+    }
+    onOpenScheduleEdit(id);
   };
 
   // Render range: 5 months centered around monthOffsetIndex: [monthOffsetIndex - 2 ... monthOffsetIndex + 2]
@@ -456,7 +474,15 @@ export function MonthCalendar({
           >
             <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
           </button>
-          <span className="font-bold text-slate-900">{monthTitle}</span>
+          <button
+            type="button"
+            onClick={onBackToWeek}
+            aria-label={`${monthTitle} 주간 보기로 돌아가기`}
+            className="min-h-11 flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 font-bold text-slate-900 transition-colors hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 select-auto"
+          >
+            <span>{monthTitle}</span>
+            <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" className="text-slate-500" />
+          </button>
           <button
             type="button"
             onClick={handleGoNext}
@@ -471,12 +497,13 @@ export function MonthCalendar({
       {/* Grid Container with swipe gesture */}
       <div
         ref={containerRef}
-        className="overflow-hidden touch-pan-y relative"
+        className="touch-pan-y"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
+        <div className="overflow-hidden relative">
         <div
           className="relative w-full h-[340px]"
           style={{
@@ -487,7 +514,7 @@ export function MonthCalendar({
         >
           {visibleOffsetIndices.map((idx) => renderMonthPanel(idx))}
         </div>
-      </div>
+        </div>
 
       {/* Month Schedule List */}
       {monthSchedules.length > 0 && (
@@ -506,7 +533,7 @@ export function MonthCalendar({
                 {thisWeekSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onOpenScheduleEdit(item.id)}
+                    onClick={() => handleScheduleClick(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
@@ -533,7 +560,7 @@ export function MonthCalendar({
                 {nextWeekSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onOpenScheduleEdit(item.id)}
+                    onClick={() => handleScheduleClick(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
@@ -560,7 +587,7 @@ export function MonthCalendar({
                 {afterNextWeekSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onOpenScheduleEdit(item.id)}
+                    onClick={() => handleScheduleClick(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
@@ -587,7 +614,7 @@ export function MonthCalendar({
                 {pastSchedules.map((item) => (
                   <li
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => onOpenScheduleEdit(item.id)}
+                    onClick={() => handleScheduleClick(item.id)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-500 calendar-schedule-row-past border border-slate-100"
                   >
                     <span className="text-slate-300 text-[10px]">●</span>
@@ -605,6 +632,7 @@ export function MonthCalendar({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
