@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function useServiceWorkerUpdate() {
   const [isUpdateReady, setIsUpdateReady] = useState(false);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const reloadAfterControllerChangeRef = useRef(false);
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -23,17 +24,24 @@ export function useServiceWorkerUpdate() {
 
     const watchWorker = (worker: ServiceWorker | null) => {
       if (!worker) return;
-      if (worker.state === 'installed' || worker.state === 'activated') {
+      if (worker.state === 'installed') {
         markReady();
         return;
       }
       worker.addEventListener('statechange', () => {
-        if (worker.state === 'installed' || worker.state === 'activated') markReady();
+        if (worker.state === 'installed') markReady();
       });
     };
 
     // 다른 탭에서 새 워커가 활성화된 경우에도 이 탭은 옛 화면을 들고 있다.
-    const handleControllerChange = () => markReady();
+    const handleControllerChange = () => {
+      if (cancelled) return;
+      setIsUpdateReady(false);
+      if (reloadAfterControllerChangeRef.current) {
+        reloadAfterControllerChangeRef.current = false;
+        window.location.reload();
+      }
+    };
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
 
     navigator.serviceWorker
@@ -70,8 +78,14 @@ export function useServiceWorkerUpdate() {
   }, []);
 
   const applyUpdate = useCallback(() => {
-    registrationRef.current?.waiting?.postMessage({ type: 'SKIP_WAITING' });
-    window.location.reload();
+    const waitingWorker = registrationRef.current?.waiting;
+    if (!waitingWorker) {
+      setIsUpdateReady(false);
+      void registrationRef.current?.update();
+      return;
+    }
+    reloadAfterControllerChangeRef.current = true;
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
   }, []);
 
   return { isUpdateReady, applyUpdate };
