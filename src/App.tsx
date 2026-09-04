@@ -54,7 +54,7 @@ import { Header } from './components/Header';
 import type { AccountProfile, AccountProfileUpdate } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
 import { ScheduleEditView } from './components/ScheduleEditView';
-import { RoutineBlock } from './components/RoutineBlock';
+import { RoutineListView } from './components/RoutineListView';
 import { RoutineEditView } from './components/RoutineEditView';
 import { DrawerBlock } from './components/DrawerBlock';
 import { DateNav, View } from './components/DateNav';
@@ -196,6 +196,7 @@ export default function App() {
           typeof value.returnMonthAnchor === 'string' ? value.returnMonthAnchor : undefined,
       };
     }
+    if (value.view === 'routineList') return { kind: 'routineList' };
     if (value.view === 'routineEdit') {
       return {
         kind: 'routineEdit',
@@ -248,6 +249,7 @@ export default function App() {
   const getHistoryStateForView = (nextView: View) => {
     if (nextView.kind === 'drawer') return { view: 'drawer' };
     if (nextView.kind === 'drawerList') return { view: 'drawerList', id: nextView.id };
+    if (nextView.kind === 'routineList') return { view: 'routineList' };
     if (nextView.kind === 'routineEdit') {
       return { view: 'routineEdit', id: nextView.id };
     }
@@ -1117,6 +1119,14 @@ export default function App() {
     }
   };
 
+  const openRoutineList = () => {
+    pushView({ kind: 'routineList' });
+  };
+
+  const closeRoutineList = () => {
+    window.history.back();
+  };
+
   const openRoutineEdit = (id: string | null) => {
     pushView({ kind: 'routineEdit', id });
   };
@@ -1538,6 +1548,14 @@ export default function App() {
           />
         )}
 
+        {view.kind === 'routineList' && (
+          <RoutineListView
+            routines={normalizeRoutines(appState.routines)}
+            onBack={closeRoutineList}
+            onOpenRoutineEdit={openRoutineEdit}
+          />
+        )}
+
         {view.kind === 'routineEdit' && (
           <RoutineEditView
             item={editingRoutine}
@@ -1592,21 +1610,13 @@ export default function App() {
               onAddMany={handleAddMany}
               onReorderTodos={(newTodos) => updateCurrentDay(newTodos)}
               onSwipeDate={handleSwipeTodoDate}
+              onOpenRoutines={openRoutineList}
             />
 
             {!isSelectMode && (
               <MemoBlock
                 memo={currentDay.memo}
                 onChangeMemo={handleChangeMemo}
-              />
-            )}
-
-            {/* 루틴 입구는 임시 위치입니다. 할 일 목록을 아래로 밀지 않도록
-                메모 아래에 둡니다. 자리는 다음 단계에서 다시 정합니다. */}
-            {!isSelectMode && (
-              <RoutineBlock
-                routines={normalizeRoutines(appState.routines)}
-                onOpenRoutineEdit={openRoutineEdit}
               />
             )}
           </>
@@ -1616,6 +1626,7 @@ export default function App() {
             위에 있으면 오늘 할 일을 여기에 적는 오해가 생깁니다. */}
         {view.kind !== 'month' &&
           view.kind !== 'scheduleEdit' &&
+          view.kind !== 'routineList' &&
           view.kind !== 'routineEdit' && (
           <DrawerBlock
             lists={drawerLists}

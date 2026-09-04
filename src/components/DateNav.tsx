@@ -10,6 +10,7 @@ export type View =
   | { kind: 'drawer' }
   | { kind: 'drawerList'; id: string }
   | { kind: 'scheduleEdit'; id: string | null; returnMonthAnchor?: string }
+  | { kind: 'routineList' }
   | { kind: 'routineEdit'; id: string | null };
 
 interface DateNavProps {

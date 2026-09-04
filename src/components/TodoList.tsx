@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Repeat } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Todo } from '../lib/types';
@@ -44,6 +44,8 @@ interface TodoListProps {
   onAddMany: (texts: string[]) => void;
   onReorderTodos?: (newTodos: Todo[]) => void;
   onSwipeDate?: (direction: -1 | 1) => void;
+  /** 루틴 관리 화면으로 이동합니다. */
+  onOpenRoutines?: () => void;
 }
 
 export function TodoList({
@@ -57,6 +59,7 @@ export function TodoList({
   onAddMany,
   onReorderTodos,
   onSwipeDate,
+  onOpenRoutines,
 }: TodoListProps) {
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const addFormRef = useRef<TodoAddFormHandle>(null);
@@ -318,15 +321,30 @@ export function TodoList({
       </div>
 
       {!isSelectMode && (
-        <TodoAddForm
-          ref={addFormRef}
-          placeholder="할 일 적기"
-          addLabel="할 일 추가"
-          onAddMany={onAddMany}
-          onBeforeAdd={() => {
-            pendingAddScrollRef.current = true;
-          }}
-        />
+        <div className="pt-2 flex items-stretch gap-2">
+          <TodoAddForm
+            ref={addFormRef}
+            placeholder="할 일 적기"
+            addLabel="할 일 추가"
+            onAddMany={onAddMany}
+            onBeforeAdd={() => {
+              pendingAddScrollRef.current = true;
+            }}
+            className="flex-1 min-w-0"
+          />
+          {onOpenRoutines ? (
+            <button
+              type="button"
+              onClick={onOpenRoutines}
+              aria-label="루틴 관리"
+              title="루틴 관리"
+              data-todo-swipe-ignore="true"
+              className="w-11 min-w-[44px] shrink-0 flex items-center justify-center rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-500 surface-hover-media focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition-colors"
+            >
+              <Repeat className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   );

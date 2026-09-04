@@ -1,10 +1,11 @@
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Routine } from '../lib/types';
 import { shortLabel } from '../lib/date';
 import { weekdaysLabel } from '../lib/routine';
 
-interface RoutineBlockProps {
+interface RoutineListViewProps {
   routines: Routine[];
+  onBack: () => void;
   onOpenRoutineEdit: (id: string | null) => void;
 }
 
@@ -13,13 +14,20 @@ function periodLabel(routine: Routine): string {
   return routine.endDate ? `${start} ~ ${shortLabel(routine.endDate)}` : `${start} ~ 무기한`;
 }
 
-export function RoutineBlock({ routines, onOpenRoutineEdit }: RoutineBlockProps) {
+export function RoutineListView({ routines, onBack, onOpenRoutineEdit }: RoutineListViewProps) {
   return (
-    <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3 max-w-full overflow-hidden">
+    <section className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3.5 space-y-3 max-w-full overflow-hidden">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-          <span>🔁</span>
-          <span>루틴</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="뒤로"
+            className="min-h-11 min-w-11 flex items-center justify-center text-slate-500 [@media(hover:hover)]:hover:text-slate-800 [@media(hover:hover)]:hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 rounded-lg"
+          >
+            <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
+          </button>
+          <h2 className="text-sm font-semibold text-slate-900">루틴 관리</h2>
           {routines.length > 0 ? (
             <span className="font-mono text-xs font-semibold text-slate-500">
               {routines.length}
@@ -29,7 +37,7 @@ export function RoutineBlock({ routines, onOpenRoutineEdit }: RoutineBlockProps)
         <button
           type="button"
           onClick={() => onOpenRoutineEdit(null)}
-          className="min-h-11 px-3 flex items-center gap-1 rounded-lg accent-fill accent-fill-hover-media text-white text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="min-h-11 px-3 flex items-center gap-1 shrink-0 rounded-lg accent-fill accent-fill-hover-media text-white text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         >
           <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
           <span>루틴 추가</span>
@@ -68,6 +76,6 @@ export function RoutineBlock({ routines, onOpenRoutineEdit }: RoutineBlockProps)
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
