@@ -237,6 +237,15 @@ export function TodoRow({
         </button>
         )}
 
+        {/* 루틴 표시. 텍스트가 여러 줄이 되어도 체크박스 옆에 남도록
+            글 안이 아니라 별도 칸에 둔다. */}
+        {isRoutine && !isSelectMode ? (
+          <span className="h-10 flex items-center shrink-0 mr-1 text-slate-400">
+            <span className="sr-only">루틴 </span>
+            <Repeat className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+          </span>
+        ) : null}
+
         {/* Task Text or Edit Input */}
         {!isSelectMode && !isRoutine && isEditing ? (
           <input
@@ -264,17 +273,6 @@ export function TodoRow({
               isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'
             } ${done ? 'line-through text-slate-400' : 'text-slate-800'}`}
           >
-            {/* 루틴 표시는 작은 아이콘 하나. 일반 할 일과 톤을 같게 둔다. */}
-            {isRoutine ? (
-              <>
-                <span className="sr-only">루틴 </span>
-                <Repeat
-                  className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 align-middle text-slate-400"
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
-              </>
-            ) : null}
             {text}
           </span>
         )}
