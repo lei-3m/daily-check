@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { AppState, ScheduleItem, Todo } from './lib/types';
+import { AppState, Routine, ScheduleItem, Todo } from './lib/types';
 import { addDays, todayKey, fullLabel, weekdayLabel } from './lib/date';
 import {
   loadState,
@@ -54,6 +54,8 @@ import { Header } from './components/Header';
 import type { AccountProfile, AccountProfileUpdate } from './components/Header';
 import { ScheduleBlock } from './components/ScheduleBlock';
 import { ScheduleEditView } from './components/ScheduleEditView';
+import { RoutineBlock } from './components/RoutineBlock';
+import { RoutineEditView } from './components/RoutineEditView';
 import { DrawerBlock } from './components/DrawerBlock';
 import { DateNav, View } from './components/DateNav';
 import { TodoList } from './components/TodoList';
@@ -194,6 +196,12 @@ export default function App() {
           typeof value.returnMonthAnchor === 'string' ? value.returnMonthAnchor : undefined,
       };
     }
+    if (value.view === 'routineEdit') {
+      return {
+        kind: 'routineEdit',
+        id: typeof value.id === 'string' ? value.id : null,
+      };
+    }
     if (value.view === 'month' && typeof value.anchor === 'string') {
       return { kind: 'month', anchor: value.anchor };
     }
@@ -216,6 +224,16 @@ export default function App() {
       return exists ? candidate : { kind: 'drawer' };
     }
 
+    if (candidate.kind === 'routineEdit') {
+      // id가 없으면 새 루틴을 쓰던 중이다. 입력하던 내용은 새로고침으로
+      // 이미 사라졌으므로 빈 편집 화면을 다시 열지 않는다.
+      if (!candidate.id) return null;
+      const exists = normalizeRoutines(state.routines).some(
+        (routine) => routine.id === candidate.id
+      );
+      return exists ? candidate : null;
+    }
+
     if (candidate.kind === 'scheduleEdit') {
       // id가 없으면 새 일정 작성 중이었다는 뜻이다. 입력하던 내용은 새로고침으로
       // 이미 사라졌으므로 빈 편집 화면을 다시 열지 않는다.
@@ -230,6 +248,9 @@ export default function App() {
   const getHistoryStateForView = (nextView: View) => {
     if (nextView.kind === 'drawer') return { view: 'drawer' };
     if (nextView.kind === 'drawerList') return { view: 'drawerList', id: nextView.id };
+    if (nextView.kind === 'routineEdit') {
+      return { view: 'routineEdit', id: nextView.id };
+    }
     if (nextView.kind === 'scheduleEdit') {
       return {
         view: 'scheduleEdit',
@@ -623,6 +644,11 @@ export default function App() {
   const editingSchedule =
     view.kind === 'scheduleEdit' && view.id
       ? appState.schedule.find((item) => item.id === view.id)
+      : undefined;
+
+  const editingRoutine =
+    view.kind === 'routineEdit' && view.id
+      ? normalizeRoutines(appState.routines).find((routine) => routine.id === view.id)
       : undefined;
 
   const completedCount = todos.filter((t) => t.done).length;
@@ -1091,6 +1117,63 @@ export default function App() {
     }
   };
 
+  const openRoutineEdit = (id: string | null) => {
+    pushView({ kind: 'routineEdit', id });
+  };
+
+  const closeRoutineEdit = () => {
+    window.history.back();
+  };
+
+  const handleSaveRoutine = (
+    id: string | null,
+    text: string,
+    weekdays: number[],
+    startDate: string,
+    endDate?: string
+  ) => {
+    setAppState((prev) => {
+      if (!prev) return prev;
+      const routines = normalizeRoutines(prev.routines);
+      if (id) {
+        return {
+          ...prev,
+          routines: routines.map((routine) =>
+            routine.id === id
+              ? {
+                  ...routine,
+                  text,
+                  weekdays,
+                  startDate,
+                  endDate,
+                }
+              : routine
+          ),
+        };
+      }
+      const newRoutine: Routine = {
+        id: createId(),
+        text,
+        weekdays,
+        startDate,
+        ...(endDate ? { endDate } : {}),
+        done: {},
+      };
+      return { ...prev, routines: [...routines, newRoutine] };
+    });
+    window.history.back();
+  };
+
+  const handleDeleteRoutine = (id: string) => {
+    setAppState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        routines: normalizeRoutines(prev.routines).filter((routine) => routine.id !== id),
+      };
+    });
+  };
+
   const handleChangeMemo = (newMemo: string) => {
     updateCurrentDay(todos, newMemo);
   };
@@ -1455,6 +1538,15 @@ export default function App() {
           />
         )}
 
+        {view.kind === 'routineEdit' && (
+          <RoutineEditView
+            item={editingRoutine}
+            onBack={closeRoutineEdit}
+            onSave={handleSaveRoutine}
+            onDelete={handleDeleteRoutine}
+          />
+        )}
+
         {view.kind === 'scheduleEdit' && (
           <ScheduleEditView
             item={editingSchedule}
@@ -1508,12 +1600,23 @@ export default function App() {
                 onChangeMemo={handleChangeMemo}
               />
             )}
+
+            {/* 루틴 입구는 임시 위치입니다. 할 일 목록을 아래로 밀지 않도록
+                메모 아래에 둡니다. 자리는 다음 단계에서 다시 정합니다. */}
+            {!isSelectMode && (
+              <RoutineBlock
+                routines={normalizeRoutines(appState.routines)}
+                onOpenRoutineEdit={openRoutineEdit}
+              />
+            )}
           </>
         )}
 
         {/* 서랍은 매일 보는 것이 아니므로 메모 아래에 둡니다.
             위에 있으면 오늘 할 일을 여기에 적는 오해가 생깁니다. */}
-        {view.kind !== 'month' && view.kind !== 'scheduleEdit' && (
+        {view.kind !== 'month' &&
+          view.kind !== 'scheduleEdit' &&
+          view.kind !== 'routineEdit' && (
           <DrawerBlock
             lists={drawerLists}
             mode={
