@@ -177,6 +177,7 @@ const SCHEDULE_ROW_TONES = {
 } as const;
 
 interface MonthScheduleRowProps {
+  key?: string;
   item: MonthScheduleOccurrence;
   tone: keyof typeof SCHEDULE_ROW_TONES;
   onSelect: (id: string) => void;
