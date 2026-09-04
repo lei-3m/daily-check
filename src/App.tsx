@@ -44,6 +44,7 @@ import {
   PrioritySuggestion,
 } from './lib/priority';
 import { expandScheduleInRange } from './lib/schedule';
+import { normalizeRoutines } from './lib/routine';
 import {
   appendIncompleteTodos,
   normalizeTodoOrder,
@@ -343,6 +344,7 @@ export default function App() {
             },
           },
           schedule: [],
+          routines: [],
           drawer: normalizeDrawer(),
           active: today,
           accentColor: initialAccentPreferenceRef.current,
@@ -356,6 +358,7 @@ export default function App() {
         setAppState({
           days,
           schedule: saved.schedule || [],
+          routines: normalizeRoutines(saved.routines),
           drawer: normalizeDrawer(saved.drawer),
           active,
           accentColor,
@@ -1364,6 +1367,7 @@ export default function App() {
 
     const importedState = {
       ...validation.state,
+      routines: normalizeRoutines(validation.state.routines),
       drawer: normalizeDrawer(validation.state.drawer),
       accentColor: validation.state.accentColor || 'default',
     };

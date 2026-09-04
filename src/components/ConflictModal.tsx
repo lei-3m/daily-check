@@ -23,6 +23,7 @@ function changePrefix(item: ConflictDetailItem): string {
   if (
     item.type === 'todo_added' ||
     item.type === 'schedule_added' ||
+    item.type === 'routine_added' ||
     item.type === 'drawer_added'
   ) {
     return '+';
@@ -30,6 +31,7 @@ function changePrefix(item: ConflictDetailItem): string {
   if (
     item.type === 'todo_deleted' ||
     item.type === 'schedule_deleted' ||
+    item.type === 'routine_deleted' ||
     item.type === 'drawer_deleted'
   ) {
     return '-';

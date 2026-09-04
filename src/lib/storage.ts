@@ -2,12 +2,14 @@ import {
   AccentPreference,
   AppState,
   DrawerList,
+  Routine,
   ScheduleItem,
   ThemePreference,
   Todo,
   isAccentPreference,
   isThemePreference,
 } from './types';
+import { normalizeRoutines } from './routine';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { NETWORK_TIMEOUT_MS, withTimeout } from './async';
 
@@ -47,6 +49,9 @@ export interface ConflictDetailItem {
     | 'schedule_added'
     | 'schedule_deleted'
     | 'schedule_updated'
+    | 'routine_added'
+    | 'routine_deleted'
+    | 'routine_updated'
     | 'drawer_added'
     | 'drawer_deleted'
     | 'drawer_updated'
@@ -144,6 +149,10 @@ function summarizeTodo(text: string, date: string): string {
   return `${date} 할 일: ${text}`;
 }
 
+function summarizeRoutine(text: string): string {
+  return `루틴: ${text}`;
+}
+
 function summarizeSchedule(text: string, date: string): string {
   return `${date} 일정: ${text}`;
 }
@@ -181,6 +190,7 @@ function normalizeStoredState(state: AppState): AppState {
   return {
     ...state,
     accentColor: isAccentPreference(state.accentColor) ? state.accentColor : 'default',
+    routines: normalizeRoutines(state.routines),
     drawer: normalizeDrawer(state.drawer),
   };
 }
@@ -340,6 +350,38 @@ function collectDrawerConflictItems(
   }
 }
 
+function doneMapEquals(a: Record<string, boolean>, b: Record<string, boolean>): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  return aKeys.length === bKeys.length && aKeys.every((dateKey) => b[dateKey] === a[dateKey]);
+}
+
+function collectRoutineConflictItems(
+  localRoutines: Routine[],
+  serverRoutines: Routine[],
+  items: ConflictDetailItem[]
+): void {
+  const serverById = new Map(serverRoutines.map((item) => [item.id, item]));
+  const localIds = new Set(localRoutines.map((item) => item.id));
+
+  for (const routine of localRoutines) {
+    const server = serverById.get(routine.id);
+    if (!server) {
+      items.push(routineConflictItem('routine_added', routine));
+      continue;
+    }
+    if (!routineEquals(routine, server) || !doneMapEquals(routine.done, server.done)) {
+      items.push(routineConflictItem('routine_updated', routine));
+    }
+  }
+
+  for (const routine of serverRoutines) {
+    if (!localIds.has(routine.id)) {
+      items.push(routineConflictItem('routine_deleted', routine));
+    }
+  }
+}
+
 function getConflictDetails(localState: AppState, serverState: AppState): ConflictDetails {
   const items: ConflictDetailItem[] = [];
   const normalizedLocal = normalizeStoredState(localState);
@@ -448,6 +490,8 @@ function getConflictDetails(localState: AppState, serverState: AppState): Confli
     }
   }
 
+  collectRoutineConflictItems(normalizedLocal.routines, normalizedServer.routines, items);
+
   collectDrawerConflictItems(normalizedLocal.drawer, normalizedServer.drawer, items);
 
   if (normalizedLocal.accentColor !== normalizedServer.accentColor) {
@@ -490,6 +534,23 @@ function scheduleEquals(a: ScheduleItem, b: ScheduleItem): boolean {
     a.text === b.text &&
     a.repeat === b.repeat &&
     a.repeatUntil === b.repeatUntil
+  );
+}
+
+function weekdaysEqual(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((day, index) => day === b[index]);
+}
+
+/**
+ * 완료 표시는 따로 병합하므로 여기서 비교하지 않습니다.
+ * 한쪽에서 체크만 한 것을 내용 충돌로 알리면 안내가 시끄러워집니다.
+ */
+function routineEquals(a: Routine, b: Routine): boolean {
+  return (
+    a.text === b.text &&
+    a.startDate === b.startDate &&
+    a.endDate === b.endDate &&
+    weekdaysEqual(a.weekdays, b.weekdays)
   );
 }
 
@@ -546,6 +607,19 @@ function scheduleConflictItem(
       type === 'schedule_deleted'
         ? `${summarizeSchedule(text, date)} 삭제`
         : summarizeSchedule(text, date),
+  };
+}
+
+function routineConflictItem(
+  type: 'routine_deleted' | 'routine_updated' | 'routine_added',
+  routine?: Routine
+): ConflictDetailItem {
+  const text = routine?.text || '삭제된 루틴';
+  return {
+    type,
+    date: routine?.startDate || '',
+    text,
+    label: type === 'routine_deleted' ? `${summarizeRoutine(text)} 삭제` : summarizeRoutine(text),
   };
 }
 
@@ -705,6 +779,132 @@ function mergeSchedules(
       if (remote) merged.set(id, remote);
     } else {
       merged.set(id, base);
+    }
+  }
+
+  return [...merged.values()];
+}
+
+/**
+ * 완료 표시는 날짜별로 따로 병합합니다.
+ * 폰에서 오늘 것을 체크하고 PC에서 어제 것을 체크했다면 둘 다 남아야 합니다.
+ */
+function mergeDoneMaps(
+  baseDone: Record<string, boolean>,
+  localDone: Record<string, boolean> | undefined,
+  remoteDone: Record<string, boolean> | undefined,
+  routine: Routine,
+  localConflicts: ConflictDetailItem[],
+  remoteConflicts: ConflictDetailItem[]
+): Record<string, boolean> {
+  const local = localDone || baseDone;
+  const remote = remoteDone || baseDone;
+  const done: Record<string, boolean> = {};
+
+  const dateKeys = new Set([
+    ...Object.keys(baseDone),
+    ...Object.keys(local),
+    ...Object.keys(remote),
+  ]);
+
+  for (const dateKey of [...dateKeys].sort()) {
+    const baseValue = baseDone[dateKey] === true;
+    const localValue = local[dateKey] === true;
+    const remoteValue = remote[dateKey] === true;
+    const localChanged = localValue !== baseValue;
+    const remoteChanged = remoteValue !== baseValue;
+
+    let value = baseValue;
+    if (localChanged && remoteChanged) {
+      if (localValue !== remoteValue) {
+        localConflicts.push(routineConflictItem('routine_updated', routine));
+        remoteConflicts.push(routineConflictItem('routine_updated', routine));
+      }
+      value = localValue;
+    } else if (localChanged) {
+      value = localValue;
+    } else if (remoteChanged) {
+      value = remoteValue;
+    }
+
+    if (value) done[dateKey] = true;
+  }
+
+  return done;
+}
+
+function mergeRoutines(
+  baseRoutines: Routine[],
+  localRoutines: Routine[],
+  remoteRoutines: Routine[],
+  localConflicts: ConflictDetailItem[],
+  remoteConflicts: ConflictDetailItem[]
+): Routine[] {
+  const baseById = new Map(baseRoutines.map((item) => [item.id, item]));
+  const localById = new Map(localRoutines.map((item) => [item.id, item]));
+  const remoteById = new Map(remoteRoutines.map((item) => [item.id, item]));
+  const merged = new Map<string, Routine>();
+
+  for (const id of mergeOrder(
+    localRoutines.map((item) => item.id),
+    remoteRoutines.map((item) => item.id),
+    baseRoutines.map((item) => item.id)
+  )) {
+    const base = baseById.get(id);
+    const local = localById.get(id);
+    const remote = remoteById.get(id);
+
+    const withMergedDone = (winner: Routine): Routine => ({
+      ...winner,
+      done: mergeDoneMaps(
+        base?.done || {},
+        local?.done,
+        remote?.done,
+        winner,
+        localConflicts,
+        remoteConflicts
+      ),
+    });
+
+    if (!base) {
+      if (local && remote && !routineEquals(local, remote)) {
+        localConflicts.push(routineConflictItem('routine_added', local));
+        remoteConflicts.push(routineConflictItem('routine_added', remote));
+        merged.set(id, withMergedDone(local));
+      } else if (local) {
+        merged.set(id, withMergedDone(local));
+      } else if (remote) {
+        merged.set(id, withMergedDone(remote));
+      }
+      continue;
+    }
+
+    const localChanged = !local || !routineEquals(local, base);
+    const remoteChanged = !remote || !routineEquals(remote, base);
+
+    if (localChanged && remoteChanged) {
+      if (!local && !remote) continue;
+      if (local && remote && routineEquals(local, remote)) {
+        merged.set(id, withMergedDone(local));
+        continue;
+      }
+      localConflicts.push(
+        local
+          ? routineConflictItem('routine_updated', local)
+          : routineConflictItem('routine_deleted', base)
+      );
+      remoteConflicts.push(
+        remote
+          ? routineConflictItem('routine_updated', remote)
+          : routineConflictItem('routine_deleted', base)
+      );
+      if (local) merged.set(id, withMergedDone(local));
+    } else if (localChanged) {
+      if (local) merged.set(id, withMergedDone(local));
+    } else if (remoteChanged) {
+      if (remote) merged.set(id, withMergedDone(remote));
+    } else {
+      merged.set(id, withMergedDone(base));
     }
   }
 
@@ -953,6 +1153,14 @@ function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: A
     remoteConflicts
   );
 
+  const routines = mergeRoutines(
+    base.routines || [],
+    local.routines || [],
+    remote.routines || [],
+    localConflicts,
+    remoteConflicts
+  );
+
   const drawer = mergeDrawerLists(
     base.drawer || [],
     local.drawer || [],
@@ -1015,6 +1223,7 @@ function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: A
     state: {
       days,
       schedule,
+      routines,
       drawer,
       active,
       accentColor,
@@ -1676,6 +1885,7 @@ async function saveStateInternal(state: AppState): Promise<AppState | null> {
         const serverState = normalizeStoredState((serverRow.data || {
           days: {},
           schedule: [],
+          routines: [],
           drawer: createDefaultDrawer(),
           active: state.active,
           accentColor: state.accentColor,

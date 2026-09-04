@@ -39,6 +39,22 @@ export type ScheduleItem = {
   repeatUntil?: string;
 };
 
+/**
+ * 반복 할 일. 요일과 기간만 저장하고, 날짜별 완료 여부는 done에 따로 기록합니다.
+ */
+export type Routine = {
+  id: string;
+  /** 시간은 별도 필드 없이 텍스트에 포함합니다. 예: "코딩테스트 1문 (09:00)" */
+  text: string;
+  /** 반복 요일. 0=일 ~ 6=토. 매일은 일곱 개 모두 담습니다. */
+  weekdays: number[];
+  startDate: string;
+  /** 없으면 무기한 반복입니다. */
+  endDate?: string;
+  /** 완료한 날짜만 담습니다. 예: {"2026-09-04": true} */
+  done: Record<string, boolean>;
+};
+
 export type DrawerList = {
   id: string;
   name: string;
@@ -48,6 +64,7 @@ export type DrawerList = {
 export type AppState = {
   days: Record<string, Day>;
   schedule: ScheduleItem[];
+  routines: Routine[];
   drawer: DrawerList[];
   active: string;
   accentColor?: AccentPreference;

@@ -1,4 +1,5 @@
-import { AppState, Day, DrawerList, ScheduleItem, Todo, isAccentPreference } from './types';
+import { AppState, Day, DrawerList, Routine, ScheduleItem, Todo, isAccentPreference } from './types';
+import { normalizeRoutines } from './routine';
 
 type ValidationResult =
   | { ok: true; state: AppState }
@@ -41,6 +42,30 @@ function isScheduleItem(value: unknown): value is ScheduleItem {
   );
 }
 
+function isWeekday(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 6;
+}
+
+function isDoneMap(value: unknown): value is Record<string, boolean> {
+  return (
+    isRecord(value) &&
+    Object.entries(value).every(([key, done]) => isDateKey(key) && typeof done === 'boolean')
+  );
+}
+
+function isRoutine(value: unknown): value is Routine {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.text === 'string' &&
+    Array.isArray(value.weekdays) &&
+    value.weekdays.every(isWeekday) &&
+    isDateKey(value.startDate) &&
+    (value.endDate === undefined || isDateKey(value.endDate)) &&
+    (value.done === undefined || isDoneMap(value.done))
+  );
+}
+
 function isDrawerList(value: unknown): value is DrawerList {
   return (
     isRecord(value) &&
@@ -74,6 +99,12 @@ export function validateBackupState(value: unknown): ValidationResult {
     return { ok: false, message: '일정 데이터 형식이 잘못되었습니다.' };
   }
 
+  // 루틴이 없던 시절의 백업도 그대로 가져올 수 있어야 합니다.
+  const routines = value.routines === undefined ? [] : value.routines;
+  if (!Array.isArray(routines) || !routines.every(isRoutine)) {
+    return { ok: false, message: '루틴 데이터 형식이 잘못되었습니다.' };
+  }
+
   const drawer = value.drawer === undefined ? [] : value.drawer;
   if (!Array.isArray(drawer) || !drawer.every(isDrawerList)) {
     return { ok: false, message: '서랍 데이터 형식이 잘못되었습니다.' };
@@ -94,6 +125,7 @@ export function validateBackupState(value: unknown): ValidationResult {
     state: {
       days: value.days as Record<string, Day>,
       schedule: value.schedule,
+      routines: normalizeRoutines(routines as Routine[]),
       drawer,
       active,
       accentColor,
