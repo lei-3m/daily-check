@@ -10,7 +10,7 @@ import {
   weekdayChar,
   weekdayToneClass,
 } from '../lib/date';
-import { expandScheduleInRange, hasRepeat } from '../lib/schedule';
+import { ScheduleOccurrence, expandScheduleInRange, hasRepeat } from '../lib/schedule';
 
 interface MonthCalendarProps {
   anchor: string;
@@ -155,6 +155,53 @@ const DayCell = React.memo(function DayCell({
     </button>
   );
 });
+
+type MonthScheduleOccurrence = ScheduleOccurrence & {
+  norm: ReturnType<typeof normalizeDate>;
+};
+
+// 섹션마다 다른 것은 색뿐이다. 구조와 동작은 한 곳에 둔다.
+const SCHEDULE_ROW_TONES = {
+  upcoming: {
+    row: 'text-slate-700 calendar-schedule-row',
+    dot: 'accent-text',
+    date: 'text-slate-600',
+    text: 'text-slate-800',
+  },
+  past: {
+    row: 'text-slate-500 calendar-schedule-row-past',
+    dot: 'text-slate-300',
+    date: 'text-slate-400',
+    text: 'text-slate-600',
+  },
+} as const;
+
+interface MonthScheduleRowProps {
+  item: MonthScheduleOccurrence;
+  tone: keyof typeof SCHEDULE_ROW_TONES;
+  onSelect: (id: string) => void;
+}
+
+function MonthScheduleRow({ item, tone, onSelect }: MonthScheduleRowProps) {
+  const color = SCHEDULE_ROW_TONES[tone];
+
+  return (
+    <li
+      onClick={() => onSelect(item.id)}
+      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer border border-slate-100 ${color.row}`}
+    >
+      <span className={`text-[10px] ${color.dot}`}>●</span>
+      <span
+        className={`font-mono font-semibold w-16 shrink-0 flex items-center gap-1 ${color.date}`}
+      >
+        <span>{item.norm.label}</span>
+        <span className={weekdayToneClass(item.norm.key)}>{weekdayChar(item.norm.key)}</span>
+      </span>
+      {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
+      <span className={`font-medium truncate ${color.text}`}>{item.text}</span>
+    </li>
+  );
+}
 
 export function MonthCalendar({
   anchor,
@@ -538,23 +585,12 @@ export function MonthCalendar({
               </div>
               <ul className="space-y-1 text-xs">
                 {thisWeekSchedules.map((item) => (
-                  <li
+                  <MonthScheduleRow
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => handleScheduleClick(item.id)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
-                  >
-                    <span className="accent-text text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-600 w-16 shrink-0 flex items-center gap-1">
-                      <span>{item.norm.label}</span>
-                      <span className={weekdayToneClass(item.norm.key)}>
-                        {weekdayChar(item.norm.key)}
-                      </span>
-                    </span>
-                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
-                    <span className="font-medium text-slate-800 truncate">
-                      {item.text}
-                    </span>
-                  </li>
+                    item={item}
+                    tone="upcoming"
+                    onSelect={handleScheduleClick}
+                  />
                 ))}
               </ul>
             </div>
@@ -568,23 +604,12 @@ export function MonthCalendar({
               </div>
               <ul className="space-y-1 text-xs">
                 {nextWeekSchedules.map((item) => (
-                  <li
+                  <MonthScheduleRow
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => handleScheduleClick(item.id)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
-                  >
-                    <span className="accent-text text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-600 w-16 shrink-0 flex items-center gap-1">
-                      <span>{item.norm.label}</span>
-                      <span className={weekdayToneClass(item.norm.key)}>
-                        {weekdayChar(item.norm.key)}
-                      </span>
-                    </span>
-                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
-                    <span className="font-medium text-slate-800 truncate">
-                      {item.text}
-                    </span>
-                  </li>
+                    item={item}
+                    tone="upcoming"
+                    onSelect={handleScheduleClick}
+                  />
                 ))}
               </ul>
             </div>
@@ -598,23 +623,12 @@ export function MonthCalendar({
               </div>
               <ul className="space-y-1 text-xs">
                 {afterNextWeekSchedules.map((item) => (
-                  <li
+                  <MonthScheduleRow
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => handleScheduleClick(item.id)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
-                  >
-                    <span className="accent-text text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-600 w-16 shrink-0 flex items-center gap-1">
-                      <span>{item.norm.label}</span>
-                      <span className={weekdayToneClass(item.norm.key)}>
-                        {weekdayChar(item.norm.key)}
-                      </span>
-                    </span>
-                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
-                    <span className="font-medium text-slate-800 truncate">
-                      {item.text}
-                    </span>
-                  </li>
+                    item={item}
+                    tone="upcoming"
+                    onSelect={handleScheduleClick}
+                  />
                 ))}
               </ul>
             </div>
@@ -628,23 +642,12 @@ export function MonthCalendar({
               </div>
               <ul className="space-y-1 text-xs">
                 {pastSchedules.map((item) => (
-                  <li
+                  <MonthScheduleRow
                     key={`${item.id}:${item.occurrenceDate}`}
-                    onClick={() => handleScheduleClick(item.id)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-500 calendar-schedule-row-past border border-slate-100"
-                  >
-                    <span className="text-slate-300 text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-400 w-16 shrink-0 flex items-center gap-1">
-                      <span>{item.norm.label}</span>
-                      <span className={weekdayToneClass(item.norm.key)}>
-                        {weekdayChar(item.norm.key)}
-                      </span>
-                    </span>
-                    {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
-                    <span className="font-medium text-slate-600 truncate">
-                      {item.text}
-                    </span>
-                  </li>
+                    item={item}
+                    tone="past"
+                    onSelect={handleScheduleClick}
+                  />
                 ))}
               </ul>
             </div>
