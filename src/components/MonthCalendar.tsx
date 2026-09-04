@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Day, ScheduleItem } from '../lib/types';
-import { todayKey, monthGrid, parseKey, startOfWeek, addDays } from '../lib/date';
+import {
+  todayKey,
+  monthGrid,
+  parseKey,
+  startOfWeek,
+  addDays,
+  weekdayChar,
+  weekdayToneClass,
+} from '../lib/date';
 import { expandScheduleInRange, hasRepeat } from '../lib/schedule';
 
 interface MonthCalendarProps {
@@ -536,8 +544,11 @@ export function MonthCalendar({
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
-                      {item.norm.label}
+                    <span className="font-mono font-semibold text-slate-600 w-16 shrink-0 flex items-center gap-1">
+                      <span>{item.norm.label}</span>
+                      <span className={weekdayToneClass(item.norm.key)}>
+                        {weekdayChar(item.norm.key)}
+                      </span>
                     </span>
                     {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-800 truncate">
@@ -563,8 +574,11 @@ export function MonthCalendar({
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
-                      {item.norm.label}
+                    <span className="font-mono font-semibold text-slate-600 w-16 shrink-0 flex items-center gap-1">
+                      <span>{item.norm.label}</span>
+                      <span className={weekdayToneClass(item.norm.key)}>
+                        {weekdayChar(item.norm.key)}
+                      </span>
                     </span>
                     {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-800 truncate">
@@ -590,8 +604,11 @@ export function MonthCalendar({
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-700 calendar-schedule-row border border-slate-100"
                   >
                     <span className="accent-text text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-600 w-10 shrink-0">
-                      {item.norm.label}
+                    <span className="font-mono font-semibold text-slate-600 w-16 shrink-0 flex items-center gap-1">
+                      <span>{item.norm.label}</span>
+                      <span className={weekdayToneClass(item.norm.key)}>
+                        {weekdayChar(item.norm.key)}
+                      </span>
                     </span>
                     {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-800 truncate">

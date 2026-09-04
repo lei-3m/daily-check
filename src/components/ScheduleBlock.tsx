@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { ScheduleItem } from '../lib/types';
-import { todayKey, shortLabel, addDays } from '../lib/date';
+import { todayKey, shortLabel, addDays, weekdayChar, weekdayToneClass } from '../lib/date';
 import { ScheduleOccurrence, expandScheduleInRange } from '../lib/schedule';
 
 interface ScheduleBlockProps {
@@ -56,8 +56,11 @@ function ScheduleItemRow({
     // 첫 줄 중심은 내용 위에서 12px이라, 높이가 다른 컨트롤을 그 값에 맞춘다.
     <li className="flex items-start justify-between group py-1 px-1.5 rounded hover:bg-slate-100/80 transition-colors min-w-0 gap-2">
       <div className="flex items-start gap-2 min-w-0 flex-1">
-        <span className="mt-0.5 font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
-          {formatDisplayDate(occurrenceDate)}
+        <span className="mt-0.5 font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1">
+          <span>{formatDisplayDate(occurrenceDate)}</span>
+          <span className={weekdayToneClass(occurrenceDate)}>
+            {weekdayChar(occurrenceDate)}
+          </span>
         </span>
 
         {repeat ? <span className="mt-0.5 text-slate-400 shrink-0">↻</span> : null}

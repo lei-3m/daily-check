@@ -31,6 +31,21 @@ export function weekdayLabel(key: string): string {
   return WEEKDAYS[parseKey(key).getDay()];
 }
 
+/** 요일 한 글자. 잘못된 키면 빈 문자열. */
+export function weekdayChar(key: string): string {
+  const day = parseKey(key).getDay();
+  if (Number.isNaN(day)) return '';
+  return WEEKDAYS[day][0];
+}
+
+/** 요일 헤더와 같은 색: 일요일 빨강, 토요일 파랑, 나머지는 상속. */
+export function weekdayToneClass(key: string): string {
+  const day = parseKey(key).getDay();
+  if (day === 0) return 'text-red-500/80';
+  if (day === 6) return 'text-blue-500/80';
+  return '';
+}
+
 export function fullLabel(key: string): string {
   const d = parseKey(key);
   const month = d.getMonth() + 1;
