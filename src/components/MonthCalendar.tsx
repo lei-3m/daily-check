@@ -634,8 +634,11 @@ export function MonthCalendar({
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer text-slate-500 calendar-schedule-row-past border border-slate-100"
                   >
                     <span className="text-slate-300 text-[10px]">●</span>
-                    <span className="font-mono font-semibold text-slate-400 w-10 shrink-0">
-                      {item.norm.label}
+                    <span className="font-mono font-semibold text-slate-400 w-16 shrink-0 flex items-center gap-1">
+                      <span>{item.norm.label}</span>
+                      <span className={weekdayToneClass(item.norm.key)}>
+                        {weekdayChar(item.norm.key)}
+                      </span>
                     </span>
                     {hasRepeat(item) ? <span className="text-slate-400 shrink-0">↻</span> : null}
                     <span className="font-medium text-slate-600 truncate">
