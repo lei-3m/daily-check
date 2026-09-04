@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Todo } from '../lib/types';
+import { Repeat } from 'lucide-react';
+import { DisplayTodo } from '../lib/routineTodos';
 
 interface TodoRowProps {
   key?: string;
-  todo: Todo;
+  todo: DisplayTodo;
   isSelectMode?: boolean;
   isSelected?: boolean;
   isDragDisabled?: boolean;
@@ -26,6 +27,9 @@ export function TodoRow({
   onDelete,
 }: TodoRowProps) {
   const { id, text, done } = todo;
+  // 루틴에서 온 항목. 내용 수정과 삭제는 루틴 편집 화면에서만 한다.
+  const isRoutine = Boolean(todo.routineId);
+  const canSelect = !isRoutine;
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,9 +68,10 @@ export function TodoRow({
 
   const handleStartEdit = () => {
     if (isSelectMode) {
-      onToggleSelect?.(id);
+      if (canSelect) onToggleSelect?.(id);
       return;
     }
+    if (isRoutine) return;
     setEditText(text);
     isCancelledRef.current = false;
     setIsEditing(true);
@@ -99,14 +104,16 @@ export function TodoRow({
     <div
       ref={setNodeRef}
       style={style}
-      onClick={isSelectMode ? () => onToggleSelect?.(id) : undefined}
+      onClick={isSelectMode && canSelect ? () => onToggleSelect?.(id) : undefined}
       // 긴 할 일은 여러 줄로 늘어난다. items-start라야 손잡이·체크박스·✕가
       // 가운데로 떠내려가지 않고 첫 줄 옆에 남는다.
       className={`group flex items-start justify-between py-2 px-2.5 rounded-lg motion-safe:transition-[transform,background-color,border-color,box-shadow,opacity] motion-safe:duration-150 motion-reduce:transition-none border ${
         isDragging
           ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : isSelectMode
-          ? isSelected
+          ? !canSelect
+            ? 'border-transparent opacity-60'
+            : isSelected
             ? 'accent-soft accent-border cursor-pointer'
             : 'hover:bg-slate-50 border-slate-100 cursor-pointer'
           : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
@@ -114,7 +121,14 @@ export function TodoRow({
     >
       <div className="flex items-start min-w-0 flex-1 mr-1">
         {/* Selection Checkbox (in place of Drag handle when in Select Mode) */}
-        {isSelectMode ? (
+        {isSelectMode && !canSelect ? (
+          <span
+            className="w-10 h-10 flex items-center justify-center shrink-0 -ml-1 text-slate-300 select-none"
+            title="루틴은 다른 날짜로 옮길 수 없어요"
+          >
+            <Repeat className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+          </span>
+        ) : isSelectMode ? (
           <button
             type="button"
             onClick={(e) => {
@@ -217,7 +231,7 @@ export function TodoRow({
         )}
 
         {/* Task Text or Edit Input */}
-        {!isSelectMode && isEditing ? (
+        {!isSelectMode && !isRoutine && isEditing ? (
           <input
             ref={inputRef}
             type="text"
@@ -229,21 +243,40 @@ export function TodoRow({
           />
         ) : (
           <span
-            onClick={isSelectMode ? undefined : handleStartEdit}
-            title={isSelectMode ? '선택' : '클릭하여 수정'}
+            onClick={isSelectMode || isRoutine ? undefined : handleStartEdit}
+            title={
+              isRoutine
+                ? '루틴입니다. 수정은 루틴 관리에서 하세요'
+                : isSelectMode
+                ? '선택'
+                : '클릭하여 수정'
+            }
             // py-2.5로 첫 줄 중심을 40px 컨트롤의 중심(20px)에 맞춘다.
             // 줄 수 제한은 두지 않는다. 긴 항목은 그만큼 높아진다.
             className={`min-w-0 py-2.5 text-sm font-medium break-words ${
-              isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'
+              isSelectMode || isRoutine
+                ? 'select-none'
+                : 'cursor-pointer hover:text-slate-900'
             } ${done ? 'line-through text-slate-400' : 'text-slate-800'}`}
           >
+            {/* 루틴 표시는 작은 아이콘 하나. 일반 할 일과 톤을 같게 둔다. */}
+            {isRoutine ? (
+              <>
+                <span className="sr-only">루틴 </span>
+                <Repeat
+                  className="inline-block w-3.5 h-3.5 mr-1 -mt-0.5 align-middle text-slate-400"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+              </>
+            ) : null}
             {text}
           </span>
         )}
       </div>
 
       {/* Delete Button (Hidden in Select Mode) */}
-      {!isSelectMode && (
+      {!isSelectMode && !isRoutine && (
         <button
           type="button"
           onClick={() => onDelete(id)}

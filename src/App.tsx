@@ -46,6 +46,16 @@ import {
 import { expandScheduleInRange } from './lib/schedule';
 import { normalizeRoutines } from './lib/routine';
 import {
+  DisplayTodo,
+  isRoutineTodoId,
+  mergeRoutineTodos,
+  pruneTodoOrder,
+  routineIdFromTodoId,
+  routineTodosFor,
+  stripRoutineTodos,
+  toggleRoutineDone,
+} from './lib/routineTodos';
+import {
   appendIncompleteTodos,
   normalizeTodoOrder,
   toggleTodoDoneAndMove,
@@ -630,6 +640,12 @@ export default function App() {
   const yesterdayKey = addDays(today, -1);
   const currentDay = appState.days[activeKey] || { todos: [], memo: '' };
   const todos = normalizeTodoOrder(currentDay.todos || []);
+  const routines = normalizeRoutines(appState.routines);
+  // 루틴은 저장된 할 일이 아니라 여기서 계산해 목록에 얹는다.
+  const routineTodos = routineTodosFor(routines, activeKey);
+  const displayTodos = normalizeTodoOrder(
+    mergeRoutineTodos(todos, routineTodos, currentDay.todoOrder)
+  );
   const yesterdayIncompleteTodos = (appState.days[yesterdayKey]?.todos || []).filter(
     (todo) => !todo.done
   );
@@ -650,11 +666,11 @@ export default function App() {
 
   const editingRoutine =
     view.kind === 'routineEdit' && view.id
-      ? normalizeRoutines(appState.routines).find((routine) => routine.id === view.id)
+      ? routines.find((routine) => routine.id === view.id)
       : undefined;
 
-  const completedCount = todos.filter((t) => t.done).length;
-  const totalCount = todos.length;
+  const completedCount = displayTodos.filter((t) => t.done).length;
+  const totalCount = displayTodos.length;
 
   const createTodo = (text: string): Todo => ({
     id:
@@ -665,20 +681,30 @@ export default function App() {
     done: false,
   });
 
-  const updateCurrentDay = (newTodos: Todo[], newMemo?: string) => {
+  const updateCurrentDay = (newTodos: Todo[], newMemo?: string, newOrder?: string[]) => {
     setAppState((prev) => {
       if (!prev) return prev;
       const orderedTodos = normalizeTodoOrder(newTodos);
       const memoValue =
         newMemo !== undefined ? newMemo : prev.days[activeKey]?.memo || '';
       const newDays = { ...prev.days };
+      const todoOrder = pruneTodoOrder(
+        newOrder !== undefined ? newOrder : prev.days[activeKey]?.todoOrder,
+        [...orderedTodos, ...routineTodos]
+      );
 
-      if (orderedTodos.length === 0 && (!memoValue || memoValue.trim() === '')) {
+      // 루틴만 있는 날은 저장할 할 일이 없다. 그래도 서로의 순서는 남긴다.
+      if (
+        orderedTodos.length === 0 &&
+        (!memoValue || memoValue.trim() === '') &&
+        todoOrder.length < 2
+      ) {
         delete newDays[activeKey];
       } else {
         newDays[activeKey] = {
           todos: orderedTodos,
           memo: memoValue,
+          ...(todoOrder.length > 0 ? { todoOrder } : {}),
         };
       }
 
@@ -690,10 +716,23 @@ export default function App() {
   };
 
   const handleToggle = (id: string) => {
+    const routineId = routineIdFromTodoId(id);
+    if (routineId) {
+      // 그 날짜의 완료 여부만 바꾼다. 다른 날짜는 그대로다.
+      setAppState((prev) =>
+        prev
+          ? { ...prev, routines: toggleRoutineDone(prev.routines, routineId, activeKey) }
+          : prev
+      );
+      return;
+    }
     updateCurrentDay(toggleTodoDoneAndMove(todos, id));
   };
 
+  // 루틴의 내용과 삭제는 루틴 편집 화면에서만 다룬다.
+  // 여기서 고치면 그 루틴이 나타나는 다른 날짜까지 바뀐다.
   const handleEdit = (id: string, newText: string) => {
+    if (isRoutineTodoId(id)) return;
     updateCurrentDay(
       todos.map((todo) =>
         todo.id === id ? { ...todo, text: newText } : todo
@@ -702,7 +741,16 @@ export default function App() {
   };
 
   const handleDelete = (id: string) => {
+    if (isRoutineTodoId(id)) return;
     updateCurrentDay(todos.filter((todo) => todo.id !== id));
+  };
+
+  const handleReorderTodos = (newTodos: DisplayTodo[]) => {
+    updateCurrentDay(
+      stripRoutineTodos(newTodos),
+      undefined,
+      newTodos.map((todo) => todo.id)
+    );
   };
 
   const handleAddMany = (texts: string[]) => {
@@ -947,6 +995,7 @@ export default function App() {
         delete newDays[activeKey];
       } else {
         newDays[activeKey] = {
+          ...newDays[activeKey],
           todos: remainingTodos,
           memo: sourceMemo,
         };
@@ -1189,12 +1238,12 @@ export default function App() {
   };
 
   const handleCopy = async () => {
-    if (todos.every((todo) => todo.done)) {
+    if (displayTodos.every((todo) => todo.done)) {
       showToast('복사할 미완료 할 일이 없어요');
       return;
     }
 
-    const text = formatTodosToMarkdown(todos);
+    const text = formatTodosToMarkdown(displayTodos);
     const success = await copyToClipboard(text);
     if (success) {
       showToast('미완료 할 일을 복사했어요');
@@ -1600,7 +1649,7 @@ export default function App() {
             )}
 
             <TodoList
-              todos={todos}
+              todos={displayTodos}
               isSelectMode={isSelectMode}
               selectedIds={selectedIds}
               onToggleSelect={handleToggleSelect}
@@ -1608,7 +1657,7 @@ export default function App() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onAddMany={handleAddMany}
-              onReorderTodos={(newTodos) => updateCurrentDay(newTodos)}
+              onReorderTodos={handleReorderTodos}
               onSwipeDate={handleSwipeTodoDate}
               onOpenRoutines={openRoutineList}
             />

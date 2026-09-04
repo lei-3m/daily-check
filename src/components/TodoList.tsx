@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { ChevronDown, ChevronUp, Repeat } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Todo } from '../lib/types';
+import { DisplayTodo } from '../lib/routineTodos';
 import { restrictDragToList, useListDragSensors } from '../lib/listDrag';
 import { moveIncompleteTodo } from '../lib/todoOrder';
 import { TodoRow } from './TodoRow';
@@ -34,7 +34,7 @@ function shouldIgnoreSwipeStart(target: EventTarget | null): boolean {
 }
 
 interface TodoListProps {
-  todos: Todo[];
+  todos: DisplayTodo[];
   isSelectMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
@@ -42,7 +42,7 @@ interface TodoListProps {
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
   onAddMany: (texts: string[]) => void;
-  onReorderTodos?: (newTodos: Todo[]) => void;
+  onReorderTodos?: (newTodos: DisplayTodo[]) => void;
   onSwipeDate?: (direction: -1 | 1) => void;
   /** 루틴 관리 화면으로 이동합니다. */
   onOpenRoutines?: () => void;
