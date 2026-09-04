@@ -14,6 +14,8 @@ interface TodoRowProps {
   onToggle: (id: string) => void;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
+  /** 루틴 항목을 눌렀을 때. 루틴 수정 화면으로 이동합니다. */
+  onOpenRoutine?: (routineId: string) => void;
 }
 
 export function TodoRow({
@@ -25,6 +27,7 @@ export function TodoRow({
   onToggle,
   onEdit,
   onDelete,
+  onOpenRoutine,
 }: TodoRowProps) {
   const { id, text, done } = todo;
   // 루틴에서 온 항목. 내용 수정과 삭제는 루틴 편집 화면에서만 한다.
@@ -71,7 +74,11 @@ export function TodoRow({
       if (canSelect) onToggleSelect?.(id);
       return;
     }
-    if (isRoutine) return;
+    // 루틴은 여기서 고치면 다른 날짜까지 바뀐다. 루틴 수정 화면으로 보낸다.
+    if (isRoutine) {
+      if (todo.routineId) onOpenRoutine?.(todo.routineId);
+      return;
+    }
     setEditText(text);
     isCancelledRef.current = false;
     setIsEditing(true);
@@ -243,10 +250,10 @@ export function TodoRow({
           />
         ) : (
           <span
-            onClick={isSelectMode || isRoutine ? undefined : handleStartEdit}
+            onClick={isSelectMode ? undefined : handleStartEdit}
             title={
               isRoutine
-                ? '루틴입니다. 수정은 루틴 관리에서 하세요'
+                ? '루틴 수정 화면으로 이동'
                 : isSelectMode
                 ? '선택'
                 : '클릭하여 수정'
@@ -254,9 +261,7 @@ export function TodoRow({
             // py-2.5로 첫 줄 중심을 40px 컨트롤의 중심(20px)에 맞춘다.
             // 줄 수 제한은 두지 않는다. 긴 항목은 그만큼 높아진다.
             className={`min-w-0 py-2.5 text-sm font-medium break-words ${
-              isSelectMode || isRoutine
-                ? 'select-none'
-                : 'cursor-pointer hover:text-slate-900'
+              isSelectMode ? 'select-none' : 'cursor-pointer hover:text-slate-900'
             } ${done ? 'line-through text-slate-400' : 'text-slate-800'}`}
           >
             {/* 루틴 표시는 작은 아이콘 하나. 일반 할 일과 톤을 같게 둔다. */}

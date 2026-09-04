@@ -44,8 +44,10 @@ interface TodoListProps {
   onAddMany: (texts: string[]) => void;
   onReorderTodos?: (newTodos: DisplayTodo[]) => void;
   onSwipeDate?: (direction: -1 | 1) => void;
-  /** 루틴 관리 화면으로 이동합니다. */
-  onOpenRoutines?: () => void;
+  /** 새 루틴 추가 화면으로 이동합니다. */
+  onAddRoutine?: () => void;
+  /** 루틴 항목을 눌렀을 때 그 루틴의 수정 화면으로 이동합니다. */
+  onOpenRoutine?: (routineId: string) => void;
 }
 
 export function TodoList({
@@ -59,7 +61,8 @@ export function TodoList({
   onAddMany,
   onReorderTodos,
   onSwipeDate,
-  onOpenRoutines,
+  onAddRoutine,
+  onOpenRoutine,
 }: TodoListProps) {
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const addFormRef = useRef<TodoAddFormHandle>(null);
@@ -297,6 +300,7 @@ export function TodoList({
                       onToggle={onToggle}
                       onEdit={onEdit}
                       onDelete={onDelete}
+                      onOpenRoutine={onOpenRoutine}
                     />
                   ))}
 
@@ -311,6 +315,7 @@ export function TodoList({
                     onToggle={onToggle}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onOpenRoutine={onOpenRoutine}
                   />
                 ))}
               </>
@@ -332,12 +337,12 @@ export function TodoList({
             }}
             className="flex-1 min-w-0"
           />
-          {onOpenRoutines ? (
+          {onAddRoutine ? (
             <button
               type="button"
-              onClick={onOpenRoutines}
-              aria-label="루틴 관리"
-              title="루틴 관리"
+              onClick={onAddRoutine}
+              aria-label="루틴 추가"
+              title="루틴 추가"
               data-todo-swipe-ignore="true"
               className="w-11 min-w-[44px] shrink-0 flex items-center justify-center rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-500 surface-hover-media focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition-colors"
             >

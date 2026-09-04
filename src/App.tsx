@@ -1168,10 +1168,6 @@ export default function App() {
     }
   };
 
-  const openRoutineList = () => {
-    pushView({ kind: 'routineList' });
-  };
-
   const closeRoutineList = () => {
     window.history.back();
   };
@@ -1659,7 +1655,8 @@ export default function App() {
               onAddMany={handleAddMany}
               onReorderTodos={handleReorderTodos}
               onSwipeDate={handleSwipeTodoDate}
-              onOpenRoutines={openRoutineList}
+              onAddRoutine={() => openRoutineEdit(null)}
+              onOpenRoutine={openRoutineEdit}
             />
 
             {!isSelectMode && (
