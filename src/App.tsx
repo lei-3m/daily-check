@@ -1259,7 +1259,8 @@ export default function App() {
   const handlePrioritize = async () => {
     if (isPrioritizing) return;
 
-    const incompleteTodos = todos.filter((todo) => !todo.done);
+    // 루틴도 그 날의 할 일이다. 텍스트 그대로 함께 보낸다.
+    const incompleteTodos = displayTodos.filter((todo) => !todo.done);
     if (incompleteTodos.length < 2) {
       showToast('정렬할 할 일이 부족해요');
       return;
@@ -1312,26 +1313,27 @@ export default function App() {
 
     const suggestedTodosById = new Map(
       prioritySuggestion.items
-        .map((item) => todos.find((todo) => todo.id === item.id))
-        .filter((todo): todo is Todo => Boolean(todo))
+        .map((item) => displayTodos.find((todo) => todo.id === item.id))
+        .filter((todo): todo is DisplayTodo => Boolean(todo))
         .map((todo) => [todo.id, todo])
     );
     const reorderedIncomplete = prioritySuggestion.items
       .map((item) => suggestedTodosById.get(item.id))
-      .filter((todo): todo is Todo => Boolean(todo));
+      .filter((todo): todo is DisplayTodo => Boolean(todo));
 
-    if (reorderedIncomplete.length !== todos.filter((todo) => !todo.done).length) {
+    if (reorderedIncomplete.length !== displayTodos.filter((todo) => !todo.done).length) {
       showToast('AI 순서 적용에 실패했어요');
       return;
     }
 
     let nextIncompleteIndex = 0;
-    const nextTodos = todos.map((todo) => {
+    const nextTodos = displayTodos.map((todo) => {
       if (todo.done) return todo;
       return reorderedIncomplete[nextIncompleteIndex++] || todo;
     });
 
-    updateCurrentDay(nextTodos);
+    // 루틴이 섞여 있으므로 할 일 배열과 표시 순서를 함께 저장한다.
+    handleReorderTodos(nextTodos);
     setPrioritySuggestion(null);
     showToast('AI가 제안한 순서를 적용했어요');
   };
