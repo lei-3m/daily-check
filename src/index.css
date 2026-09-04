@@ -44,6 +44,10 @@
      text-* 토큰을 쓰면 안 된다. --text-disabled는 다크에서 --text-faint보다
      오히려 밝아서, 라이트에서 연해진 만큼 다크에서는 진해진다. */
   --calendar-other-month: #a8b3c1;
+  /* 루틴 항목 표시. 강조색과 섞이면 안 되므로 따로 둔 차분한 보라다. */
+  --routine-bar: #7d74c0;
+  --routine-surface: color-mix(in srgb, var(--surface) 95%, var(--routine-bar));
+  --routine-border: color-mix(in srgb, var(--border) 72%, var(--routine-bar));
 }
 
 html.dark {
@@ -87,6 +91,11 @@ html.dark {
   --calendar-today-dot-selected: #f1f3f5;
   --calendar-todo-dot: #74d1ff;
   --calendar-other-month: #6b7482;
+  /* 어두운 바탕에서는 같은 보라가 가라앉는다. 한 단계 밝게 쓰고
+     배경은 라이트보다 조금 더 섞어야 같은 정도로 보인다. */
+  --routine-bar: #9089d2;
+  --routine-surface: color-mix(in srgb, var(--surface) 90%, var(--routine-bar));
+  --routine-border: color-mix(in srgb, var(--border) 80%, var(--routine-bar));
 }
 
 html[data-accent='default'] {
@@ -652,6 +661,33 @@ html.dark .move-date-button:disabled .move-date-button-date {
 
 html.dark .opacity-60 {
   opacity: 0.85 !important;
+}
+
+/* 루틴 항목. 개수가 늘어도 목록이 흩어지지 않게 톤만 살짝 낮추고
+   왼쪽에 얇은 바를 둔다. 강조색보다 조용해야 한다. */
+.routine-row {
+  background-color: var(--routine-surface);
+  border-color: var(--routine-border);
+}
+
+/* 눌러서 루틴 수정으로 가는 항목이므로 PC에서는 짚어줄 색이 필요하다.
+   톤만 한 단계 올린다. 일반 할 일의 hover 색을 쓰면 구분이 사라진다. */
+@media (hover: hover) {
+  .routine-row-interactive:hover {
+    background-color: color-mix(in srgb, var(--routine-surface) 82%, var(--surface-hover));
+  }
+}
+
+.routine-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* 모서리 반지름(0.5rem)만큼 띄워야 바가 둥근 귀 밖으로 새지 않는다. */
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 3px;
+  border-radius: 9999px;
+  background-color: var(--routine-bar);
 }
 
 .app-container {

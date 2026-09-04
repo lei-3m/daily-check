@@ -119,10 +119,12 @@ export function TodoRow({
           ? 'shadow-xl bg-white opacity-95 scale-[1.01] border-slate-300 ring-1.5 ring-slate-200'
           : isSelectMode
           ? !canSelect
-            ? 'border-transparent opacity-60'
+            ? 'routine-row opacity-60'
             : isSelected
             ? 'accent-soft accent-border cursor-pointer'
             : 'hover:bg-slate-50 border-slate-100 cursor-pointer'
+          : isRoutine
+          ? 'routine-row routine-row-interactive'
           : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
       }`}
     >
