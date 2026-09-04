@@ -29,6 +29,12 @@ export type Todo = {
 export type Day = {
   todos: Todo[];
   memo: string;
+  /**
+   * 사용자가 드래그로 정한 표시 순서(할 일 id + 루틴 항목 id).
+   * 루틴 항목은 저장되지 않으므로 위치만 여기에 남깁니다.
+   * 순서를 바꾼 적이 없으면 없습니다.
+   */
+  todoOrder?: string[];
 };
 
 export type ScheduleItem = {

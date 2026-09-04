@@ -1140,8 +1140,19 @@ function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: A
       memo = remoteDay.memo || '';
     }
 
+    // 표시 순서는 내용이 아니라 배치입니다. 양쪽이 다르면 로컬 것을 씁니다.
+    const baseOrder = baseDay.todoOrder || [];
+    const localOrder = localDay.todoOrder || [];
+    const remoteOrder = remoteDay.todoOrder || [];
+    const localOrderChanged = localOrder.join('|') !== baseOrder.join('|');
+    const todoOrder = localOrderChanged ? localOrder : remoteOrder;
+
     if (todos.length > 0 || memo.trim()) {
-      days[dayKey] = { todos, memo };
+      days[dayKey] = {
+        todos,
+        memo,
+        ...(todoOrder.length > 0 ? { todoOrder } : {}),
+      };
     }
   }
 

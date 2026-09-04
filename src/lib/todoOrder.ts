@@ -1,6 +1,6 @@
 import { Todo } from './types';
 
-export function normalizeTodoOrder(todos: Todo[]): Todo[] {
+export function normalizeTodoOrder<T extends Todo>(todos: T[]): T[] {
   return [
     ...todos.filter((todo) => todo.done),
     ...todos.filter((todo) => !todo.done),
@@ -37,11 +37,11 @@ export function toggleTodoDoneAndMove(todos: Todo[], id: string): Todo[] {
   ];
 }
 
-export function moveIncompleteTodo(
-  todos: Todo[],
+export function moveIncompleteTodo<T extends Todo>(
+  todos: T[],
   activeId: string,
   overId: string
-): Todo[] {
+): T[] {
   const activeTodo = todos.find((todo) => todo.id === activeId);
   const overTodo = todos.find((todo) => todo.id === overId);
   if (!activeTodo || !overTodo || activeTodo.done || overTodo.done) return todos;
