@@ -99,12 +99,22 @@ export function RoutineEditView({ item, onBack, onSave, onDelete }: RoutineEditV
             onChange={(e) => setText(e.target.value)}
             placeholder="예: 코딩테스트 1문 (09:00)"
             enterKeyHint="done"
+            autoFocus={!item}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') e.preventDefault();
+              if (e.key !== 'Enter') return;
+              // Enter가 다음 칸으로 넘어가지 않게 막고, 채워진 기본값 그대로 저장한다.
+              e.preventDefault();
+              if (canSave) handleSave();
             }}
             className="min-h-11 text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
           />
         </label>
+
+        {!item ? (
+          <p className="text-xs text-slate-400">
+            아래 값은 기본으로 채워져 있습니다. 그대로 저장해도 됩니다.
+          </p>
+        ) : null}
 
         <fieldset className="space-y-2">
           <legend className="text-xs font-semibold text-slate-500 pb-1">반복 요일</legend>
