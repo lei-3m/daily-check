@@ -62,6 +62,8 @@ function isRoutine(value: unknown): value is Routine {
     value.weekdays.every(isWeekday) &&
     isDateKey(value.startDate) &&
     (value.endDate === undefined || isDateKey(value.endDate)) &&
+    (value.sortOrder === undefined ||
+      (typeof value.sortOrder === 'number' && Number.isFinite(value.sortOrder))) &&
     (value.done === undefined || isDoneMap(value.done))
   );
 }

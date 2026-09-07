@@ -550,6 +550,7 @@ function routineEquals(a: Routine, b: Routine): boolean {
     a.text === b.text &&
     a.startDate === b.startDate &&
     a.endDate === b.endDate &&
+    a.sortOrder === b.sortOrder &&
     weekdaysEqual(a.weekdays, b.weekdays)
   );
 }
@@ -1164,10 +1165,11 @@ function mergeThreeWay(localState: AppState, baseState: AppState, remoteState: A
     remoteConflicts
   );
 
+  // 정렬 순서 값이 없는 예전 데이터가 섞여 있으면 없던 변경으로 읽힌다.
   const routines = mergeRoutines(
-    base.routines || [],
-    local.routines || [],
-    remote.routines || [],
+    normalizeRoutines(base.routines),
+    normalizeRoutines(local.routines),
+    normalizeRoutines(remote.routines),
     localConflicts,
     remoteConflicts
   );

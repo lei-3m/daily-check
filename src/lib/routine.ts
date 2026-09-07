@@ -47,14 +47,33 @@ export function normalizeDoneMap(done?: Record<string, boolean>): Record<string,
   return result;
 }
 
+function isSortOrder(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * 정렬 순서 값이 없는 예전 데이터는 저장된 차례(생성 순서)를 그대로 씁니다.
+ * 정렬은 안정 정렬이라 값이 같으면 원래 차례가 유지됩니다.
+ */
 export function normalizeRoutines(routines?: Routine[]): Routine[] {
   if (!routines || routines.length === 0) return [];
-  return routines.map((routine, index) => ({
-    id: routine.id || `routine-${index}`,
-    text: typeof routine.text === 'string' ? routine.text : '',
-    weekdays: sortWeekdays(routine.weekdays || []),
-    startDate: routine.startDate,
-    ...(routine.endDate ? { endDate: routine.endDate } : {}),
-    done: normalizeDoneMap(routine.done),
-  }));
+  return routines
+    .map((routine, index) => ({
+      id: routine.id || `routine-${index}`,
+      text: typeof routine.text === 'string' ? routine.text : '',
+      weekdays: sortWeekdays(routine.weekdays || []),
+      startDate: routine.startDate,
+      ...(routine.endDate ? { endDate: routine.endDate } : {}),
+      sortOrder: isSortOrder(routine.sortOrder) ? routine.sortOrder : index,
+      done: normalizeDoneMap(routine.done),
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/** 새 루틴은 목록 맨 아래에 붙습니다. */
+export function nextRoutineSortOrder(routines: Routine[]): number {
+  return routines.reduce(
+    (max, routine) => (isSortOrder(routine.sortOrder) ? Math.max(max, routine.sortOrder) : max),
+    -1
+  ) + 1;
 }

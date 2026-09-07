@@ -44,7 +44,7 @@ import {
   PrioritySuggestion,
 } from './lib/priority';
 import { expandScheduleInRange } from './lib/schedule';
-import { normalizeRoutines } from './lib/routine';
+import { nextRoutineSortOrder, normalizeRoutines } from './lib/routine';
 import {
   DisplayTodo,
   isRoutineTodoId,
@@ -1212,6 +1212,7 @@ export default function App() {
         weekdays,
         startDate,
         ...(endDate ? { endDate } : {}),
+        sortOrder: nextRoutineSortOrder(routines),
         done: {},
       };
       return { ...prev, routines: [...routines, newRoutine] };

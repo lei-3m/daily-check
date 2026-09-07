@@ -57,6 +57,11 @@ export type Routine = {
   startDate: string;
   /** 없으면 무기한 반복입니다. */
   endDate?: string;
+  /**
+   * 루틴끼리의 표시 순서. 작은 값이 위에 옵니다.
+   * 예전 데이터에는 없어서 선택 항목입니다. normalizeRoutines가 생성 순서로 채웁니다.
+   */
+  sortOrder?: number;
   /** 완료한 날짜만 담습니다. 예: {"2026-09-04": true} */
   done: Record<string, boolean>;
 };
