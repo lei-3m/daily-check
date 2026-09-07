@@ -47,10 +47,12 @@ import { expandScheduleInRange } from './lib/schedule';
 import { nextRoutineSortOrder, normalizeRoutines } from './lib/routine';
 import {
   DisplayTodo,
+  applyRoutineDragOrder,
   isRoutineTodoId,
   mergeRoutineTodos,
   pruneTodoOrder,
   routineIdFromTodoId,
+  routineIdsInDragOrder,
   routineTodosFor,
   stripRoutineTodos,
   toggleRoutineDone,
@@ -745,12 +747,32 @@ export default function App() {
     updateCurrentDay(todos.filter((todo) => todo.id !== id));
   };
 
+  // 오늘 하루만의 배치입니다. 루틴의 정렬 순서 값은 건드리지 않습니다.
   const handleReorderTodos = (newTodos: DisplayTodo[]) => {
     updateCurrentDay(
       stripRoutineTodos(newTodos),
       undefined,
       newTodos.map((todo) => todo.id)
     );
+  };
+
+  /**
+   * 드래그로 루틴끼리의 위아래가 바뀌었다면 그것만 영구 저장합니다.
+   * 할 일이 루틴 사이로 들어간 것은 오늘 하루의 배치로만 남습니다.
+   */
+  const handleDragReorderTodos = (newTodos: DisplayTodo[], movedId: string) => {
+    const movedRoutineId = routineIdFromTodoId(movedId);
+    if (movedRoutineId) {
+      const nextRoutines = applyRoutineDragOrder(
+        routines,
+        movedRoutineId,
+        routineIdsInDragOrder(newTodos)
+      );
+      if (nextRoutines) {
+        setAppState((prev) => (prev ? { ...prev, routines: nextRoutines } : prev));
+      }
+    }
+    handleReorderTodos(newTodos);
   };
 
   const handleAddMany = (texts: string[]) => {
@@ -1656,7 +1678,7 @@ export default function App() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onAddMany={handleAddMany}
-              onReorderTodos={handleReorderTodos}
+              onReorderTodos={handleDragReorderTodos}
               onSwipeDate={handleSwipeTodoDate}
               onAddRoutine={() => openRoutineEdit(null)}
               onOpenRoutine={openRoutineEdit}

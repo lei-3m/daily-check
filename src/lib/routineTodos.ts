@@ -114,6 +114,62 @@ export function stripRoutineTodos(todos: DisplayTodo[]): Todo[] {
     .map(({ id, text, done }) => ({ id, text, done }));
 }
 
+/**
+ * 드래그 판정에 쓰는 루틴 id 순서.
+ *
+ * 완료한 항목은 목록 위로 모으는 규칙 때문에 자리가 강제되고 드래그도 막혀 있어
+ * 상대 순서를 논할 대상이 아닙니다. 그래서 빼고 봅니다.
+ */
+export function routineIdsInDragOrder(todos: DisplayTodo[]): string[] {
+  return todos
+    .filter((todo) => !todo.done)
+    .map((todo) => todo.routineId || routineIdFromTodoId(todo.id))
+    .filter((id): id is string => Boolean(id));
+}
+
+function sameSequence(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+/**
+ * 드래그로 루틴끼리의 위아래가 바뀌었으면 그 변화를 sortOrder에 반영합니다.
+ *
+ * 움직인 루틴 하나를 정렬 순서 목록에서 뽑아, 드래그 결과에서 바로 앞에 있는
+ * 루틴 뒤에 다시 꽂습니다. 오늘 보이지 않는 루틴의 자리는 건드리지 않습니다.
+ * 루틴끼리의 순서가 그대로면 null을 돌려주고 아무것도 저장하지 않습니다.
+ */
+export function applyRoutineDragOrder(
+  routines: Routine[],
+  movedRoutineId: string,
+  afterIds: string[]
+): Routine[] | null {
+  const sorted = normalizeRoutines(routines);
+  const moved = sorted.find((routine) => routine.id === movedRoutineId);
+  if (!moved) return null;
+  const rest = sorted.filter((routine) => routine.id !== movedRoutineId);
+
+  const afterPosition = afterIds.indexOf(movedRoutineId);
+  if (afterPosition === -1) return null;
+  const predecessorId = afterPosition > 0 ? afterIds[afterPosition - 1] : null;
+
+  let insertAt: number;
+  if (predecessorId) {
+    const index = rest.findIndex((routine) => routine.id === predecessorId);
+    insertAt = index === -1 ? rest.length : index + 1;
+  } else {
+    // 오늘 보이는 루틴 중 맨 위가 되었다. 그 앞의 보이지 않는 루틴은 그대로 둔다.
+    const visible = new Set(afterIds);
+    const index = rest.findIndex((routine) => visible.has(routine.id));
+    insertAt = index === -1 ? rest.length : index;
+  }
+
+  const next = [...rest.slice(0, insertAt), moved, ...rest.slice(insertAt)];
+  if (sameSequence(next.map((routine) => routine.id), sorted.map((routine) => routine.id))) {
+    return null;
+  }
+  return next.map((routine, index) => ({ ...routine, sortOrder: index }));
+}
+
 /** 그 날짜의 완료 여부만 뒤집습니다. 다른 날짜는 건드리지 않습니다. */
 export function toggleRoutineDone(
   routines: Routine[] | undefined,

@@ -42,7 +42,8 @@ interface TodoListProps {
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
   onAddMany: (texts: string[]) => void;
-  onReorderTodos?: (newTodos: DisplayTodo[]) => void;
+  /** movedId는 방금 끌어 놓은 항목의 id입니다. */
+  onReorderTodos?: (newTodos: DisplayTodo[], movedId: string) => void;
   onSwipeDate?: (direction: -1 | 1) => void;
   /** 새 루틴 추가 화면으로 이동합니다. */
   onAddRoutine?: () => void;
@@ -117,7 +118,7 @@ export function TodoList({
       if (onReorderTodos) {
         const newTodos = moveIncompleteTodo(todos, String(active.id), String(over.id));
         if (newTodos === todos) return;
-        onReorderTodos(newTodos);
+        onReorderTodos(newTodos, String(active.id));
       }
     }
   };
