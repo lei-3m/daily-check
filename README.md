@@ -11,7 +11,7 @@
     <tr>
       <th width="33%">월 달력</th>
       <th width="33%">주간 뷰</th>
-      <th width="33%">AI 우선순위</th>
+      <th width="33%">우선순위 추천</th>
     </tr>
   </thead>
   <tbody>
