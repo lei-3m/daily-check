@@ -6,6 +6,29 @@
 
 <!-- 스크린샷 1~2장을 여기에 추가하세요 (주간 뷰, 월 달력 등) -->
 
+<table>
+  <thead>
+    <tr>
+      <th width="33%">월 달력</th>
+      <th width="33%">주간 뷰</th>
+      <th width="33%">AI 우선순위</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">
+        <img src="./docs-assets/month-calendar.png" width="100%" alt="월 달력" />
+      </td>
+      <td align="center">
+        <img src="./docs-assets/weekly-view.png" width="100%" alt="주간 뷰" />
+      </td>
+      <td align="center">
+        <img src="./docs-assets/ai-view.png" width="100%" alt="상세 뷰" />
+      </td>
+    </tr>
+  </tbody>
+</table>
+
 ## 왜 만들었나
 
 PC와 폰을 오가며 하루 할 일을 관리하고 싶었고, 막힐 때마다 AI에게 목록을 그대로 붙여넣어 상담하는 게 실제 작업 흐름이었습니다. 기존 투두 앱들은 이 흐름을 지원하지 않아 직접 만들었습니다. 목표는 단순합니다 — **오늘 할 일을 3초 안에 적고 체크한다.**
