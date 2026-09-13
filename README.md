@@ -1,4 +1,7 @@
-# Daily Check
+<div align="center">
+  <img src="public/icon-192.png" width="180" alt="Daily Check 아이콘"/>
+<h1>Daily Check</h1>
+</div>
 
 > 남은 일을 복사해 AI에 붙여넣는, 하루 단위 체크리스트
 
