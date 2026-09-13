@@ -4,8 +4,6 @@
 
 [데모 바로가기](https://daily-check-lime.vercel.app)
 
-<!-- 스크린샷 1~2장을 여기에 추가하세요 (주간 뷰, 월 달력 등) -->
-
 <table>
   <thead>
     <tr>
