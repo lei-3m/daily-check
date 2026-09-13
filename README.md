@@ -15,13 +15,13 @@
   <tbody>
     <tr>
       <td align="center">
-        <img src="./docs-assets/month-calendar.png" width="100%" alt="월 달력" />
+        <img src="./docs-assets/month-calendar.jpg" width="100%" alt="월 달력" />
       </td>
       <td align="center">
-        <img src="./docs-assets/weekly-view.png" width="100%" alt="주간 뷰" />
+        <img src="./docs-assets/weekly-view.jpg" width="100%" alt="주간 뷰" />
       </td>
       <td align="center">
-        <img src="./docs-assets/ai-view.png" width="100%" alt="상세 뷰" />
+        <img src="./docs-assets/ai-view.jpg" width="100%" alt="상세 뷰" />
       </td>
     </tr>
   </tbody>
